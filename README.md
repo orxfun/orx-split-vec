@@ -1,6 +1,6 @@
-# SplitVec
+# orx-split-vec
 
-A split vector is a vector represented as a sequence of
+A split vector, `SplitVec`, is a vector represented as a sequence of
 multiple contagious data fragments.
 
 It provides the following features:
