@@ -21,15 +21,21 @@ See for instance [orx-imp-vec](https://crates.io/crates/orx-imp-vec).
 
 # Why - Also
 
-`SplitVec` is certainly not a replacement for `Vec`,
-and not preferable over it most of the cases as it adds one level of abstraction.
+`SplitVec` is certainly not a replacement for `std::vec::Vec`,
+and not preferable over it in most of the cases
+since it adds one level of abstraction.
 
-It is useful for building a collection where:
+It is useful, however, for building a collection where:
 
-* contagious layout of the entire collection is not critical since we are more often pushing to the vector than reading elements,
-* so that the copies while building a vector due to uncertainty in capacity can be avoided.
+* there is a large uncertainty in the expected ultimate length, and
+* copies are expensive.
 
-SplitVec provides a std::vec::Vec like api for convenience and makes it easy to convert between these types.
+In this case, `SplitVec` provides a detailed control on how the memory should grow.
+Further, it avoids copies while growing.
+Instead, every time the vector needs to grow, it allocates a new chunk of memory
+as a separate fragment.
+
+Finally, it provides an api similar to standard vec for convenience and makes it easy to convert between these types.
 
 ```rust
 use orx_split_vec::{FragmentGrowth, SplitVec};
