@@ -163,6 +163,7 @@ impl FragmentGrowth {
     ///
     /// ```
     /// use orx_split_vec::{FragmentGrowth, SplitVec};
+    /// use std::rc::Rc;
     ///
     /// fn get_fragment_capacity(fragment: usize) -> usize {
     ///     let exp = (4.0 * f32::powf(1.5, fragment as f32)) as usize;
