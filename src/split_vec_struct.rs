@@ -1,6 +1,6 @@
 use crate::{fragment::fragment_struct::Fragment, FragmentGrowth};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// A split vector; i.e., a vector of fragments.
 pub struct SplitVec<T> {
     pub(crate) fragments: Vec<Fragment<T>>,

@@ -1,6 +1,4 @@
-use std::ops::{Deref, DerefMut};
-
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 /// A contagious fragment of the split vector.
 ///
 /// Suppose a split vector contains 10 integers from 0 to 9.
@@ -30,28 +28,5 @@ impl<T> Fragment<T> {
     /// Returns the available capacity in the fragment.
     pub fn room(&self) -> usize {
         self.data.capacity() - self.data.len()
-    }
-}
-
-impl<T> Deref for Fragment<T> {
-    type Target = Vec<T>;
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
-}
-impl<T> DerefMut for Fragment<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
-    }
-}
-
-impl<T> From<Vec<T>> for Fragment<T> {
-    fn from(value: Vec<T>) -> Self {
-        Self { data: value }
-    }
-}
-impl<T> From<Fragment<T>> for Vec<T> {
-    fn from(value: Fragment<T>) -> Self {
-        value.data
     }
 }

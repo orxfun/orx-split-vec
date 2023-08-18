@@ -1,7 +1,8 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, rc::Rc};
 
-pub(crate) type GetCapacityOfFragment = Box<dyn Fn(usize) -> usize>;
+pub(crate) type GetCapacityOfFragment = Rc<dyn Fn(usize) -> usize>;
 
+#[derive(Clone)]
 /// Growth policy of fragments in a split vector.
 pub struct FragmentGrowth {
     fun: GetCapacityOfFragment,
@@ -23,7 +24,7 @@ impl Default for FragmentGrowth {
             (INITIAL_CAPACITY as f32 * f32::powf(CAPACITY_MULTIPLIER, f as f32)) as usize
         }
         Self {
-            fun: Box::new(default_exponential_growth),
+            fun: Rc::new(default_exponential_growth),
         }
     }
 }
@@ -100,7 +101,7 @@ impl FragmentGrowth {
             capacity_multiplier > 1e-5,
             "capacity multiplier must be positive"
         );
-        let fun: GetCapacityOfFragment = Box::new(move |f| {
+        let fun: GetCapacityOfFragment = Rc::new(move |f| {
             (initial_capacity as f32 * f32::powf(capacity_multiplier, f as f32)) as usize
         });
         Self { fun }
@@ -146,7 +147,7 @@ impl FragmentGrowth {
             constant_fragment_length > 0,
             "constant growth factor, fragment length, must be positive"
         );
-        let fun: GetCapacityOfFragment = Box::new(move |_| constant_fragment_length);
+        let fun: GetCapacityOfFragment = Rc::new(move |_| constant_fragment_length);
         Self { fun }
     }
     /// Creates a growth policy function where the capacities are computed by the given function.
@@ -167,7 +168,7 @@ impl FragmentGrowth {
     ///     let exp = (4.0 * f32::powf(1.5, fragment as f32)) as usize;
     ///     exp.min(10)
     /// }
-    /// let growth = FragmentGrowth::by_function(Box::new(get_fragment_capacity));
+    /// let growth = FragmentGrowth::by_function(Rc::new(get_fragment_capacity));
     /// let mut vec = SplitVec::with_growth(growth);
     ///
     /// for i in 0..1000 {
@@ -183,7 +184,7 @@ impl FragmentGrowth {
     /// }
     ///
     /// ```
-    pub fn by_function(get_capacity_of_fragment: Box<dyn Fn(usize) -> usize>) -> Self {
+    pub fn by_function(get_capacity_of_fragment: Rc<dyn Fn(usize) -> usize>) -> Self {
         Self {
             fun: get_capacity_of_fragment,
         }
