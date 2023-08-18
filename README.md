@@ -35,18 +35,21 @@ SplitVec provides a std::vec::Vec like api for convenience and makes it easy to 
 use orx_split_vec::{FragmentGrowth, SplitVec};
 
 // the capacity will be expanded in chunks of 10 items
-// see 'FragmentGrowth::exponential' and 'FragmentGrowth::by_function' for alternative flexible growth strategies.
+// see 'FragmentGrowth::exponential' and 'FragmentGrowth::by_function'
+// for alternative flexible growth strategies.
 let growth = FragmentGrowth::constant(10);
 let mut split_vec = SplitVec::with_growth(growth);
 
-// below insertions will lead to 7 expansions, creating 7 vectors with capacity of 10.
+// below insertions will lead to 7 expansions,
+// creating 7 contagious fragments with capacity of 10.
 // no memory copies will happen during the building.
 for i in 0..70 {
     split_vec.push(i);
 }
 
-// this vector can be used as a split vector due to its standar vector like api.
-// alternatively, it can be collected into a vec with a contagious layout once build-up is complete.
-
+// this vector can be used as a split vector due to
+// its standard vector like api.
+// alternatively, it can be collected into a vec with
+// a contagious layout once build-up is complete.
 let vec: Vec<_> = split_vec.as_vec();
 ```
