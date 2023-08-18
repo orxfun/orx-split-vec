@@ -157,4 +157,29 @@ impl<T> SplitVec<T> {
             self.fragments.push(fragment.into());
         }
     }
+
+    /// Clears the vector, removing all values.
+    ///
+    /// This method:
+    /// * drops all fragments except for the first one, and
+    /// * clears the first fragment.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_split_vec::SplitVec;
+    ///
+    /// let mut vec = SplitVec::default();
+    /// for _ in 0..10 {
+    ///     vec.push(4.2);
+    /// }
+    ///
+    /// vec.clear();
+    ///
+    /// assert!(vec.is_empty());
+    /// ```
+    pub fn clear(&mut self) {
+        self.fragments.truncate(1);
+        self.fragments[0].clear();
+    }
 }
