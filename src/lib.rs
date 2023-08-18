@@ -13,21 +13,20 @@
     clippy::todo
 )]
 
-mod default;
 mod eq;
 mod fragment;
-mod from;
 mod growth;
 mod index;
 mod iter;
+mod new_split_vec;
 mod resize_multiple;
 mod resize_unit;
 mod slice;
-mod split_vec_struct;
+mod split_vec;
 mod vec;
 
 pub use fragment::fragment_struct::Fragment;
 pub use growth::FragmentGrowth;
 pub use iter::iterator::SplitVecIterator;
 pub use slice::SplitVecSlice;
-pub use split_vec_struct::SplitVec;
+pub use split_vec::SplitVec;
