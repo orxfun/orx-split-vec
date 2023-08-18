@@ -1,3 +1,5 @@
+# SplitVec
+
 A split vector is a vector represented as a sequence of
 multiple contagious data fragments.
 
@@ -8,7 +10,7 @@ It provides the following features:
 * Capacity of an already created fragment is never changed.
 * The above feature allows the data to stay pinned in place. Memory location of an item added to the split vector will never change unless it is removed from the vector or the vector is dropped.
 
-# Why - Actually
+## Why - Actually
 
 The main feature of `SplitVec` is that it guarantees that the memory locations of its elements
 will never change.
@@ -19,7 +21,7 @@ and makes `SplitVec` the underlying model of other useful data structures.
 See for instance [orx-imp-vec](https://crates.io/crates/orx-imp-vec).
 
 
-# Why - Also
+## Why - Also
 
 `SplitVec` is certainly not a replacement for `std::vec::Vec`,
 and not preferable over it in most of the cases
