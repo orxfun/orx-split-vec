@@ -4,6 +4,18 @@ pub(crate) type GetCapacityOfFragment = Rc<dyn Fn(usize) -> usize>;
 
 #[derive(Clone)]
 /// Growth policy of fragments in a split vector.
+///
+/// A policy can be defined by one of the three constructors.
+///
+/// * `FragmentGrowth::exponential(initial_capacity, capacity_multiplier)`
+///     * capacity of the f-th fragment will be computed as `initial_capacity * capacity_multiplier^f`.
+///
+/// * `FragmentGrowth::constant(constant_fragment_length)`
+///     * capacity of all fragments will be equal to `constant_fragment_length`, leading to a linear growth.
+///
+/// * `FragmentGrowth::by_function(get_capacity_of_fragment)`
+///     * capacity of the f-th fragment will be computed as `get_capacity_of_fragment(f)`;
+///     * any custom growth policy can be represented by this functional form.
 pub struct FragmentGrowth {
     fun: GetCapacityOfFragment,
 }
