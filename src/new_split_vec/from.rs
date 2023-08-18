@@ -40,7 +40,7 @@ impl<T> From<SplitVec<T>> for Vec<T> {
     ///
     /// assert_eq!(1, split_vec.fragments().len());
     ///
-    /// let vec: Vec<_> = split_vec.into(); // no mem-copies
+    /// let vec: Vec<_> = split_vec.into();
     /// assert_eq!(vec, &['a', 'b', 'c']);
     ///
     /// let mut split_vec = SplitVec::with_growth(FragmentGrowth::constant(4));
