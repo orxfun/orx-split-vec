@@ -1,0 +1,14 @@
+[package]
+name = "orx-split-vec"
+version = "0.1.0"
+edition = "2021"
+authors = ["orxfun <orx.ugur.arikan@gmail.com>"]
+description = "A split vector is a vector represented as a sequence of multiple contagious data fragments which avoids copies while growing and preserves the memory location of its elements."
+license = "MIT"
+repository = "https://github.com/orxfun/orx-split-vec/"
+keywords = ["vec", "array", "split", "fragments", "pinned"]
+categories = ["Data structures"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
