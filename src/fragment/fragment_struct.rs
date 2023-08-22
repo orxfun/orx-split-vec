@@ -1,4 +1,4 @@
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone)]
 /// A contagious fragment of the split vector.
 ///
 /// Suppose a split vector contains 10 integers from 0 to 9.

@@ -1,7 +1,10 @@
-use crate::SplitVec;
+use crate::{SplitVec, SplitVecGrowth};
 use std::ops::{Index, IndexMut};
 
-impl<T> Index<usize> for SplitVec<T> {
+impl<T, G> Index<usize> for SplitVec<T, G>
+where
+    G: SplitVecGrowth<T>,
+{
     type Output = T;
     /// Returns a reference to the `index`-th item of the vector.
     ///
@@ -14,7 +17,7 @@ impl<T> Index<usize> for SplitVec<T> {
     /// ```
     /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::default();
+    /// let mut vec = SplitVec::with_linear_growth(4);
     ///
     /// vec.extend_from_slice(&[0, 1, 2, 3]);
     ///
@@ -24,13 +27,16 @@ impl<T> Index<usize> for SplitVec<T> {
     /// ```
     fn index(&self, index: usize) -> &Self::Output {
         let (f, i) = self
-            .fragment_and_inner_index(index)
+            .get_fragment_and_inner_indices(index)
             .expect("index is out of bounds");
         &self.fragments[f][i]
     }
 }
 
-impl<T> IndexMut<usize> for SplitVec<T> {
+impl<T, G> IndexMut<usize> for SplitVec<T, G>
+where
+    G: SplitVecGrowth<T>,
+{
     /// Returns a mutable reference to the `index`-th item of the vector.
     ///
     /// # Panics
@@ -42,7 +48,7 @@ impl<T> IndexMut<usize> for SplitVec<T> {
     /// ```
     /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::default();
+    /// let mut vec = SplitVec::with_linear_growth(4);
     ///
     /// vec.extend_from_slice(&[0, 1, 2, 3]);
     ///
@@ -54,13 +60,16 @@ impl<T> IndexMut<usize> for SplitVec<T> {
     /// ```
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         let (f, i) = self
-            .fragment_and_inner_index(index)
+            .get_fragment_and_inner_indices(index)
             .expect("index is out of bounds");
         &mut self.fragments[f][i]
     }
 }
 
-impl<T> Index<(usize, usize)> for SplitVec<T> {
+impl<T, G> Index<(usize, usize)> for SplitVec<T, G>
+where
+    G: SplitVecGrowth<T>,
+{
     type Output = T;
     /// One can treat the split vector as a jagged array
     /// and access an item with (fragment_index, inner_fragment_index)
@@ -82,10 +91,9 @@ impl<T> Index<(usize, usize)> for SplitVec<T> {
     /// `(i / N, i % N)`.
     ///
     /// ```
-    /// use orx_split_vec::{FragmentGrowth, SplitVec};
+    /// use orx_split_vec::SplitVec;
     ///
-    /// let growth = FragmentGrowth::constant(4);
-    /// let mut vec = SplitVec::with_growth(growth);
+    /// let mut vec = SplitVec::with_linear_growth(4);
     ///
     /// for i in 0..10 {
     ///     vec.push(i);
@@ -116,7 +124,10 @@ impl<T> Index<(usize, usize)> for SplitVec<T> {
         &self.fragments[fragment_and_inner_index.0][fragment_and_inner_index.1]
     }
 }
-impl<T> IndexMut<(usize, usize)> for SplitVec<T> {
+impl<T, G> IndexMut<(usize, usize)> for SplitVec<T, G>
+where
+    G: SplitVecGrowth<T>,
+{
     /// One can treat the split vector as a jagged array
     /// and access an item with (fragment_index, inner_fragment_index)
     /// if these numbers are known.
@@ -137,10 +148,9 @@ impl<T> IndexMut<(usize, usize)> for SplitVec<T> {
     /// `(i / N, i % N)`.
     ///
     /// ```
-    /// use orx_split_vec::{FragmentGrowth, SplitVec};
+    /// use orx_split_vec::SplitVec;
     ///
-    /// let growth = FragmentGrowth::constant(4);
-    /// let mut vec = SplitVec::with_growth(growth);
+    /// let mut vec = SplitVec::with_linear_growth(4);
     ///
     /// for i in 0..10 {
     ///     vec.push(i);

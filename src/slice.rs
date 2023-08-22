@@ -1,6 +1,5 @@
+use crate::{SplitVec, SplitVecGrowth};
 use std::ops::Range;
-
-use crate::SplitVec;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 /// Returns the result of trying to get a slice as a contagious memory from the split vector.
@@ -15,7 +14,10 @@ pub enum SplitVecSlice<'a, T> {
     OutOfBounds,
 }
 
-impl<T> SplitVec<T> {
+impl<T, G> SplitVec<T, G>
+where
+    G: SplitVecGrowth<T>,
+{
     /// Returns the result of trying to return the required `range` as a contagious slice of data.
     /// It might return Ok of the slice if the range belongs to one fragment.
     ///
@@ -26,10 +28,9 @@ impl<T> SplitVec<T> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::{FragmentGrowth, SplitVec, SplitVecSlice};
+    /// use orx_split_vec::{SplitVec, SplitVecSlice};
     ///
-    /// let growth = FragmentGrowth::constant(4);
-    /// let mut vec = SplitVec::with_growth(growth);
+    /// let mut vec = SplitVec::with_linear_growth(4);
     ///
     /// vec.extend_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     ///
@@ -56,8 +57,8 @@ impl<T> SplitVec<T> {
     /// assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(10..11));
     /// ```
     pub fn try_get_slice(&self, range: Range<usize>) -> SplitVecSlice<T> {
-        if let Some((sf, si)) = self.fragment_and_inner_index(range.start) {
-            if let Some((ef, ei)) = self.fragment_and_inner_index(range.end - 1) {
+        if let Some((sf, si)) = self.get_fragment_and_inner_indices(range.start) {
+            if let Some((ef, ei)) = self.get_fragment_and_inner_indices(range.end - 1) {
                 if sf == ef {
                     SplitVecSlice::Ok(&self.fragments[sf][si..=ei])
                 } else {
@@ -80,10 +81,9 @@ impl<T> SplitVec<T> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::{FragmentGrowth, SplitVec, SplitVecSlice};
+    /// use orx_split_vec::{SplitVec, SplitVecSlice};
     ///
-    /// let growth = FragmentGrowth::constant(4);
-    /// let mut vec = SplitVec::with_growth(growth);
+    /// let mut vec = SplitVec::with_linear_growth(4);
     ///
     /// vec.extend_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     ///
@@ -110,8 +110,8 @@ impl<T> SplitVec<T> {
     /// assert!(vec.slice(10..11).is_empty());
     /// ```
     pub fn slice(&self, range: Range<usize>) -> Vec<&[T]> {
-        if let Some((sf, si)) = self.fragment_and_inner_index(range.start) {
-            if let Some((ef, ei)) = self.fragment_and_inner_index(range.end - 1) {
+        if let Some((sf, si)) = self.get_fragment_and_inner_indices(range.start) {
+            if let Some((ef, ei)) = self.get_fragment_and_inner_indices(range.end - 1) {
                 if sf == ef {
                     vec![&self.fragments[sf][si..=ei]]
                 } else {

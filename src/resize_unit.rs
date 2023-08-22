@@ -1,6 +1,9 @@
-use crate::SplitVec;
+use crate::{SplitVec, SplitVecGrowth};
 
-impl<T> SplitVec<T> {
+impl<T, G> SplitVec<T, G>
+where
+    G: SplitVecGrowth<T>,
+{
     /// Appends an element to the back of a collection.
     ///
     /// # Examples
@@ -8,17 +11,16 @@ impl<T> SplitVec<T> {
     /// ```
     /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::default();
+    /// let mut vec = SplitVec::with_linear_growth(16);
     /// vec.push(1);
     /// vec.push(2);
     /// vec.push(3);
     /// assert_eq!(vec, [1, 2, 3]);
     /// ```
     pub fn push(&mut self, value: T) {
-        let last_f = self.fragments.len() - 1;
-        let fragment = &mut self.fragments[last_f];
-        if fragment.has_capacity_for_one() {
-            fragment.push(value);
+        if self.has_capacity_for_one() {
+            let last_f = self.fragments.len() - 1;
+            self.fragments[last_f].push(value);
             return;
         }
 
@@ -33,7 +35,7 @@ impl<T> SplitVec<T> {
     /// ```
     /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::default();
+    /// let mut vec = SplitVec::with_linear_growth(16);
     /// vec.push(1);
     /// vec.push(2);
     /// vec.push(3);
@@ -60,7 +62,7 @@ impl<T> SplitVec<T> {
     /// ```
     /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::default();
+    /// let mut vec = SplitVec::with_linear_growth(16);
     /// vec.push(1);
     /// vec.push(2);
     /// vec.push(3);
@@ -76,11 +78,13 @@ impl<T> SplitVec<T> {
             self.push(value);
         } else {
             // make room for one
-            if !self.last_fragment().has_capacity_for_one() {
+            if !self.has_capacity_for_one() {
                 self.add_fragment();
             }
 
-            let (f, i) = self.fragment_and_inner_index(index).expect("out-of-bounds");
+            let (f, i) = self
+                .get_fragment_and_inner_indices(index)
+                .expect("out-of-bounds");
 
             if self.fragments[f].has_capacity_for_one() {
                 self.fragments[f].insert(i, value);
@@ -118,7 +122,7 @@ impl<T> SplitVec<T> {
     /// ```
     /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::default();
+    /// let mut vec = SplitVec::with_linear_growth(16);
     /// vec.push(1);
     /// vec.push(2);
     /// vec.push(3);
@@ -132,7 +136,9 @@ impl<T> SplitVec<T> {
     /// assert_eq!(vec, [1, 3, 5]);
     /// ```
     pub fn remove(&mut self, index: usize) -> T {
-        let (f, i) = self.fragment_and_inner_index(index).expect("out-of-bounds");
+        let (f, i) = self
+            .get_fragment_and_inner_indices(index)
+            .expect("out-of-bounds");
 
         let value = self.fragments[f].remove(i);
 

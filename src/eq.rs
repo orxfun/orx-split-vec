@@ -1,26 +1,60 @@
-use crate::SplitVec;
+use crate::{Fragment, SplitVec, SplitVecGrowth};
 
-impl<T: PartialEq, U> PartialEq<U> for SplitVec<T>
+impl<T: PartialEq, U, G> PartialEq<U> for SplitVec<T, G>
 where
     U: AsRef<[T]>,
+    G: SplitVecGrowth<T>,
 {
     fn eq(&self, other: &U) -> bool {
-        let other = other.as_ref();
-        let mut beg = 0;
-        for fragment in &self.fragments {
-            let end = beg + fragment.len();
-            let other_slice = &other[beg..end];
-            if fragment.data != other_slice {
-                return false;
-            }
-            beg = end;
+        are_fragments_eq_to_slice(&self.fragments, other.as_ref())
+    }
+}
+impl<T: PartialEq, G> PartialEq<SplitVec<T, G>> for [T]
+where
+    G: SplitVecGrowth<T>,
+{
+    fn eq(&self, other: &SplitVec<T, G>) -> bool {
+        are_fragments_eq_to_slice(&other.fragments, self)
+    }
+}
+impl<T: PartialEq, G> PartialEq<SplitVec<T, G>> for Vec<T>
+where
+    G: SplitVecGrowth<T>,
+{
+    fn eq(&self, other: &SplitVec<T, G>) -> bool {
+        are_fragments_eq_to_slice(&other.fragments, self)
+    }
+}
+impl<T: PartialEq, G, const N: usize> PartialEq<SplitVec<T, G>> for [T; N]
+where
+    G: SplitVecGrowth<T>,
+{
+    fn eq(&self, other: &SplitVec<T, G>) -> bool {
+        are_fragments_eq_to_slice(&other.fragments, self)
+    }
+}
+
+impl<T: PartialEq, G> PartialEq<SplitVec<T, G>> for SplitVec<T, G>
+where
+    G: SplitVecGrowth<T>,
+{
+    fn eq(&self, other: &SplitVec<T, G>) -> bool {
+        let iter1 = self.into_iter();
+        let iter2 = other.into_iter();
+        iter1 == iter2
+    }
+}
+impl<T: PartialEq, G: SplitVecGrowth<T>> Eq for SplitVec<T, G> {}
+
+fn are_fragments_eq_to_slice<T: PartialEq>(fragments: &[Fragment<T>], slice: &[T]) -> bool {
+    let mut slice_beg = 0;
+    for fragment in fragments {
+        let slice_end = slice_beg + fragment.len();
+        let slice_of_slice = &slice[slice_beg..slice_end];
+        if fragment.data != slice_of_slice {
+            return false;
         }
-        true
+        slice_beg = slice_end;
     }
+    true
 }
-impl<T: PartialEq> PartialEq<SplitVec<T>> for SplitVec<T> {
-    fn eq(&self, other: &SplitVec<T>) -> bool {
-        self.len() == other.len() && self.into_iter().zip(other.into_iter()).all(|(x, y)| x == y)
-    }
-}
-impl<T: PartialEq> Eq for SplitVec<T> {}

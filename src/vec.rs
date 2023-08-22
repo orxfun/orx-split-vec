@@ -1,6 +1,11 @@
-use crate::{Fragment, SplitVec};
+use crate::{
+    growth::growth_trait::SplitVecGrowthWithFlexibleIndexAccess, Fragment, SplitVec, SplitVecGrowth,
+};
 
-impl<T> SplitVec<T> {
+impl<T, G> SplitVec<T, G>
+where
+    G: SplitVecGrowth<T>,
+{
     /// Returns the number of elements in the vector, also referred to
     /// as its 'length'.
     ///
@@ -9,7 +14,7 @@ impl<T> SplitVec<T> {
     /// ```
     /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::default();
+    /// let mut vec =  SplitVec::with_linear_growth(8);
     /// assert_eq!(0, vec.len());
     /// vec.push(1);
     /// vec.push(2);
@@ -26,7 +31,7 @@ impl<T> SplitVec<T> {
     /// ```
     /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::default();
+    /// let mut vec = SplitVec::with_linear_growth(2);
     /// assert!(vec.is_empty());
     /// vec.push(1);
     /// assert!(!vec.is_empty());
@@ -46,7 +51,7 @@ impl<T> SplitVec<T> {
     /// use orx_split_vec::SplitVec;
     ///
     /// // default growth starting with 4, and doubling at each new fragment.
-    /// let mut vec = SplitVec::<usize>::default();
+    /// let mut vec = SplitVec::with_doubling_growth(4);
     /// assert_eq!(4, vec.capacity());
     ///
     /// for i in 0..4 {
@@ -55,10 +60,7 @@ impl<T> SplitVec<T> {
     /// assert_eq!(4, vec.capacity());
     ///
     /// vec.push(4);
-    /// assert_eq!(4 + 6, vec.capacity());
-    ///
-    /// // second fragment will have capacity 4*1.5 by default growth
-    /// // see `FragmentGrowth` for different growth strategies.
+    /// assert_eq!(4 + 8, vec.capacity());
     ///
     /// ```
     pub fn capacity(&self) -> usize {
@@ -73,13 +75,13 @@ impl<T> SplitVec<T> {
     /// ```
     /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::<usize>::default();
+    /// let mut vec = SplitVec::with_linear_growth(32);
     /// vec.extend_from_slice(&[10, 40, 30]);
     /// assert_eq!(Some(&40), vec.get(1));
     /// assert_eq!(None, vec.get(3));
     /// ```
     pub fn get(&self, index: usize) -> Option<&T> {
-        self.fragment_and_inner_index(index)
+        self.get_fragment_and_inner_indices(index)
             .map(|(f, i)| &self.fragments[f][i])
     }
     /// Returns a mutable reference to the element with the given `index`;
@@ -90,7 +92,7 @@ impl<T> SplitVec<T> {
     /// ```
     /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::<usize>::default();
+    /// let mut vec = SplitVec::with_linear_growth(32);
     /// vec.extend_from_slice(&[0, 1, 2]);
     ///
     /// if let Some(elem) = vec.get_mut(1) {
@@ -100,22 +102,56 @@ impl<T> SplitVec<T> {
     /// assert_eq!(vec, &[0, 42, 2]);
     /// ```
     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
-        self.fragment_and_inner_index(index)
+        self.get_fragment_and_inner_indices(index)
             .map(|(f, i)| &mut self.fragments[f][i])
     }
 
-    /// Directly appends the `fragment` to the end of the split vector.
+    /// Clears the vector, removing all values.
     ///
-    /// This operation does not require any copies or allocation;
-    /// the fragment is moved into the split vector and added as a new fragment,
-    /// without copying the underlying data.
+    /// This method:
+    /// * drops all fragments except for the first one, and
+    /// * clears the first fragment.
     ///
     /// # Examples
     ///
     /// ```
     /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::<usize>::default();
+    /// let mut vec = SplitVec::with_linear_growth(32);
+    /// for _ in 0..10 {
+    ///     vec.push(4.2);
+    /// }
+    ///
+    /// vec.clear();
+    ///
+    /// assert!(vec.is_empty());
+    /// ```
+    pub fn clear(&mut self) {
+        self.fragments.truncate(1);
+        self.fragments[0].clear();
+    }
+}
+
+impl<T, GFlex> SplitVec<T, GFlex>
+where
+    GFlex: SplitVecGrowthWithFlexibleIndexAccess<T>,
+{
+    /// Directly appends the `fragment` to the end of the split vector.
+    ///
+    /// This operation does not require any copies or allocation;
+    /// the fragment is moved into the split vector and added as a new fragment,
+    /// without copying the underlying data.
+    ///
+    /// This method is not available for `SplitVec<_, LinearGrowth>` and
+    /// `SplitVec<_, DoublingGrowth>` since those variants exploit the closed
+    /// form formula to speed up element accesses by index.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_split_vec::SplitVec;
+    ///
+    /// let mut vec = SplitVec::with_exponential_growth(8, 1.5);
     ///
     /// // append to empty split vector
     /// assert!(vec.is_empty());
@@ -156,30 +192,5 @@ impl<T> SplitVec<T> {
         } else {
             self.fragments.push(fragment.into());
         }
-    }
-
-    /// Clears the vector, removing all values.
-    ///
-    /// This method:
-    /// * drops all fragments except for the first one, and
-    /// * clears the first fragment.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use orx_split_vec::SplitVec;
-    ///
-    /// let mut vec = SplitVec::default();
-    /// for _ in 0..10 {
-    ///     vec.push(4.2);
-    /// }
-    ///
-    /// vec.clear();
-    ///
-    /// assert!(vec.is_empty());
-    /// ```
-    pub fn clear(&mut self) {
-        self.fragments.truncate(1);
-        self.fragments[0].clear();
     }
 }

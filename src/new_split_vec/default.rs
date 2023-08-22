@@ -1,10 +1,13 @@
-use crate::{fragment::fragment_struct::Fragment, FragmentGrowth, SplitVec};
+use crate::{fragment::fragment_struct::Fragment, SplitVec, SplitVecGrowth};
 
-impl<T> Default for SplitVec<T> {
+impl<T, G> Default for SplitVec<T, G>
+where
+    G: SplitVecGrowth<T> + Default,
+{
     /// Creates an empty split vector with the default `FragmentGrowth` strategy.
     fn default() -> Self {
-        let growth = FragmentGrowth::default();
-        let capacity = growth.get_capacity(0);
+        let growth = G::default();
+        let capacity = SplitVecGrowth::<T>::new_fragment_capacity(&growth, &[]);
         let fragment = Fragment::new(capacity);
         let fragments = vec![fragment];
         Self { fragments, growth }
