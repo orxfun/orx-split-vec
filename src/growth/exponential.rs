@@ -14,7 +14,7 @@ use crate::{Fragment, SplitVec};
 /// with `growth_coefficient` equal to 2,
 /// while providing a faster access by index.
 ///
-/// On the other hand, exponential growth allows for fitting growth startegies
+/// On the other hand, exponential growth allows for fitting growth strategies
 /// for fitting situations which could be a better choice when memory allocation
 /// is more important than index access complexity.
 ///

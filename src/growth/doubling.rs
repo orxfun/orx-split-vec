@@ -80,7 +80,7 @@ impl<T> SplitVecGrowth<T> for DoublingGrowth {
 }
 
 impl<T> SplitVec<T, DoublingGrowth> {
-    /// Stategy which allows creates a fragment with double the capacity
+    /// Stategy which allows to create a fragment with double the capacity
     /// of the prior fragment every time the split vector needs to expand.
     ///
     /// Assuming it is the common case compared to empty vector scenarios,
