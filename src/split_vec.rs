@@ -1,4 +1,4 @@
-use crate::{fragment::fragment_struct::Fragment, FragmentGrowth};
+use crate::{fragment::fragment_struct::Fragment, LinearGrowth, SplitVecGrowth};
 
 #[derive(Debug, Clone)]
 /// A split vector; i.e., a vector of fragments, with the following features:
@@ -7,13 +7,33 @@ use crate::{fragment::fragment_struct::Fragment, FragmentGrowth};
 /// * Growth does not cause any memory copies.
 /// * Capacity of an already created fragment is never changed.
 /// * The above feature allows the data to stay pinned in place. Memory location of an item added to the split vector will never change unless it is removed from the vector or the vector is dropped.
-pub struct SplitVec<T> {
+pub struct SplitVec<T, G = LinearGrowth>
+where
+    G: SplitVecGrowth<T>,
+{
     pub(crate) fragments: Vec<Fragment<T>>,
-    /// Fragment growth strategy of the split vector.
-    pub growth: FragmentGrowth,
+    /// Growth strategy of the split vector.
+    ///
+    /// Note that allocated data of split vector is pinned and allocated in fragments.
+    /// Therefore, growth does not require copying data.
+    ///
+    /// The growth stratety determines the capacity of each fragment
+    /// that will be added to the split vector when needed.
+    ///
+    /// Furthermore, it has an impact on index-access to the elements.
+    /// See below for the complexities:
+    ///
+    /// * `LinearGrowth` (`SplitVec::with_linear_growth`) -> O(1)
+    /// * `DoublingGrowth` (`SplitVec::with_doubling_growth`) -> O(1), however slower than linear
+    /// * `ExponentialGrowth` (`SplitVec::with_exponential_growth`) -> O(f) where f is the number of fragments
+    /// * `CustomGrowth` (`SplitVec::with_custom_growth`) -> O(f) where f is the number of fragments
+    pub growth: G,
 }
 
-impl<T> SplitVec<T> {
+impl<T, G> SplitVec<T, G>
+where
+    G: SplitVecGrowth<T>,
+{
     /// Returns a mutable reference to the vector of fragments.
     ///
     /// # Safety
@@ -44,9 +64,9 @@ impl<T> SplitVec<T> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::{FragmentGrowth, SplitVec};
+    /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::with_growth(FragmentGrowth::constant(4));
+    /// let mut vec = SplitVec::with_linear_growth(4);
     ///
     /// for i in 0..6 {
     ///     vec.push(i);
@@ -70,9 +90,9 @@ impl<T> SplitVec<T> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::{FragmentGrowth, SplitVec};
+    /// use orx_split_vec::SplitVec;
     ///
-    /// let mut vec = SplitVec::with_growth(FragmentGrowth::constant(4));
+    /// let mut vec = SplitVec::with_linear_growth(4);
     ///
     /// for i in 0..6 {
     ///     vec.push(i);
@@ -82,39 +102,37 @@ impl<T> SplitVec<T> {
     /// assert_eq!(&[4, 5], vec.fragments()[1].as_slice());
     ///
     /// // first fragment
-    /// assert_eq!(Some((0, 0)), vec.fragment_and_inner_index(0));
-    /// assert_eq!(Some((0, 1)), vec.fragment_and_inner_index(1));
-    /// assert_eq!(Some((0, 2)), vec.fragment_and_inner_index(2));
-    /// assert_eq!(Some((0, 3)), vec.fragment_and_inner_index(3));
+    /// assert_eq!(Some((0, 0)), vec.get_fragment_and_inner_indices(0));
+    /// assert_eq!(Some((0, 1)), vec.get_fragment_and_inner_indices(1));
+    /// assert_eq!(Some((0, 2)), vec.get_fragment_and_inner_indices(2));
+    /// assert_eq!(Some((0, 3)), vec.get_fragment_and_inner_indices(3));
     ///
     /// // second fragment
-    /// assert_eq!(Some((1, 0)), vec.fragment_and_inner_index(4));
-    /// assert_eq!(Some((1, 1)), vec.fragment_and_inner_index(5));
+    /// assert_eq!(Some((1, 0)), vec.get_fragment_and_inner_indices(4));
+    /// assert_eq!(Some((1, 1)), vec.get_fragment_and_inner_indices(5));
     ///
     /// // out of bounds
-    /// assert_eq!(None, vec.fragment_and_inner_index(6));
+    /// assert_eq!(None, vec.get_fragment_and_inner_indices(6));
     /// ```
-    pub fn fragment_and_inner_index(&self, index: usize) -> Option<(usize, usize)> {
-        let mut prev_end = 0;
-        let mut end = 0;
-        for (f, fragment) in self.fragments.iter().enumerate() {
-            end += fragment.len();
-            if index < end {
-                return Some((f, index - prev_end));
-            }
-            prev_end = end;
-        }
-        None
+    pub fn get_fragment_and_inner_indices(&self, index: usize) -> Option<(usize, usize)> {
+        self.growth
+            .get_fragment_and_inner_indices(&self.fragments, index)
     }
 
     // helpers
+    pub(crate) fn has_capacity_for_one(&self) -> bool {
+        self.fragments
+            .last()
+            .map(|f| f.has_capacity_for_one())
+            .unwrap_or(false)
+    }
     pub(crate) fn add_fragment(&mut self) {
-        let capacity = self.growth.get_capacity(self.fragments.len());
+        let capacity = self.growth.new_fragment_capacity(&self.fragments);
         let new_fragment = Fragment::new(capacity);
         self.fragments.push(new_fragment);
     }
     pub(crate) fn add_fragment_with_first_value(&mut self, first_value: T) {
-        let capacity = self.growth.get_capacity(self.fragments.len());
+        let capacity = self.growth.new_fragment_capacity(&self.fragments);
         let new_fragment = Fragment::new_with_first_value(capacity, first_value);
         self.fragments.push(new_fragment);
     }

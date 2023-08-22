@@ -33,9 +33,9 @@ impl<T> From<SplitVec<T>> for Vec<T> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::{FragmentGrowth, SplitVec};
+    /// use orx_split_vec::SplitVec;
     ///
-    /// let mut split_vec = SplitVec::with_growth(FragmentGrowth::constant(4));
+    /// let mut split_vec = SplitVec::with_linear_growth(4);
     /// split_vec.extend_from_slice(&['a', 'b', 'c']);
     ///
     /// assert_eq!(1, split_vec.fragments().len());
@@ -43,7 +43,7 @@ impl<T> From<SplitVec<T>> for Vec<T> {
     /// let vec: Vec<_> = split_vec.into();
     /// assert_eq!(vec, &['a', 'b', 'c']);
     ///
-    /// let mut split_vec = SplitVec::with_growth(FragmentGrowth::constant(4));
+    /// let mut split_vec = SplitVec::with_linear_growth(4);
     /// for i in 0..10 {
     ///     split_vec.push(i);
     /// }
@@ -71,9 +71,9 @@ impl<T> SplitVec<T> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::{FragmentGrowth, SplitVec};
+    /// use orx_split_vec::SplitVec;
     ///
-    /// let mut split_vec = SplitVec::with_growth(FragmentGrowth::constant(4));
+    /// let mut split_vec = SplitVec::with_linear_growth(4);
     /// split_vec.extend_from_slice(&['a', 'b', 'c']);
     ///
     /// assert_eq!(1, split_vec.fragments().len());
@@ -81,7 +81,7 @@ impl<T> SplitVec<T> {
     /// let vec = split_vec.to_vec(); // no mem-copies
     /// assert_eq!(vec, &['a', 'b', 'c']);
     ///
-    /// let mut split_vec = SplitVec::with_growth(FragmentGrowth::constant(4));
+    /// let mut split_vec = SplitVec::with_linear_growth(4);
     /// for i in 0..10 {
     ///     split_vec.push(i);
     /// }
