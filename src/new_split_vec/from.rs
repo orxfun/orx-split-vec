@@ -1,4 +1,6 @@
-use crate::{CustomGrowth, DoublingGrowth, ExponentialGrowth, LinearGrowth, SplitVec};
+use crate::{
+    CustomGrowth, DoublingGrowth, ExponentialGrowth, LinearGrowth, SplitVec, SplitVecGrowth,
+};
 
 // into SplitVec
 impl<T> From<Vec<T>> for SplitVec<T, LinearGrowth> {
@@ -107,7 +109,10 @@ impl<T: 'static> From<Vec<T>> for SplitVec<T, CustomGrowth<T>> {
 }
 
 // from SplitVec
-impl<T> From<SplitVec<T>> for Vec<T> {
+impl<T, G> From<SplitVec<T, G>> for Vec<T>
+where
+    G: SplitVecGrowth<T>,
+{
     /// Converts the `SplitVec` into a standard `Vec` with a contagious memory layout.
     ///
     /// # Examples
@@ -134,7 +139,7 @@ impl<T> From<SplitVec<T>> for Vec<T> {
     /// let vec: Vec<_> = split_vec.into();
     /// assert_eq!(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], vec.as_slice());
     /// ```
-    fn from(mut value: SplitVec<T>) -> Self {
+    fn from(mut value: SplitVec<T, G>) -> Self {
         // todo: copy can be avoided if there exists only one fragment.
         let mut vec = vec![];
         vec.reserve(value.len());
@@ -144,7 +149,10 @@ impl<T> From<SplitVec<T>> for Vec<T> {
         vec
     }
 }
-impl<T> SplitVec<T> {
+impl<T, G> SplitVec<T, G>
+where
+    G: SplitVecGrowth<T>,
+{
     /// Converts the `SplitVec` into a standard `Vec` with a contagious memory layout.
     ///
     /// # Examples
