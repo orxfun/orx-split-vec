@@ -1,6 +1,5 @@
 use crate::{
-    growth::growth_trait::SplitVecGrowthWithFlexibleIndexAccess, ExponentialGrowth, Fragment,
-    SplitVec, SplitVecGrowth,
+    growth::growth_trait::SplitVecGrowthWithFlexibleIndexAccess, Fragment, SplitVec, SplitVecGrowth,
 };
 
 impl<T, G> SplitVec<T, G>

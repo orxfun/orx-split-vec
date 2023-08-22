@@ -149,24 +149,3 @@ pub use growth::{
 pub use iter::iterator::SplitVecIterator;
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;
-
-fn asdf() {
-    let mut vec_lin = SplitVec::with_linear_growth(10);
-    vec_lin.push(1usize);
-    let other = vec![1, 2];
-
-    let x = vec_lin == other;
-    assert_eq!(other, vec_lin);
-
-    for (i, elem) in vec_lin.into_iter().enumerate() {
-        assert_eq!(if i == 0 { 42 } else { i }, *elem);
-    }
-    assert_eq!(
-        vec![10, 10, 10, 10],
-        vec_lin
-            .fragments()
-            .iter()
-            .map(|f| f.len())
-            .collect::<Vec<_>>()
-    );
-}
