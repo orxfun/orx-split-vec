@@ -146,7 +146,7 @@ mod vec;
 pub use fragment::fragment_struct::Fragment;
 pub use growth::{
     custom::CustomGrowth, doubling::DoublingGrowth, exponential::ExponentialGrowth,
-    growth_trait::SplitVecGrowth, linear::LinearGrowth,
+    fixed::FixedCapacity, growth_trait::SplitVecGrowth, linear::LinearGrowth,
 };
 pub use iter::iterator::SplitVecIterator;
 pub use slice::SplitVecSlice;
