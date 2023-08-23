@@ -127,8 +127,10 @@ where
     /// assert!(vec.is_empty());
     /// ```
     pub fn clear(&mut self) {
-        self.fragments.truncate(1);
-        self.fragments[0].clear();
+        if !self.fragments.is_empty() {
+            self.fragments.truncate(1);
+            self.fragments[0].clear();
+        }
     }
 }
 
@@ -192,5 +194,113 @@ where
         } else {
             self.fragments.push(fragment.into());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_all_growth_types;
+    use crate::{SplitVec, SplitVecGrowth};
+
+    #[test]
+    fn len_and_is_empty() {
+        fn test_len<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            for i in 0..42 {
+                assert_eq!(i, vec.len());
+                vec.push(i);
+            }
+            assert_eq!(42, vec.len());
+
+            vec.clear();
+            assert_eq!(0, vec.len());
+
+            vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
+            assert_eq!(42, vec.len());
+
+            for i in 0..42 {
+                assert_eq!(42 - i, vec.len());
+                vec.pop();
+            }
+            assert_eq!(0, vec.len());
+
+            vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
+            for i in 0..42 {
+                assert_eq!(42 - i, vec.len());
+                vec.remove(vec.len() / 2);
+            }
+            assert_eq!(0, vec.len());
+
+            vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
+            for i in 0..42 {
+                assert_eq!(42 - i, vec.len());
+                vec.remove(0);
+            }
+            assert_eq!(0, vec.len());
+
+            vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
+            for i in 0..42 {
+                assert_eq!(42 - i, vec.len());
+                vec.remove(vec.len() - 1);
+            }
+            assert_eq!(0, vec.len());
+
+            vec.clear();
+            for i in 0..42 {
+                assert_eq!(i, vec.len());
+                vec.insert(i, i);
+            }
+            assert_eq!(42, vec.len());
+
+            vec.clear();
+            for i in 0..42 {
+                assert_eq!(i, vec.len());
+                vec.insert(0, i);
+            }
+            assert_eq!(42, vec.len());
+        }
+
+        test_all_growth_types!(test_len);
+    }
+
+    #[test]
+    fn clear() {
+        fn clear_is_empty<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            vec.clear();
+            assert!(vec.is_empty());
+            assert_eq!(0, vec.len());
+
+            vec.push(1);
+            assert!(!vec.is_empty());
+            for i in 0..42 {
+                vec.push(i);
+            }
+            assert!(!vec.is_empty());
+
+            vec.clear();
+            assert!(vec.is_empty());
+            assert_eq!(0, vec.len());
+        }
+        test_all_growth_types!(clear_is_empty);
+    }
+
+    #[test]
+    fn get() {
+        fn test_get<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            assert!(vec.is_empty());
+
+            for i in 0..53 {
+                vec.push(i);
+
+                assert_eq!(vec.get(i), Some(&i));
+                assert_eq!(vec.get(i + 1), None);
+
+                *vec.get_mut(i).expect("is-some") += 100;
+            }
+
+            for i in 0..53 {
+                assert_eq!(vec.get(i), Some(&(100 + i)));
+            }
+        }
+        test_all_growth_types!(test_get);
     }
 }

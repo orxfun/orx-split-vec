@@ -196,3 +196,84 @@ impl<T> SplitVec<T, ExponentialGrowth> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{ExponentialGrowth, Fragment, SplitVecGrowth};
+
+    fn growth() -> ExponentialGrowth {
+        ExponentialGrowth {
+            growth_coefficient: 1.5,
+        }
+    }
+    #[test]
+    fn new_cap() {
+        fn new_fra(cap: usize) -> Fragment<usize> {
+            Vec::<usize>::with_capacity(cap).into()
+        }
+
+        let growth = growth();
+        assert_eq!(3, growth.new_fragment_capacity(&[new_fra(2)]));
+        assert_eq!(18, growth.new_fragment_capacity(&[new_fra(8), new_fra(12)]));
+        assert_eq!(
+            22,
+            growth.new_fragment_capacity(&[new_fra(7), new_fra(10), new_fra(15)])
+        );
+    }
+
+    #[test]
+    fn indices_when_fragments_is_empty() {
+        assert_eq!(
+            None,
+            <ExponentialGrowth as SplitVecGrowth<usize>>::get_fragment_and_inner_indices(
+                &growth(),
+                &[],
+                0
+            )
+        );
+    }
+
+    #[test]
+    fn indices() {
+        fn new_full() -> Fragment<usize> {
+            (0..10).collect::<Vec<_>>().into()
+        }
+        fn new_half() -> Fragment<usize> {
+            let mut vec = Vec::with_capacity(15);
+            for i in 0..3 {
+                vec.push(10 + i);
+            }
+            vec.into()
+        }
+
+        let growth = growth();
+
+        for i in 0..10 {
+            assert_eq!(
+                Some((0, i)),
+                growth.get_fragment_and_inner_indices(&[new_full()], i)
+            );
+        }
+        assert_eq!(
+            None,
+            growth.get_fragment_and_inner_indices(&[new_full()], 10)
+        );
+
+        for i in 0..10 {
+            assert_eq!(
+                Some((0, i)),
+                growth.get_fragment_and_inner_indices(&[new_full(), new_half()], i)
+            );
+        }
+        for i in 10..13 {
+            assert_eq!(
+                Some((1, i - 10)),
+                growth.get_fragment_and_inner_indices(&[new_full(), new_half()], i)
+            );
+        }
+        assert_eq!(
+            None,
+            growth.get_fragment_and_inner_indices(&[new_full(), new_half()], 13)
+        );
+    }
+}

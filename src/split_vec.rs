@@ -80,10 +80,6 @@ where
     pub fn fragments(&self) -> &[Fragment<T>] {
         &self.fragments
     }
-    /// Returns a reference to the last fragment of the split vector.
-    pub fn last_fragment(&self) -> &Fragment<T> {
-        &self.fragments[self.fragments.len() - 1]
-    }
     /// Returns the fragment index and the index within fragment of the item with the given `index`;
     /// None if the index is out of bounds.
     ///
@@ -135,5 +131,47 @@ where
         let capacity = self.growth.new_fragment_capacity(&self.fragments);
         let new_fragment = Fragment::new_with_first_value(capacity, first_value);
         self.fragments.push(new_fragment);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_all_growth_types;
+    use crate::{SplitVec, SplitVecGrowth};
+
+    #[test]
+    fn fragments() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            for i in 0..42 {
+                vec.push(i);
+            }
+
+            let mut combined = vec![];
+            for fra in vec.fragments() {
+                combined.extend_from_slice(fra);
+            }
+
+            for i in 0..42 {
+                assert_eq!(i, vec[i]);
+                assert_eq!(i, combined[i]);
+            }
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn get_fragment_and_inner_indices() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            for i in 0..432 {
+                vec.push(i);
+                assert_eq!(None, vec.get_fragment_and_inner_indices(i + 1));
+            }
+
+            for i in 0..432 {
+                let (f, ii) = vec.get_fragment_and_inner_indices(i).expect("is-some");
+                assert_eq!(vec[i], vec.fragments[f][ii]);
+            }
+        }
+        test_all_growth_types!(test);
     }
 }
