@@ -44,10 +44,21 @@ where
     /// assert_eq!(vec, [1, 2]);
     /// ```
     pub fn pop(&mut self) -> Option<T> {
-        self.fragments
-            .iter_mut()
-            .last()
-            .and_then(|fragment| fragment.pop())
+        if self.fragments.is_empty() {
+            None
+        } else {
+            let f = self.fragments.len() - 1;
+            if self.fragments[f].len() == 0 {
+                if f == 0 {
+                    None
+                } else {
+                    self.fragments.pop();
+                    self.fragments[f - 1].pop()
+                }
+            } else {
+                self.fragments[f].pop()
+            }
+        }
     }
 
     /// Inserts an element at position `index` within the vector, shifting all
@@ -136,6 +147,11 @@ where
     /// assert_eq!(vec, [1, 3, 5]);
     /// ```
     pub fn remove(&mut self, index: usize) -> T {
+        let drop_empty_last_fragment = self.fragments.last().map(|f| f.is_empty()).unwrap_or(false);
+        if drop_empty_last_fragment {
+            self.fragments.pop();
+        }
+
         let (f, i) = self
             .get_fragment_and_inner_indices(index)
             .expect("out-of-bounds");
@@ -152,5 +168,57 @@ where
         }
 
         value
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_all_growth_types;
+    use crate::{SplitVec, SplitVecGrowth};
+
+    #[test]
+    fn grow() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            for i in 0..42 {
+                vec.push(i);
+            }
+            for i in 0..42 {
+                vec.insert(i, 100 + i);
+            }
+
+            for i in 0..42 {
+                assert_eq!(i, vec[42 + i]);
+                assert_eq!(100 + i, vec[i]);
+            }
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn shrink() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            for i in 0..42 {
+                vec.push(i);
+                assert_eq!(i, vec.remove(0));
+                assert!(vec.is_empty());
+            }
+
+            for i in 0..42 {
+                vec.push(i);
+            }
+            for i in 0..42 {
+                assert_eq!(i, vec.remove(0));
+            }
+            assert!(vec.is_empty());
+
+            for i in 0..42 {
+                vec.push(i);
+            }
+            for _ in 0..42 {
+                vec.remove(vec.len() / 2);
+            }
+            assert!(vec.is_empty());
+        }
+        test_all_growth_types!(test);
     }
 }

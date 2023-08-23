@@ -184,3 +184,49 @@ where
         &mut self.fragments[fragment_and_inner_index.0][fragment_and_inner_index.1]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test_all_growth_types;
+    use crate::{SplitVec, SplitVecGrowth};
+
+    #[test]
+    fn index() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
+            vec.extend_from_slice(&(42..63).collect::<Vec<_>>());
+            vec.extend_from_slice(&(63..100).collect::<Vec<_>>());
+
+            assert_eq!(100, vec.len());
+            for i in 0..100 {
+                assert_eq!(i, vec[i]);
+                vec[i] += 100;
+            }
+            for i in 0..100 {
+                assert_eq!(100 + i, vec[i]);
+            }
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn double_indices() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
+            vec.extend_from_slice(&(42..63).collect::<Vec<_>>());
+            vec.extend_from_slice(&(63..100).collect::<Vec<_>>());
+
+            assert_eq!(100, vec.len());
+            for i in 0..100 {
+                let (f, j) = vec.get_fragment_and_inner_indices(i).expect("is-some");
+                assert_eq!(i, vec[(f, j)]);
+                vec[(f, j)] += 100;
+            }
+            for i in 0..100 {
+                let (f, j) = vec.get_fragment_and_inner_indices(i).expect("is-some");
+                assert_eq!(100 + i, vec[(f, j)]);
+            }
+        }
+        test_all_growth_types!(test);
+    }
+}

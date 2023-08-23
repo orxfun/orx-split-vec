@@ -131,3 +131,95 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test_all_growth_types;
+    use crate::{SplitVec, SplitVecGrowth, SplitVecSlice};
+
+    #[test]
+    fn try_get_slice() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            for i in 0..42 {
+                assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(0..i + 1));
+                assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(i..i + 1));
+                vec.push(i);
+            }
+
+            for f in 0..vec.fragments.len() {
+                let begin: usize = vec.fragments.iter().take(f).map(|f| f.len()).sum();
+                let end = begin + vec.fragments[f].len();
+                let half = begin + vec.fragments[f].len() / 2;
+
+                // ok
+                let slice_full_fragment = vec.try_get_slice(begin..end);
+                assert_eq!(slice_full_fragment, SplitVecSlice::Ok(&vec.fragments[f]));
+
+                let slice_half_fragment = vec.try_get_slice(begin..half);
+                assert_eq!(
+                    slice_half_fragment,
+                    SplitVecSlice::Ok(&vec.fragments[f][0..vec.fragments[f].len() / 2])
+                );
+
+                let slice_half_fragment = vec.try_get_slice(half..end);
+                assert_eq!(
+                    slice_half_fragment,
+                    SplitVecSlice::Ok(
+                        &vec.fragments[f][vec.fragments[f].len() / 2..vec.fragments[f].len()]
+                    )
+                );
+
+                // fragmented
+                if f > 0 {
+                    let prev_begin = begin - 1;
+                    let slice = vec.try_get_slice(prev_begin..end);
+                    assert_eq!(slice, SplitVecSlice::Fragmented(f - 1, f));
+                    if f < vec.fragments.len() - 1 {
+                        let next_end = end + 1;
+
+                        let slice = vec.try_get_slice(begin..next_end);
+                        assert_eq!(slice, SplitVecSlice::Fragmented(f, f + 1));
+
+                        let slice = vec.try_get_slice(prev_begin..next_end);
+                        assert_eq!(slice, SplitVecSlice::Fragmented(f - 1, f + 1));
+                    }
+                }
+            }
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn slice() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            for i in 0..184 {
+                assert!(vec.slice(i..i + 1).is_empty());
+                assert!(vec.slice(0..i + 1).is_empty());
+                vec.push(i);
+            }
+
+            let slice = vec.slice(0..vec.len());
+            let mut combined = vec![];
+            for s in slice {
+                combined.extend_from_slice(s);
+            }
+            for i in 0..184 {
+                assert_eq!(i, vec[i]);
+                assert_eq!(i, combined[i]);
+            }
+
+            let begin = vec.len() / 4;
+            let end = 3 * vec.len() / 4;
+            let slice = vec.slice(begin..end);
+            let mut combined = vec![];
+            for s in slice {
+                combined.extend_from_slice(s);
+            }
+            for i in begin..end {
+                assert_eq!(i, vec[i]);
+                assert_eq!(i, combined[i - begin]);
+            }
+        }
+        test_all_growth_types!(test);
+    }
+}

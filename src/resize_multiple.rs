@@ -108,3 +108,39 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test_all_growth_types;
+    use crate::{SplitVec, SplitVecGrowth};
+
+    #[test]
+    fn extend_from_slice() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
+            vec.extend_from_slice(&(42..63).collect::<Vec<_>>());
+            vec.extend_from_slice(&(63..100).collect::<Vec<_>>());
+
+            assert_eq!(100, vec.len());
+            for i in 0..100 {
+                assert_eq!(i, vec[i]);
+            }
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn extend() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            vec.extend(0..42);
+            vec.extend(&(42..63).collect::<Vec<_>>());
+            vec.extend((53..90).map(|i| i + 10));
+
+            assert_eq!(100, vec.len());
+            for i in 0..100 {
+                assert_eq!(i, vec[i]);
+            }
+        }
+        test_all_growth_types!(test);
+    }
+}

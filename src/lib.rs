@@ -139,6 +139,8 @@ mod resize_multiple;
 mod resize_unit;
 mod slice;
 mod split_vec;
+#[cfg(test)]
+pub(crate) mod test;
 mod vec;
 
 pub use fragment::fragment_struct::Fragment;
