@@ -1,6 +1,6 @@
 use crate::{fragment::fragment_struct::Fragment, LinearGrowth, SplitVecGrowth};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 /// A split vector; i.e., a vector of fragments, with the following features:
 ///
 /// * Flexible in growth strategies; custom strategies can be defined.
@@ -64,7 +64,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(4);
     ///
@@ -86,7 +86,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(4);
     ///
@@ -136,8 +136,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::prelude::*;
     use crate::test_all_growth_types;
-    use crate::{SplitVec, SplitVecGrowth};
 
     #[test]
     fn fragments() {

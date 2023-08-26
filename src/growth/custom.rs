@@ -13,7 +13,7 @@ pub(crate) type GetCapacityOfNewFragment<T> = dyn Fn(&[Fragment<T>]) -> usize;
 /// # Examples
 ///
 /// ```
-/// use orx_split_vec::SplitVec;
+/// use orx_split_vec::prelude::*;
 ///
 /// let mut vec = SplitVec::with_linear_growth(16);
 ///
@@ -101,7 +101,7 @@ impl<T> SplitVec<T, CustomGrowth<T>> {
     ///
     /// # Examples
     /// ```
-    /// use orx_split_vec::{Fragment, SplitVec};
+    /// use orx_split_vec::prelude::*;
     /// use std::rc::Rc;
     ///
     /// // vec: SplitVec<usize, CustomGrowth<usize>>

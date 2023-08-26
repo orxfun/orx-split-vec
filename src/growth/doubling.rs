@@ -11,7 +11,7 @@ use super::growth_trait::SplitVecGrowth;
 /// # Examples
 ///
 /// ```
-/// use orx_split_vec::SplitVec;
+/// use orx_split_vec::prelude::*;
 ///
 /// // SplitVec<usize, DoublingGrowth>
 /// let mut vec = SplitVec::with_doubling_growth(2);
@@ -92,7 +92,7 @@ impl<T> SplitVec<T, DoublingGrowth> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// // SplitVec<usize, DoublingGrowth>
     /// let mut vec = SplitVec::with_doubling_growth(2);

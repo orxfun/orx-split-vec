@@ -15,7 +15,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(4);
     ///
@@ -46,7 +46,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(4);
     ///
@@ -91,7 +91,7 @@ where
     /// `(i / N, i % N)`.
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(4);
     ///
@@ -148,7 +148,7 @@ where
     /// `(i / N, i % N)`.
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(4);
     ///
@@ -187,8 +187,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::prelude::*;
     use crate::test_all_growth_types;
-    use crate::{SplitVec, SplitVecGrowth};
 
     #[test]
     fn index() {
