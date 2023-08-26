@@ -76,7 +76,7 @@ impl<T> SplitVec<T, FixedCapacity> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// // SplitVec<usize, FixedCapacity>
     /// let mut vec = SplitVec::with_fixed_capacity(4);
@@ -104,7 +104,7 @@ impl<T> SplitVec<T, FixedCapacity> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{FixedCapacity, Fragment, SplitVec, SplitVecGrowth};
+    use crate::prelude::*;
 
     #[test]
     #[should_panic]

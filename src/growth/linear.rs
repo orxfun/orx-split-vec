@@ -9,7 +9,7 @@ use crate::{Fragment, SplitVec};
 /// # Examples
 ///
 /// ```
-/// use orx_split_vec::SplitVec;
+/// use orx_split_vec::prelude::*;
 ///
 /// // SplitVec<usize, LinearGrowth>
 /// let mut vec = SplitVec::with_linear_growth(16);
@@ -82,7 +82,7 @@ impl<T> SplitVec<T, LinearGrowth> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// // SplitVec<usize, LinearGrowth>
     /// let mut vec = SplitVec::with_linear_growth(16);

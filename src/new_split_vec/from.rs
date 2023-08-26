@@ -1,6 +1,7 @@
 use crate::{
     CustomGrowth, DoublingGrowth, ExponentialGrowth, LinearGrowth, SplitVec, SplitVecGrowth,
 };
+use orx_pinned_vec::PinnedVec;
 
 // into SplitVec
 impl<T> From<Vec<T>> for SplitVec<T, LinearGrowth> {
@@ -11,7 +12,7 @@ impl<T> From<Vec<T>> for SplitVec<T, LinearGrowth> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// let vec = vec!['a', 'b', 'c'];
     /// let vec_capacity = vec.capacity();
@@ -37,7 +38,7 @@ impl<T> From<Vec<T>> for SplitVec<T, DoublingGrowth> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// let vec = vec!['a', 'b', 'c'];
     /// let vec_capacity = vec.capacity();
@@ -63,7 +64,7 @@ impl<T> From<Vec<T>> for SplitVec<T, ExponentialGrowth> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// let vec = vec!['a', 'b', 'c'];
     /// let vec_capacity = vec.capacity();
@@ -89,7 +90,7 @@ impl<T: 'static> From<Vec<T>> for SplitVec<T, CustomGrowth<T>> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// let vec = vec!['a', 'b', 'c'];
     /// let vec_capacity = vec.capacity();
@@ -118,7 +119,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// let mut split_vec = SplitVec::with_linear_growth(4);
     /// split_vec.extend_from_slice(&['a', 'b', 'c']);
@@ -158,7 +159,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// let mut split_vec = SplitVec::with_linear_growth(4);
     /// split_vec.extend_from_slice(&['a', 'b', 'c']);

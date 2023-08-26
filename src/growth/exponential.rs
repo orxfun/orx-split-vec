@@ -27,7 +27,7 @@ use crate::{Fragment, SplitVec};
 /// # Examples
 ///
 /// ```
-/// use orx_split_vec::SplitVec;
+/// use orx_split_vec::prelude::*;
 ///
 /// // SplitVec<usize, ExponentialGrowth>
 /// let mut vec = SplitVec::with_exponential_growth(2, 1.5);
@@ -146,7 +146,7 @@ impl<T> SplitVec<T, ExponentialGrowth> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::SplitVec;
+    /// use orx_split_vec::prelude::*;
     ///
     /// // SplitVec<usize, ExponentialGrowth>
     /// let mut vec = SplitVec::with_exponential_growth(2, 1.5);

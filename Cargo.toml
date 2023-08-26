@@ -1,6 +1,6 @@
 [package]
 name = "orx-split-vec"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 authors = ["orxfun <orx.ugur.arikan@gmail.com>"]
 description = "A split vector is a vector represented as a sequence of multiple contagious data fragments which avoids copies while growing and preserves the memory location of its elements."
@@ -12,3 +12,4 @@ categories = ["data-structures"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+orx-pinned-vec = "0.1.0"

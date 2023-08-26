@@ -4,7 +4,7 @@
 //!
 //! # Pinned elements
 //! ```
-//! use orx_split_vec::SplitVec;
+//! use orx_split_vec::prelude::*;
 //!
 //! let mut vec = SplitVec::with_linear_growth(10);
 //!
@@ -45,7 +45,7 @@
 //! slower access through indices.
 //!
 //! ```
-//! use orx_split_vec::{Fragment, SplitVec, SplitVecGrowth};
+//! use orx_split_vec::prelude::*;
 //! use std::rc::Rc;
 //!
 //! fn custom_growth_fun<T>(fragments: &[Fragment<T>]) -> usize {
@@ -129,25 +129,28 @@
     clippy::todo
 )]
 
+mod common_traits;
 mod eq;
 mod fragment;
 mod growth;
-mod index;
-mod iter;
 mod new_split_vec;
+mod pinned_vec;
 mod resize_multiple;
-mod resize_unit;
 mod slice;
 mod split_vec;
 #[cfg(test)]
 pub(crate) mod test;
 mod vec;
 
+pub use common_traits::iter::iterator::SplitVecIterator;
 pub use fragment::fragment_struct::Fragment;
 pub use growth::{
     custom::CustomGrowth, doubling::DoublingGrowth, exponential::ExponentialGrowth,
-    fixed::FixedCapacity, growth_trait::SplitVecGrowth, linear::LinearGrowth,
+    growth_trait::SplitVecGrowth, linear::LinearGrowth,
 };
-pub use iter::iterator::SplitVecIterator;
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;
+
+/// The split-vec prelude, along with the `SplitVec`, imports
+/// various growth startegies, iterators and finally the `orx_pinned_vec::PinnedVec` trait.
+pub mod prelude;
