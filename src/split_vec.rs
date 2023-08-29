@@ -1,6 +1,5 @@
 use crate::{fragment::fragment_struct::Fragment, LinearGrowth, SplitVecGrowth};
 
-#[derive(Clone)]
 /// A split vector; i.e., a vector of fragments, with the following features:
 ///
 /// * Flexible in growth strategies; custom strategies can be defined.
