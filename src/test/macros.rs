@@ -11,10 +11,19 @@ macro_rules! test_all_growth_types {
                 }
             },
         );
-        $fun::<$crate::CustomGrowth<usize>>(SplitVec::with_custom_growth_function(custom_fun));
+        $fun::<$crate::CustomGrowth<_>>(SplitVec::with_custom_growth_function(custom_fun));
         $fun::<$crate::LinearGrowth>(SplitVec::with_linear_growth(2));
         $fun::<$crate::DoublingGrowth>(SplitVec::with_doubling_growth(2));
         $fun::<$crate::ExponentialGrowth>(SplitVec::with_exponential_growth(4, 1.5));
         $fun::<$crate::ExponentialGrowth>(SplitVec::with_exponential_growth(4, 2.5));
     };
+}
+
+#[cfg(test)]
+#[derive(Debug, PartialEq, Clone)]
+pub struct Num(usize);
+impl Num {
+    pub fn new(number: usize) -> Self {
+        Self(number)
+    }
 }

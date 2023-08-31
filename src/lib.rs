@@ -1,9 +1,23 @@
-//! A split vector is a vector represented as a sequence of multiple contagious data fragments which:
-//! * preserves the memory location of its elements, and
-//! * avoids memory copies while growing.
+//! A split vector, `SplitVec`, is a vector represented as a sequence of
+//! multiple contagious data fragments.
 //!
-//! # Pinned elements
-//! ```
+//! It provides the following features:
+//!
+//! * Flexible in growth strategies; custom strategies can be defined.
+//! * Growth does not cause any memory copies.
+//! * Capacity of an already created fragment is never changed.
+//! * The above feature allows the data to stay **pinned** in place.
+//!     * `SplitVec<T>` implements [`PinnedVec<T>`](https://crates.io/crates/orx-pinned-vec) for any `T`;
+//!     * `SplitVec<T>` implements `PinnedVecSimple<T>` for `T: NotSelfRefVecItem`;
+//!     * Memory location of an item added to the split vector will never change
+//! unless the vector is dropped or cleared.
+//!     * This allows the split vec to be converted into an [`ImpVec`](https://crates.io/crates/orx-imp-vec)
+//! to enable immutable-push operations which allows for
+//! convenient, efficient and safe implementations of self-referencing data structures.
+//!
+//! ## Pinned elements
+//!
+//! ```rust
 //! use orx_split_vec::prelude::*;
 //!
 //! let mut vec = SplitVec::with_linear_growth(10);
@@ -36,15 +50,41 @@
 //! assert_eq!(unsafe { *addr42 }, 42);
 //! ```
 //!
-//! # Flexible growth strategies without copies
+//! ## Vector with self referencing elements
 //!
-//! Growth of a split vector happens by allocating a new contagious memory
-//! while keeping already written elements in place.
+//! `SplitVec` is not meant to be a replacement for `std::vec::Vec`,
+//! and not preferable over it in most of the cases since it adds one level of abstraction.
 //!
-//! This allows to avoid memory copies; however, leads to worse cache locality and
-//! slower access through indices.
+//! However, it is useful and convenient in defining data structures, child structures of which
+//! hold references to each other.
+//! This is a very common and useful property for trees, graphs, etc.
+//! SplitVec allows to store children of such structures in a vector with the following features:
 //!
-//! ```
+//! * holding children close to each other allows for better cache locality,
+//! * reduces heap allocations and utilizes **thin** references rather than wide pointers,
+//! * while still guaranteeing that the references will remain valid.
+//!
+//! `SplitVec` receives this feature due to the following:
+//!
+//! * `SplitVec` implements `PinnedVec`; and hence, it can be wrapped by an `ImpVec`,
+//! * `ImpVec` allows safely building the vector where items are referencing each other,
+//! * `ImpVec` can then be converted back to the underlying `SplitVec`
+//! having the abovementioned features and safety guarantees.
+//!
+//! ### Flexible growth strategies without copies
+//!
+//! In addition, `SplitVec` is useful for building collections when:
+//!
+//! * there is high uncertainty in the expected length, and
+//! * copies are expensive.
+//!
+//! In this case, `SplitVec` provides a detailed control on how the memory should grow.
+//! Further, it avoids copies while growing.
+//! Instead, every time the vector needs to grow, it allocates a new chunk of memory
+//! as a separate fragment.
+//!
+//!
+//! ```rust
 //! use orx_split_vec::prelude::*;
 //! use std::rc::Rc;
 //!
@@ -77,44 +117,23 @@
 //! }
 //!
 //! // # linear: fragments of equal capacities
-//! assert_eq!(
-//!     vec![10, 10, 10, 10],
-//!     get_fragment_capacities(&vec_lin)
-//! );
-//! assert_eq!(
-//!     vec![10, 10, 10, 5],
-//!     get_fragment_lengths(&vec_lin)
-//! );
+//! assert_eq!(vec![10, 10, 10, 10], get_fragment_capacities(&vec_lin));
+//! assert_eq!(vec![10, 10, 10, 5], get_fragment_lengths(&vec_lin));
 //!
 //! // # doubling: fragment capacities keep doubling
-//! assert_eq!(
-//!     vec![4, 8, 16, 32],
-//!     get_fragment_capacities(&vec_dbl)
-//! );
-//! assert_eq!(
-//!     vec![4, 8, 16, 7],
-//!     get_fragment_lengths(&vec_dbl)
-//! );
+//! assert_eq!(vec![4, 8, 16, 32], get_fragment_capacities(&vec_dbl));
+//! assert_eq!(vec![4, 8, 16, 7], get_fragment_lengths(&vec_dbl));
 //!
 //! // # exponential: fragment capacities grow exponentially with given growth factor
-//! assert_eq!(
-//!     vec![4, 6, 9, 13, 19],
-//!     get_fragment_capacities(&vec_exp)
-//! );
-//! assert_eq!(
-//!     vec![4, 6, 9, 13, 3],
-//!     get_fragment_lengths(&vec_exp)
-//! );
+//! assert_eq!(vec![4, 6, 9, 13, 19], get_fragment_capacities(&vec_exp));
+//! assert_eq!(vec![4, 6, 9, 13, 3], get_fragment_lengths(&vec_exp));
 //!
 //! // # custom: pretty much any growth strategy
 //! assert_eq!(
 //!     vec![4, 4, 4, 4, 8, 8, 8],
 //!     get_fragment_capacities(&vec_custom)
 //! );
-//! assert_eq!(
-//!     vec![4, 4, 4, 4, 8, 8, 3],
-//!     get_fragment_lengths(&vec_custom)
-//! );
+//! assert_eq!(vec![4, 4, 4, 4, 8, 8, 3], get_fragment_lengths(&vec_custom));
 //! ```
 
 #![warn(

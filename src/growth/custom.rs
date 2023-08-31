@@ -11,30 +11,43 @@ pub(crate) type GetCapacityOfNewFragment<T> = dyn Fn(&[Fragment<T>]) -> usize;
 /// of priorly created fragments.
 ///
 /// # Examples
-///
 /// ```
 /// use orx_split_vec::prelude::*;
+/// use std::rc::Rc;
 ///
-/// let mut vec = SplitVec::with_linear_growth(16);
+/// // vec: SplitVec<usize, CustomGrowth<usize>>
+/// let mut vec =
+///     SplitVec::with_custom_growth_function(Rc::new(|fragments: &[Fragment<_>]| {
+///         if fragments.len() % 2 == 0 {
+///             2
+///         } else {
+///             8
+///         }
+///     }));
 ///
-/// for i in 0..10 * 16 {
-///     vec.push(i);
-/// }
+///     for i in 0..100 {
+///         vec.push(i);
+///     }
 ///
-/// assert_eq!(10, vec.fragments().len());
-/// for fragment in vec.fragments() {
-///     assert_eq!(16, fragment.len());
-///     assert_eq!(16, fragment.capacity());
-/// }
-///
-/// vec.push(42);
-/// assert_eq!(11, vec.fragments().len());
-/// assert_eq!(Some(16), vec.fragments().last().map(|f| f.capacity()));
-/// assert_eq!(Some(1), vec.fragments().last().map(|f| f.len()));
+///     vec.into_iter().zip(0..100).all(|(l, r)| *l == r);
+///     
+///     for (f, fragment) in vec.fragments().iter().enumerate() {
+///         if f % 2 == 0 {
+///             assert_eq!(2, fragment.capacity());
+///         } else {
+///             assert_eq!(8, fragment.capacity());
+///         }
+///     }
 /// ```
-#[derive(Clone)]
 pub struct CustomGrowth<T> {
     get_capacity_of_new_fragment: Rc<GetCapacityOfNewFragment<T>>,
+}
+impl<T> Clone for CustomGrowth<T> {
+    fn clone(&self) -> Self {
+        Self {
+            get_capacity_of_new_fragment: self.get_capacity_of_new_fragment.clone(),
+        }
+    }
 }
 
 impl<T> Debug for CustomGrowth<T> {

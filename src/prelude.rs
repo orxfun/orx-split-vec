@@ -6,4 +6,4 @@ pub use crate::growth::{
 };
 pub use crate::slice::SplitVecSlice;
 pub use crate::split_vec::SplitVec;
-pub use orx_pinned_vec::PinnedVec;
+pub use orx_pinned_vec::{NotSelfRefVecItem, PinnedVec, PinnedVecSimple};
