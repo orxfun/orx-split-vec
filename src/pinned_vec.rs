@@ -144,7 +144,7 @@ where
     }
     /// Returns a reference to an element or subslice, without doing bounds checking.
     ///
-    /// For a safe alternative see [`get`].
+    /// For a safe alternative see `get`.
     ///
     /// # Safety
     ///
@@ -157,7 +157,7 @@ where
     }
     /// Returns a mutable reference to an element or subslice, without doing bounds checking.
     ///
-    /// For a safe alternative see [`get_mut`].
+    /// For a safe alternative see `get_mut`.
     ///
     /// # Safety
     ///
@@ -192,7 +192,37 @@ where
     /// vec.insert(4, 5);
     /// assert_eq!(vec, [1, 4, 2, 3, 5]);
     /// ```
-    fn insert(&mut self, index: usize, value: T) {
+    ///
+    /// # Safety
+    ///
+    /// If the element type is not a `NotSelfRefVecItem`;
+    /// in other words, if the elements hold references of each other,
+    /// `insert` method might invalidate the references.
+    /// This method is then called `unsafe_insert`.
+    ///
+    /// Consider the following struct which is not a `NotSelfRefVecItem`:
+    /// ```
+    /// struct Node<'a, T> {
+    ///     value: T,
+    ///     related_to: Option<&'a Node<'a, T>>,
+    /// }
+    /// ```
+    ///
+    /// Further, assume we build a vector of two nodes `[x, y]`,
+    /// where each node is related to the other `x <--> y`.
+    ///
+    /// If we insert another node `w` at index 0, the vector takes the form `[w, x, y]`
+    /// causing the following problems:
+    ///
+    /// * `x` is related to the node at position 1, which is itself: `x -> x`.
+    /// * `y` is realted to the node at position 0, which is `w`: `y -> w`.
+    ///
+    /// Both relations are wrong after insertion.
+    ///
+    /// For this reason, insertions when `T` is a self-referencing-vector-item
+    /// are **unsafe** and the caller is responsible for correcting the references
+    /// if it needs to use this method.
+    unsafe fn unsafe_insert(&mut self, index: usize, value: T) {
         if index == self.len() {
             self.push(value);
         } else {
@@ -278,7 +308,35 @@ where
     /// assert_eq!(vec.pop(), Some(3));
     /// assert_eq!(vec, [1, 2]);
     /// ```
-    fn pop(&mut self) -> Option<T> {
+    ///
+    /// # Safety
+    ///
+    /// If the element type is not a `NotSelfRefVecItem`;
+    /// in other words, if the elements hold references of each other,
+    /// `pop` method might invalidate the references.
+    /// This method is then called `unsafe_pop`.
+    ///
+    /// Consider the following struct which is not a `NotSelfRefVecItem`:
+    /// ```
+    /// struct Node<'a, T> {
+    ///     value: T,
+    ///     related_to: Option<&'a Node<'a, T>>,
+    /// }
+    /// ```
+    ///
+    /// Further, assume we build a vector of two nodes `[x, y]`,
+    /// where each node is related to the other `x <--> y`.
+    ///
+    /// If we pop `y` from the vector, leaving the vector as `[x]`:
+    ///
+    /// * `y` still correctly points to the node at position 0, which is `x`.
+    /// * However, `y` points to the node at position 1 which is does not belong to
+    /// the vector now causing an undefined behavior.
+    ///
+    /// For this reason, popping when `T` is a self-referencing-vector-item
+    /// is **unsafe** and the caller is responsible for correcting the references
+    /// if it needs to use this method.
+    unsafe fn unsafe_pop(&mut self) -> Option<T> {
         if self.fragments.is_empty() {
             None
         } else {
@@ -347,7 +405,36 @@ where
     /// assert_eq!(vec.remove(2), 4);
     /// assert_eq!(vec, [1, 3, 5]);
     /// ```
-    fn remove(&mut self, index: usize) -> T {
+    ///
+    /// # Safety
+    ///
+    /// If the element type is not a `NotSelfRefVecItem`;
+    /// in other words, if the elements hold references of each other,
+    /// `remove` method might invalidate the references.
+    /// This method is then called `unsafe_remove`.
+    ///
+    /// Consider the following struct which is not a `NotSelfRefVecItem`:
+    /// ```
+    /// struct Node<'a, T> {
+    ///     value: T,
+    ///     related_to: Option<&'a Node<'a, T>>,
+    /// }
+    /// ```
+    ///
+    /// Further, assume we build a vector of two nodes `[x, y]`,
+    /// where each node is related to the other `x <--> y`.
+    ///
+    /// If we remove the element at position 0; i.e., `x` from the vector,
+    /// leaving the vector as `[y]`:
+    ///
+    /// * `y` points to the node at position 0, which is itself: `y -> y`.
+    /// * Furthermore, `x` points to the node at position 1 which is does not belong to
+    /// the vector now causing an undefined behavior.
+    ///
+    /// For this reason, removals when `T` is a self-referencing-vector-item
+    /// are **unsafe** and the caller is responsible for correcting the references
+    /// if it needs to use this method.
+    unsafe fn unsafe_remove(&mut self, index: usize) -> T {
         let drop_empty_last_fragment = self.fragments.last().map(|f| f.is_empty()).unwrap_or(false);
         if drop_empty_last_fragment {
             self.fragments.pop();
@@ -389,11 +476,31 @@ where
         }
         writeln!(f, "]")
     }
+
+    unsafe fn unsafe_clone(&self) -> Self
+    where
+        T: Clone,
+    {
+        let fragments: Vec<_> = self
+            .fragments
+            .iter()
+            .map(|fragment| {
+                let mut vec = Vec::with_capacity(fragment.capacity());
+                vec.extend_from_slice(fragment);
+                vec.into()
+            })
+            .collect();
+        Self {
+            fragments,
+            growth: self.growth.clone(),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
+    use crate::test::macros::Num;
     use crate::test_all_growth_types;
 
     #[test]
@@ -555,6 +662,74 @@ mod tests {
                 vec.remove(vec.len() / 2);
             }
             assert!(vec.is_empty());
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn unsafe_insert() {
+        fn test<G: SplitVecGrowth<Num>>(mut vec: SplitVec<Num, G>) {
+            for i in 0..42 {
+                vec.push(Num::new(i));
+            }
+            for i in 0..42 {
+                unsafe { vec.unsafe_insert(i, Num::new(100 + i)) };
+            }
+
+            for i in 0..42 {
+                assert_eq!(Some(&Num::new(i)), vec.get(42 + i));
+                assert_eq!(Some(&Num::new(100 + i)), vec.get(i));
+            }
+        }
+        test_all_growth_types!(test);
+    }
+    #[test]
+    fn unsafe_shrink() {
+        fn test<G: SplitVecGrowth<Num>>(mut vec: SplitVec<Num, G>) {
+            for i in 0..42 {
+                vec.push(Num::new(i));
+                assert_eq!(Num::new(i), unsafe { vec.unsafe_remove(0) });
+                assert!(vec.is_empty());
+            }
+
+            for i in 0..42 {
+                vec.push(Num::new(i));
+            }
+            for i in 0..42 {
+                assert_eq!(Num::new(i), unsafe { vec.unsafe_remove(0) });
+            }
+            assert!(vec.is_empty());
+
+            for i in 0..42 {
+                vec.push(Num::new(i));
+            }
+            for i in (0..42).rev() {
+                assert_eq!(Some(Num::new(i)), unsafe { vec.unsafe_pop() });
+            }
+            assert_eq!(None, unsafe { vec.unsafe_pop() });
+            assert!(vec.is_empty());
+
+            for i in 0..42 {
+                vec.push(Num::new(i));
+            }
+            for _ in 0..42 {
+                unsafe { vec.unsafe_remove(vec.len() / 2) };
+            }
+            assert!(vec.is_empty());
+        }
+        test_all_growth_types!(test);
+    }
+    #[test]
+    fn unsafe_clone() {
+        fn test<G: SplitVecGrowth<Num>>(mut vec: SplitVec<Num, G>) {
+            assert!(vec.is_empty());
+
+            for i in 0..53 {
+                vec.push(Num::new(i));
+            }
+
+            let clone = unsafe { vec.unsafe_clone() };
+            assert_eq!(vec, clone);
         }
         test_all_growth_types!(test);
     }

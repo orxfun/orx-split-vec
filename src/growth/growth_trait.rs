@@ -1,7 +1,7 @@
 use crate::Fragment;
 
 /// Growth strategy of a split vector.
-pub trait SplitVecGrowth<T> {
+pub trait SplitVecGrowth<T>: Clone {
     /// Given that the split vector contains the given `fragments`,
     /// returns the capacity of the next fragment.
     fn new_fragment_capacity(&self, fragments: &[Fragment<T>]) -> usize;
