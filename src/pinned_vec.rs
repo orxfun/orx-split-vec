@@ -457,6 +457,129 @@ where
 
         value
     }
+    /// Swaps the two elements of the vector with at the given positions 'a' and 'b'.
+    ///
+    /// # Panics
+    ///
+    /// Panics if either of the indices `a` or 'b' is out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_split_vec::prelude::*;
+    ///
+    /// let mut vec = SplitVec::with_linear_growth(2);
+    /// vec.push(1);    // fragment 0
+    /// vec.push(2);    // fragment 0
+    /// vec.push(10);   // fragment 1
+    /// vec.push(20);   // fragment 1
+    /// vec.push(100);  // fragment 2
+    /// assert_eq!(vec, [1, 2, 10, 20, 100]);
+    ///
+    /// // this is a regular vec.swap
+    /// vec.swap(0, 1);
+    /// assert_eq!(vec, [2, 1, 10, 20, 100]);
+    ///
+    /// // this is inter-fragments swap; i.e., mem:swap
+    /// vec.swap(1, 4);
+    /// assert_eq!(vec, [2, 100, 10, 20, 1]);
+    /// ```
+    ///
+    /// # Safety
+    ///
+    /// If the element type is not a `NotSelfRefVecItem`;
+    /// in other words, if the elements hold references of each other,
+    /// `swap` method might invalidate the references.
+    /// This method is then called `unsafe_remove`.
+    ///
+    /// Consider the following struct which is not a `NotSelfRefVecItem`:
+    /// ```
+    /// struct Node<'a, T> {
+    ///     value: T,
+    ///     related_to: Option<&'a Node<'a, T>>,
+    /// }
+    /// ```
+    ///
+    /// Further, assume we build a vector of two nodes `[x, y, z]`,
+    /// where each node is related to the next one: `x --> y --> z`.
+    ///
+    /// If we swap elements at positions 1 and 2, the vector becomes `[x, z, y]`.
+    /// But now,
+    ///
+    /// * `x` still points to position 1 which is now occupied by `z`;
+    /// * `y` still points to position 2 which is now occupied by itself.
+    ///
+    /// This does not cause an undefined behavior in the classical sense;
+    /// however, the meaning of the vector and relations are broken.
+    ///
+    /// For this reason, swaps when `T` is a self-referencing-vector-item
+    /// are **unsafe** and the caller is responsible for correcting the references
+    /// if it needs to use this method.
+    unsafe fn unsafe_swap(&mut self, a: usize, b: usize) {
+        let (af, ai) = self
+            .get_fragment_and_inner_indices(a)
+            .expect("out-of-bounds");
+        let (bf, bi) = self
+            .get_fragment_and_inner_indices(b)
+            .expect("out-of-bounds");
+        if af == bf {
+            self.fragments[af].swap(ai, bi);
+        } else {
+            let ptr_a = self.fragments[af].as_mut_ptr().add(ai);
+            let ref_a = unsafe { &mut *ptr_a };
+            let ref_b = &mut self.fragments[bf][bi];
+            std::mem::swap(ref_a, ref_b);
+        }
+    }
+    /// Shortens the vector, keeping the first `len` elements and dropping
+    /// the rest.
+    ///
+    /// If `len` is greater than the vector's current length, this has no
+    /// effect.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_split_vec::prelude::*;
+    ///
+    /// fn get_vec() -> SplitVec<usize, LinearGrowth> {
+    ///     let mut vec = SplitVec::with_linear_growth(4);
+    ///     for i in 0..11 {
+    ///         vec.push(i);
+    ///     }
+    ///     // [ [0,1,2,3], [4,5,6,7], [8,9,10] ]
+    ///     vec
+    /// }
+    ///
+    /// let mut vec = get_vec();
+    /// vec.truncate(100);
+    /// assert_eq!(vec, (0..11).collect::<Vec<_>>());
+    ///
+    /// for i in 0..11 {
+    ///     let mut vec = get_vec();
+    ///     vec.truncate(i);
+    ///     assert_eq!(vec, (0..i).collect::<Vec<_>>());
+    /// }
+    ///
+    /// ```
+    ///
+    /// # Safety
+    ///
+    /// This operation is **unsafe** when `T` is not `NotSelfRefVecItem`.
+    /// To pick the conservative approach, every T which does not implement `NotSelfRefVecItem`
+    /// is assumed to be a vector item referencing other vector items.
+    ///
+    /// `truncate` is unsafe since it is possible that remaining elements are referencing
+    /// to elements which are dropped by the truncate method.
+    ///
+    /// On the other hand, any vector implementing `PinnedVec<T>` where `T: NotSelfRefVecItem`
+    /// implements `PinnedVecSimple<T>` which implements the safe version of this method.
+    unsafe fn unsafe_truncate(&mut self, len: usize) {
+        if let Some((f, i)) = self.get_fragment_and_inner_indices(len) {
+            self.fragments.truncate(f + 1);
+            self.fragments[f].truncate(i);
+        }
+    }
 
     // required for common trait implementations
     fn partial_eq<S>(&self, other: S) -> bool
@@ -665,6 +788,44 @@ mod tests {
         }
         test_all_growth_types!(test);
     }
+    #[test]
+    fn swap() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            for i in 0..42 {
+                vec.push(i);
+            }
+
+            for i in 0..21 {
+                vec.swap(i, 21 + i);
+            }
+
+            for i in 0..21 {
+                assert_eq!(21 + i, vec[i]);
+            }
+            for i in 21..42 {
+                assert_eq!(i - 21, vec[i]);
+            }
+        }
+        test_all_growth_types!(test);
+    }
+    #[test]
+    fn truncate() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            let std_vec: Vec<_> = (0..42).collect();
+            for i in 0..42 {
+                vec.push(i);
+            }
+
+            vec.truncate(100);
+            assert_eq!(vec, std_vec);
+
+            for i in (0..42).rev() {
+                vec.truncate(i);
+                assert_eq!(vec, &std_vec[0..i]);
+            }
+        }
+        test_all_growth_types!(test);
+    }
 
     #[test]
     fn unsafe_insert() {
@@ -719,6 +880,45 @@ mod tests {
         }
         test_all_growth_types!(test);
     }
+    #[test]
+    fn unsafe_swap() {
+        fn test<G: SplitVecGrowth<Num>>(mut vec: SplitVec<Num, G>) {
+            for i in 0..42 {
+                vec.push(Num::new(i));
+            }
+
+            for i in 0..21 {
+                unsafe { vec.unsafe_swap(i, 21 + i) };
+            }
+
+            for i in 0..21 {
+                assert_eq!(Num::new(21 + i), vec[i]);
+            }
+            for i in 21..42 {
+                assert_eq!(Num::new(i - 21), vec[i]);
+            }
+        }
+        test_all_growth_types!(test);
+    }
+    #[test]
+    fn unsafe_truncate() {
+        fn test<G: SplitVecGrowth<Num>>(mut vec: SplitVec<Num, G>) {
+            let std_vec: Vec<_> = (0..42).map(Num::new).collect();
+            for i in 0..42 {
+                vec.push(Num::new(i));
+            }
+
+            unsafe { vec.unsafe_truncate(100) };
+            assert_eq!(vec, std_vec);
+
+            for i in (0..42).rev() {
+                unsafe { vec.unsafe_truncate(i) };
+                assert_eq!(vec, &std_vec[0..i]);
+            }
+        }
+        test_all_growth_types!(test);
+    }
+
     #[test]
     fn unsafe_clone() {
         fn test<G: SplitVecGrowth<Num>>(mut vec: SplitVec<Num, G>) {
