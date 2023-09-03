@@ -6,6 +6,64 @@ impl<T, G> PinnedVec<T> for SplitVec<T, G>
 where
     G: SplitVecGrowth<T>,
 {
+    /// Returns the index of the `element` with the given reference.
+    /// This method has *O(f)* time complexity where f is the number of fragments.
+    ///
+    /// Note that `T: Eq` is not required; reference equality is used.
+    ///
+    /// # Safety
+    ///
+    /// Since `SplitVec` implements `PinnedVec`, the underlying memory
+    /// of the vector stays pinned; i.e., is not carried to different memory
+    /// locations.
+    /// Therefore, it is possible and safe to compare an element's reference
+    /// to find its position in the vector.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_split_vec::prelude::*;
+    ///
+    /// let mut vec = SplitVec::with_linear_growth(2);
+    /// for i in 0..4 {
+    ///     vec.push(10 * i);
+    /// }
+    ///
+    /// assert_eq!(Some(0), vec.index_of(&vec[0]));
+    /// assert_eq!(Some(1), vec.index_of(&vec[1]));
+    /// assert_eq!(Some(2), vec.index_of(&vec[2]));
+    /// assert_eq!(Some(3), vec.index_of(&vec[3]));
+    ///
+    /// // the following does not compile since vec[4] is out of bounds
+    /// // assert_eq!(Some(3), vec.index_of(&vec[4]));
+    ///
+    /// // num certainly does not belong to `vec`
+    /// let num = 42;
+    /// assert_eq!(None, vec.index_of(&num));
+    ///
+    /// // even if its value belongs
+    /// let num = 20;
+    /// assert_eq!(None, vec.index_of(&num));
+    ///
+    /// // as expected, querying elements of another vector will also fail
+    /// let eq_vec = vec![0, 10, 20, 30];
+    /// for i in 0..4 {
+    ///     assert_eq!(None, vec.index_of(&eq_vec[i]));
+    /// }
+    /// ```
+    fn index_of(&self, element: &T) -> Option<usize> {
+        let ptr_element = element as *const T as usize;
+        let mut count = 0;
+        for fragment in &self.fragments {
+            if let Some(index) = fragment.index_of(ptr_element) {
+                return Some(count + index);
+            } else {
+                count += fragment.len()
+            }
+        }
+        None
+    }
+
     /// Returns the total number of elements the split vector can hold without
     /// reallocating.
     ///
@@ -627,8 +685,27 @@ mod tests {
     use crate::test_all_growth_types;
 
     #[test]
+    fn index_of() {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+            let mut another_vec = vec![];
+            for i in 0..157 {
+                vec.push(i);
+                another_vec.push(i);
+            }
+            for i in 0..vec.len() {
+                assert_eq!(Some(i), vec.index_of(&vec[i]));
+                assert_eq!(None, vec.index_of(&another_vec[i]));
+
+                let scalar = another_vec[i];
+                assert_eq!(None, vec.index_of(&scalar));
+            }
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
     fn len_and_is_empty() {
-        fn test_len<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
             for i in 0..42 {
                 assert_eq!(i, vec.len());
                 vec.push(i);
@@ -683,7 +760,7 @@ mod tests {
             assert_eq!(42, vec.len());
         }
 
-        test_all_growth_types!(test_len);
+        test_all_growth_types!(test);
     }
 
     #[test]
