@@ -36,7 +36,7 @@
 //!     vec.push(i);
 //! }
 //!
-//! for (i, elem) in vec.into_iter().enumerate() {
+//! for (i, elem) in vec.iter().enumerate() {
 //!     assert_eq!(if i == 0 { 42 } else { i }, *elem);
 //! }
 //!
@@ -161,7 +161,7 @@ mod split_vec;
 pub(crate) mod test;
 mod vec;
 
-pub use common_traits::iter::iterator::SplitVecIterator;
+pub use common_traits::iter::iterator::Iter;
 pub use fragment::fragment_struct::Fragment;
 pub use growth::{
     custom::CustomGrowth, doubling::DoublingGrowth, exponential::ExponentialGrowth,

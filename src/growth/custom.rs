@@ -29,7 +29,7 @@ pub(crate) type GetCapacityOfNewFragment<T> = dyn Fn(&[Fragment<T>]) -> usize;
 ///         vec.push(i);
 ///     }
 ///
-///     vec.into_iter().zip(0..100).all(|(l, r)| *l == r);
+///     vec.iter().zip(0..100).all(|(l, r)| *l == r);
 ///     
 ///     for (f, fragment) in vec.fragments().iter().enumerate() {
 ///         if f % 2 == 0 {
@@ -131,7 +131,7 @@ impl<T> SplitVec<T, CustomGrowth<T>> {
     ///         vec.push(i);
     ///     }
     ///
-    ///     vec.into_iter().zip(0..100).all(|(l, r)| *l == r);
+    ///     vec.iter().zip(0..100).all(|(l, r)| *l == r);
     ///     
     ///     for (f, fragment) in vec.fragments().iter().enumerate() {
     ///         if f % 2 == 0 {
