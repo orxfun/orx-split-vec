@@ -32,8 +32,8 @@ where
     G: SplitVecGrowth<T>,
 {
     fn eq(&self, other: &SplitVec<T, G>) -> bool {
-        let iter1 = self.into_iter();
-        let iter2 = other.into_iter();
+        let iter1 = self.iter();
+        let iter2 = other.iter();
         iter1 == iter2
     }
 }

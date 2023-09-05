@@ -25,7 +25,7 @@ where
     /// assert_eq!(vec, [1, 2, 3, 4, 5, 6, 7]);
     ///
     /// let mut sec_vec = SplitVec::with_linear_growth(4);
-    /// sec_vec.extend(vec.into_iter());
+    /// sec_vec.extend(vec.iter());
     /// assert_eq!(sec_vec, [1, 2, 3, 4, 5, 6, 7]);
     /// ```
     fn extend<I: IntoIterator<Item = &'a T>>(&mut self, iter: I) {
