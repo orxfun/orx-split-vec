@@ -1,4 +1,4 @@
-pub use crate::common_traits::iter::iterator::Iter;
+pub use crate::common_traits::iterator::iter::Iter;
 pub use crate::fragment::fragment_struct::Fragment;
 pub use crate::growth::{
     custom::CustomGrowth, doubling::DoublingGrowth, exponential::ExponentialGrowth,

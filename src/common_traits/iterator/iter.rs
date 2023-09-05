@@ -1,6 +1,5 @@
-use std::iter::FusedIterator;
-
 use crate::{fragment::fragment_struct::Fragment, SplitVec, SplitVecGrowth};
+use std::iter::FusedIterator;
 
 impl<T, G> SplitVec<T, G>
 where

@@ -1,4 +1,4 @@
 mod debug;
 mod eq;
 mod index;
-pub(crate) mod iter;
+pub(crate) mod iterator;

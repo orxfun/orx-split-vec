@@ -161,7 +161,7 @@ mod split_vec;
 pub(crate) mod test;
 mod vec;
 
-pub use common_traits::iter::iterator::Iter;
+pub use common_traits::iterator::iter::Iter;
 pub use fragment::fragment_struct::Fragment;
 pub use growth::{
     custom::CustomGrowth, doubling::DoublingGrowth, exponential::ExponentialGrowth,
