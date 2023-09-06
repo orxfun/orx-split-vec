@@ -97,10 +97,10 @@ fn custom_growth_fun<T>(fragments: &[Fragment<T>]) -> usize {
         8
     }
 }
-fn get_fragment_capacities<T, G: SplitVecGrowth<T>>(vec: &SplitVec<T, G>) -> Vec<usize> {
+fn get_fragment_capacities<T, G: Growth<T>>(vec: &SplitVec<T, G>) -> Vec<usize> {
     vec.fragments().iter().map(|f| f.capacity()).collect()
 }
-fn get_fragment_lengths<T, G: SplitVecGrowth<T>>(vec: &SplitVec<T, G>) -> Vec<usize> {
+fn get_fragment_lengths<T, G: Growth<T>>(vec: &SplitVec<T, G>) -> Vec<usize> {
     vec.fragments().iter().map(|f| f.len()).collect()
 }
 

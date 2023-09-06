@@ -1,4 +1,4 @@
-use super::growth_trait::SplitVecGrowth;
+use super::growth_trait::Growth;
 use crate::{Fragment, SplitVec};
 
 /// Stategy which allows creates a fragment with double the capacity
@@ -51,7 +51,7 @@ use crate::{Fragment, SplitVec};
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Doubling;
 
-impl SplitVecGrowth for Doubling {
+impl Growth for Doubling {
     fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
         fragments.last().map(|f| f.capacity() * 2).unwrap_or(4)
     }
@@ -140,7 +140,7 @@ impl<T> SplitVec<T, Doubling> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Doubling, Fragment, SplitVecGrowth};
+    use crate::{Doubling, Fragment, Growth};
 
     #[test]
     fn new_cap() {
@@ -162,11 +162,7 @@ mod tests {
     fn indices_panics_when_fragments_is_empty() {
         assert_eq!(
             None,
-            <Doubling as SplitVecGrowth>::get_fragment_and_inner_indices::<usize>(
-                &Doubling,
-                &[],
-                0
-            )
+            <Doubling as Growth>::get_fragment_and_inner_indices::<usize>(&Doubling, &[], 0)
         );
     }
 

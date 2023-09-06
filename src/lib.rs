@@ -89,7 +89,7 @@
 //! use std::rc::Rc;
 //! #[derive(Clone)]
 //! pub struct DoubleEverySecondFragment(usize); // any custom growth strategy
-//! impl SplitVecGrowth for DoubleEverySecondFragment {
+//! impl Growth for DoubleEverySecondFragment {
 //!     fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
 //!         fragments
 //!             .last()
@@ -105,10 +105,10 @@
 //!     }
 //! }
 //!
-//! fn get_fragment_capacities<T, G: SplitVecGrowth>(vec: &SplitVec<T, G>) -> Vec<usize> {
+//! fn get_fragment_capacities<T, G: Growth>(vec: &SplitVec<T, G>) -> Vec<usize> {
 //!     vec.fragments().iter().map(|f| f.capacity()).collect()
 //! }
-//! fn get_fragment_lengths<T, G: SplitVecGrowth>(vec: &SplitVec<T, G>) -> Vec<usize> {
+//! fn get_fragment_lengths<T, G: Growth>(vec: &SplitVec<T, G>) -> Vec<usize> {
 //!     vec.fragments().iter().map(|f| f.len()).collect()
 //! }
 //!
@@ -173,7 +173,7 @@ pub(crate) mod test;
 pub use common_traits::iterator::iter::Iter;
 pub use fragment::fragment_struct::Fragment;
 pub use growth::{
-    doubling::Doubling, exponential::Exponential, growth_trait::SplitVecGrowth, linear::Linear,
+    doubling::Doubling, exponential::Exponential, growth_trait::Growth, linear::Linear,
 };
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;

@@ -1,8 +1,8 @@
-use crate::{Fragment, SplitVec, SplitVecGrowth};
+use crate::{Fragment, Growth, SplitVec};
 
 impl<T: PartialEq, G> PartialEq<SplitVec<T, G>> for [T]
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     fn eq(&self, other: &SplitVec<T, G>) -> bool {
         are_fragments_eq_to_slice(&other.fragments, self)
@@ -11,7 +11,7 @@ where
 
 impl<T: PartialEq, G> PartialEq<SplitVec<T, G>> for Vec<T>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     fn eq(&self, other: &SplitVec<T, G>) -> bool {
         are_fragments_eq_to_slice(&other.fragments, self)
@@ -20,7 +20,7 @@ where
 
 impl<T: PartialEq, G, const N: usize> PartialEq<SplitVec<T, G>> for [T; N]
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     fn eq(&self, other: &SplitVec<T, G>) -> bool {
         are_fragments_eq_to_slice(&other.fragments, self)
@@ -29,7 +29,7 @@ where
 
 impl<T: PartialEq, G> PartialEq<SplitVec<T, G>> for SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     fn eq(&self, other: &SplitVec<T, G>) -> bool {
         let iter1 = self.iter();
@@ -38,7 +38,7 @@ where
     }
 }
 
-impl<T: PartialEq, G: SplitVecGrowth> Eq for SplitVec<T, G> {}
+impl<T: PartialEq, G: Growth> Eq for SplitVec<T, G> {}
 
 pub(crate) fn are_fragments_eq_to_slice<T: PartialEq>(
     fragments: &[Fragment<T>],
