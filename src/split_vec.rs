@@ -1,4 +1,4 @@
-use crate::{fragment::fragment_struct::Fragment, Growth};
+use crate::{fragment::fragment_struct::Fragment, Doubling, Growth};
 
 /// A split vector; i.e., a vector of fragments, with the following features:
 ///
@@ -6,7 +6,7 @@ use crate::{fragment::fragment_struct::Fragment, Growth};
 /// * Growth does not cause any memory copies.
 /// * Capacity of an already created fragment is never changed.
 /// * The above feature allows the data to stay pinned in place. Memory location of an item added to the split vector will never change unless it is removed from the vector or the vector is dropped.
-pub struct SplitVec<T, G>
+pub struct SplitVec<T, G = Doubling>
 where
     G: Growth,
 {
