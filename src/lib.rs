@@ -86,7 +86,6 @@
 //!
 //! ```rust
 //! use orx_split_vec::prelude::*;
-//! use std::rc::Rc;
 //! #[derive(Clone)]
 //! pub struct DoubleEverySecondFragment(usize); // any custom growth strategy
 //! impl Growth for DoubleEverySecondFragment {
