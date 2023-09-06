@@ -1,10 +1,10 @@
-use crate::{eq::are_fragments_eq_to_slice, SplitVec, SplitVecGrowth};
+use crate::{eq::are_fragments_eq_to_slice, Growth, SplitVec};
 use orx_pinned_vec::PinnedVec;
 use std::fmt::{Debug, Formatter, Result};
 
 impl<T, G> PinnedVec<T> for SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     /// Returns the index of the `element` with the given reference.
     /// This method has *O(f)* time complexity where f is the number of fragments.
@@ -686,7 +686,7 @@ mod tests {
 
     #[test]
     fn index_of() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             let mut another_vec = vec![];
             for i in 0..157 {
                 vec.push(i);
@@ -705,7 +705,7 @@ mod tests {
 
     #[test]
     fn len_and_is_empty() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for i in 0..42 {
                 assert_eq!(i, vec.len());
                 vec.push(i);
@@ -765,7 +765,7 @@ mod tests {
 
     #[test]
     fn clear() {
-        fn clear_is_empty<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn clear_is_empty<G: Growth>(mut vec: SplitVec<usize, G>) {
             vec.clear();
             assert!(vec.is_empty());
             assert_eq!(0, vec.len());
@@ -786,7 +786,7 @@ mod tests {
 
     #[test]
     fn get() {
-        fn test_get<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test_get<G: Growth>(mut vec: SplitVec<usize, G>) {
             assert!(vec.is_empty());
 
             for i in 0..53 {
@@ -807,7 +807,7 @@ mod tests {
 
     #[test]
     fn extend_from_slice() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
             vec.extend_from_slice(&(42..63).collect::<Vec<_>>());
             vec.extend_from_slice(&(63..100).collect::<Vec<_>>());
@@ -822,7 +822,7 @@ mod tests {
 
     #[test]
     fn grow() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for i in 0..42 {
                 vec.push(i);
             }
@@ -840,7 +840,7 @@ mod tests {
 
     #[test]
     fn shrink() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for i in 0..42 {
                 vec.push(i);
                 assert_eq!(i, vec.remove(0));
@@ -867,7 +867,7 @@ mod tests {
     }
     #[test]
     fn swap() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for i in 0..42 {
                 vec.push(i);
             }
@@ -887,7 +887,7 @@ mod tests {
     }
     #[test]
     fn truncate() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             let std_vec: Vec<_> = (0..42).collect();
             for i in 0..42 {
                 vec.push(i);
@@ -906,7 +906,7 @@ mod tests {
 
     #[test]
     fn unsafe_insert() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<Num, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<Num, G>) {
             for i in 0..42 {
                 vec.push(Num::new(i));
             }
@@ -923,7 +923,7 @@ mod tests {
     }
     #[test]
     fn unsafe_shrink() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<Num, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<Num, G>) {
             for i in 0..42 {
                 vec.push(Num::new(i));
                 assert_eq!(Num::new(i), unsafe { vec.unsafe_remove(0) });
@@ -959,7 +959,7 @@ mod tests {
     }
     #[test]
     fn unsafe_swap() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<Num, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<Num, G>) {
             for i in 0..42 {
                 vec.push(Num::new(i));
             }
@@ -979,7 +979,7 @@ mod tests {
     }
     #[test]
     fn unsafe_truncate() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<Num, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<Num, G>) {
             let std_vec: Vec<_> = (0..42).map(Num::new).collect();
             for i in 0..42 {
                 vec.push(Num::new(i));
@@ -998,7 +998,7 @@ mod tests {
 
     #[test]
     fn unsafe_clone() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<Num, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<Num, G>) {
             assert!(vec.is_empty());
 
             for i in 0..53 {

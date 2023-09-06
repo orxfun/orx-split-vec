@@ -1,4 +1,4 @@
-use super::growth_trait::SplitVecGrowth;
+use super::growth_trait::Growth;
 use crate::{Fragment, SplitVec};
 
 /// Stategy which allows the split vector to grow linearly.
@@ -40,7 +40,7 @@ pub struct Linear;
 
 const DEFAULT_FRAGMENT_CAPACITY: usize = 32;
 
-impl SplitVecGrowth for Linear {
+impl Growth for Linear {
     fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
         fragments
             .last()
@@ -119,7 +119,7 @@ impl<T> SplitVec<T, Linear> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Fragment, Linear, SplitVecGrowth};
+    use crate::{Fragment, Growth, Linear};
 
     #[test]
     fn new_cap() {
@@ -141,7 +141,7 @@ mod tests {
     fn indices_panics_when_fragments_is_empty() {
         assert_eq!(
             None,
-            <Linear as SplitVecGrowth>::get_fragment_and_inner_indices::<usize>(&Linear, &[], 0)
+            <Linear as Growth>::get_fragment_and_inner_indices::<usize>(&Linear, &[], 0)
         );
     }
 

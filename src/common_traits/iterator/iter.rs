@@ -1,9 +1,9 @@
-use crate::{fragment::fragment_struct::Fragment, SplitVec, SplitVecGrowth};
+use crate::{fragment::fragment_struct::Fragment, Growth, SplitVec};
 use std::iter::FusedIterator;
 
 impl<T, G> SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     /// Iterator over the split vec.
     ///
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn iter() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for i in 0..1000 {
                 vec.push(i);
             }

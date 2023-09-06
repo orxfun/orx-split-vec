@@ -1,4 +1,4 @@
-use crate::{fragment::fragment_struct::Fragment, SplitVecGrowth};
+use crate::{fragment::fragment_struct::Fragment, Growth};
 
 /// A split vector; i.e., a vector of fragments, with the following features:
 ///
@@ -8,7 +8,7 @@ use crate::{fragment::fragment_struct::Fragment, SplitVecGrowth};
 /// * The above feature allows the data to stay pinned in place. Memory location of an item added to the split vector will never change unless it is removed from the vector or the vector is dropped.
 pub struct SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     pub(crate) fragments: Vec<Fragment<T>>,
     /// Growth strategy of the split vector.
@@ -31,7 +31,7 @@ where
 
 impl<T, G> SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     /// Returns a mutable reference to the vector of fragments.
     ///
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn fragments() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for i in 0..42 {
                 vec.push(i);
             }
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn get_fragment_and_inner_indices() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for i in 0..432 {
                 vec.push(i);
                 assert_eq!(None, vec.get_fragment_and_inner_indices(i + 1));

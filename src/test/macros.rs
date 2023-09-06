@@ -4,7 +4,7 @@ macro_rules! test_all_growth_types {
     ($fun:tt) => {
         #[derive(Clone)]
         pub struct DoubleEveryFourFragments;
-        impl SplitVecGrowth for DoubleEveryFourFragments {
+        impl Growth for DoubleEveryFourFragments {
             fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
                 let do_double = fragments.len() % 4 == 0;
                 let last_capacity = fragments.last().map(|f| f.capacity()).unwrap_or(4);

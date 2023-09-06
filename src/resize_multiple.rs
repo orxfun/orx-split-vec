@@ -1,9 +1,9 @@
-use crate::{SplitVec, SplitVecGrowth};
+use crate::{Growth, SplitVec};
 use orx_pinned_vec::PinnedVec;
 
 impl<'a, T: Clone + 'a, G> Extend<&'a T> for SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     /// Clones and appends all elements in the iterator to the vec.
     ///
@@ -37,7 +37,7 @@ where
 
 impl<T, G> Extend<T> for SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     /// Extends a collection with the contents of an iterator.
     ///
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn extend() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             vec.extend(0..42);
             vec.extend(&(42..63).collect::<Vec<_>>());
             vec.extend((53..90).map(|i| i + 10));

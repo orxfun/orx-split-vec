@@ -1,4 +1,4 @@
-use crate::{Fragment, SplitVec, SplitVecGrowth};
+use crate::{Fragment, Growth, SplitVec};
 use std::ops::Range;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -16,7 +16,7 @@ pub enum SplitVecSlice<'a, T> {
 
 impl<T, G> SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     /// Returns the result of trying to return the required `range` as a contagious slice of data.
     /// It might return Ok of the slice if the range belongs to one fragment.
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn try_get_slice() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for i in 0..42 {
                 assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(0..i + 1));
                 assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(i..i + 1));
@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn slice() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for i in 0..184 {
                 assert!(vec.slice(i..i + 1).is_empty());
                 assert!(vec.slice(0..i + 1).is_empty());
@@ -226,7 +226,7 @@ mod tests {
 
 #[derive(Clone)]
 pub struct DoubleEverySecondFragment(usize);
-impl SplitVecGrowth for DoubleEverySecondFragment {
+impl Growth for DoubleEverySecondFragment {
     fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
         fragments
             .last()

@@ -1,4 +1,4 @@
-use crate::{Doubling, Exponential, Linear, SplitVec, SplitVecGrowth};
+use crate::{Doubling, Exponential, Growth, Linear, SplitVec};
 use orx_pinned_vec::{NotSelfRefVecItem, PinnedVec};
 
 // into SplitVec
@@ -84,7 +84,7 @@ impl<T> From<Vec<T>> for SplitVec<T, Exponential> {
 // from SplitVec
 impl<T, G> From<SplitVec<T, G>> for Vec<T>
 where
-    G: SplitVecGrowth,
+    G: Growth,
     T: NotSelfRefVecItem,
 {
     /// Converts the `SplitVec` into a standard `Vec` with a contagious memory layout.
@@ -124,7 +124,7 @@ where
 }
 impl<T, G> SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
     T: NotSelfRefVecItem,
 {
     /// Converts the `SplitVec` into a standard `Vec` with a contagious memory layout.

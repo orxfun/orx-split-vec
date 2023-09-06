@@ -1,11 +1,11 @@
-use crate::{SplitVec, SplitVecGrowth};
+use crate::{Growth, SplitVec};
 use orx_pinned_vec::PinnedVec;
 use std::fmt::Debug;
 
 impl<T, G> Debug for SplitVec<T, G>
 where
     T: Debug,
-    G: SplitVecGrowth,
+    G: Growth,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         <Self as PinnedVec<T>>::debug(self, f)

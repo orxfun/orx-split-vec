@@ -1,9 +1,9 @@
-use crate::{SplitVec, SplitVecGrowth};
+use crate::{Growth, SplitVec};
 use std::ops::{Index, IndexMut};
 
 impl<T, G> Index<usize> for SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     type Output = T;
     /// Returns a reference to the `index`-th item of the vector.
@@ -35,7 +35,7 @@ where
 
 impl<T, G> IndexMut<usize> for SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     /// Returns a mutable reference to the `index`-th item of the vector.
     ///
@@ -68,7 +68,7 @@ where
 
 impl<T, G> Index<(usize, usize)> for SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     type Output = T;
     /// One can treat the split vector as a jagged array
@@ -126,7 +126,7 @@ where
 }
 impl<T, G> IndexMut<(usize, usize)> for SplitVec<T, G>
 where
-    G: SplitVecGrowth,
+    G: Growth,
 {
     /// One can treat the split vector as a jagged array
     /// and access an item with (fragment_index, inner_fragment_index)
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn index() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
             vec.extend_from_slice(&(42..63).collect::<Vec<_>>());
             vec.extend_from_slice(&(63..100).collect::<Vec<_>>());
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn double_indices() {
-        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
             vec.extend_from_slice(&(42..63).collect::<Vec<_>>());
             vec.extend_from_slice(&(63..100).collect::<Vec<_>>());

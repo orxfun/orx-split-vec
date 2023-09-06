@@ -1,4 +1,4 @@
-use super::growth_trait::SplitVecGrowth;
+use super::growth_trait::Growth;
 use crate::{Fragment, SplitVec};
 
 /// Stategy which allows new fragments grow exponentially.
@@ -97,7 +97,7 @@ impl Default for Exponential {
     }
 }
 
-impl SplitVecGrowth for Exponential {
+impl Growth for Exponential {
     fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
         fragments
             .last()
@@ -187,7 +187,7 @@ impl<T> SplitVec<T, Exponential> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Exponential, Fragment, SplitVecGrowth};
+    use crate::{Exponential, Fragment, Growth};
 
     fn growth() -> Exponential {
         Exponential {
@@ -213,11 +213,7 @@ mod tests {
     fn indices_when_fragments_is_empty() {
         assert_eq!(
             None,
-            <Exponential as SplitVecGrowth>::get_fragment_and_inner_indices::<usize>(
-                &growth(),
-                &[],
-                0
-            )
+            <Exponential as Growth>::get_fragment_and_inner_indices::<usize>(&growth(), &[], 0)
         );
     }
 
