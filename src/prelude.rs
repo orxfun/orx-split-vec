@@ -1,8 +1,7 @@
 pub use crate::common_traits::iterator::iter::Iter;
 pub use crate::fragment::fragment_struct::Fragment;
 pub use crate::growth::{
-    custom::CustomGrowth, doubling::DoublingGrowth, exponential::ExponentialGrowth,
-    growth_trait::SplitVecGrowth, linear::LinearGrowth,
+    doubling::Doubling, exponential::Exponential, growth_trait::SplitVecGrowth, linear::Linear,
 };
 pub use crate::slice::SplitVecSlice;
 pub use crate::split_vec::SplitVec;

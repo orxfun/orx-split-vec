@@ -36,18 +36,18 @@ use crate::{Fragment, SplitVec};
 /// assert_eq!(Some(1), vec.fragments().last().map(|f| f.len()));
 /// ```
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct LinearGrowth;
+pub struct Linear;
 
 const DEFAULT_FRAGMENT_CAPACITY: usize = 32;
 
-impl<T> SplitVecGrowth<T> for LinearGrowth {
-    fn new_fragment_capacity(&self, fragments: &[Fragment<T>]) -> usize {
+impl SplitVecGrowth for Linear {
+    fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
         fragments
             .last()
             .map(|f| f.capacity())
             .unwrap_or(DEFAULT_FRAGMENT_CAPACITY)
     }
-    fn get_fragment_and_inner_indices(
+    fn get_fragment_and_inner_indices<T>(
         &self,
         fragments: &[Fragment<T>],
         element_index: usize,
@@ -70,7 +70,7 @@ impl<T> SplitVecGrowth<T> for LinearGrowth {
     }
 }
 
-impl<T> SplitVec<T, LinearGrowth> {
+impl<T> SplitVec<T, Linear> {
     /// Creates a split vector with linear growth and given `constant_fragment_capacity`.
     ///
     /// Assuming it is the common case compared to empty vector scenarios,
@@ -112,14 +112,14 @@ impl<T> SplitVec<T, LinearGrowth> {
         assert!(constant_fragment_capacity > 0);
         Self {
             fragments: vec![Fragment::new(constant_fragment_capacity)],
-            growth: LinearGrowth,
+            growth: Linear,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Fragment, LinearGrowth, SplitVecGrowth};
+    use crate::{Fragment, Linear, SplitVecGrowth};
 
     #[test]
     fn new_cap() {
@@ -127,7 +127,7 @@ mod tests {
             Vec::<usize>::with_capacity(10).into()
         }
 
-        let growth = LinearGrowth;
+        let growth = Linear;
         assert_eq!(10, growth.new_fragment_capacity(&[new_fra()]));
         assert_eq!(10, growth.new_fragment_capacity(&[new_fra(), new_fra()]));
         assert_eq!(
@@ -141,11 +141,7 @@ mod tests {
     fn indices_panics_when_fragments_is_empty() {
         assert_eq!(
             None,
-            <LinearGrowth as SplitVecGrowth<usize>>::get_fragment_and_inner_indices(
-                &LinearGrowth,
-                &[],
-                0
-            )
+            <Linear as SplitVecGrowth>::get_fragment_and_inner_indices::<usize>(&Linear, &[], 0)
         );
     }
 
@@ -162,7 +158,7 @@ mod tests {
             vec.into()
         }
 
-        let growth = LinearGrowth;
+        let growth = Linear;
 
         for i in 0..10 {
             assert_eq!(

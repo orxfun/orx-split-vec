@@ -5,7 +5,7 @@ impl<T, G, U> PartialEq<U> for SplitVec<T, G>
 where
     U: AsRef<[T]>,
     T: PartialEq,
-    G: SplitVecGrowth<T>,
+    G: SplitVecGrowth,
 {
     fn eq(&self, other: &U) -> bool {
         <Self as PinnedVec<T>>::partial_eq(self, other.as_ref())
@@ -19,7 +19,7 @@ mod tests {
 
     #[test]
     fn eq() {
-        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
             for i in 0..142 {
                 vec.push(i);
             }
