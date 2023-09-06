@@ -5,7 +5,7 @@ use std::fmt::Debug;
 impl<T, G> Debug for SplitVec<T, G>
 where
     T: Debug,
-    G: SplitVecGrowth<T>,
+    G: SplitVecGrowth,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         <Self as PinnedVec<T>>::debug(self, f)

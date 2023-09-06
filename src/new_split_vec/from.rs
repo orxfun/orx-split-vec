@@ -1,10 +1,8 @@
-use crate::{
-    CustomGrowth, DoublingGrowth, ExponentialGrowth, LinearGrowth, SplitVec, SplitVecGrowth,
-};
-use orx_pinned_vec::PinnedVec;
+use crate::{Doubling, Exponential, Linear, SplitVec, SplitVecGrowth};
+use orx_pinned_vec::{NotSelfRefVecItem, PinnedVec};
 
 // into SplitVec
-impl<T> From<Vec<T>> for SplitVec<T, LinearGrowth> {
+impl<T> From<Vec<T>> for SplitVec<T, Linear> {
     /// Converts a `Vec` into a `SplitVec` by
     /// moving the vector into the split vector as the first fragment,
     /// without copying the data.
@@ -17,7 +15,7 @@ impl<T> From<Vec<T>> for SplitVec<T, LinearGrowth> {
     /// let vec = vec!['a', 'b', 'c'];
     /// let vec_capacity = vec.capacity();
     ///
-    /// let split_vec: SplitVec<_> = vec.into();
+    /// let split_vec: SplitVec<_, Linear> = vec.into();
     ///
     /// assert_eq!(split_vec, &['a', 'b', 'c']);
     /// assert_eq!(1, split_vec.fragments().len());
@@ -26,11 +24,11 @@ impl<T> From<Vec<T>> for SplitVec<T, LinearGrowth> {
     fn from(value: Vec<T>) -> Self {
         Self {
             fragments: vec![value.into()],
-            growth: LinearGrowth,
+            growth: Linear,
         }
     }
 }
-impl<T> From<Vec<T>> for SplitVec<T, DoublingGrowth> {
+impl<T> From<Vec<T>> for SplitVec<T, Doubling> {
     /// Converts a `Vec` into a `SplitVec` by
     /// moving the vector into the split vector as the first fragment,
     /// without copying the data.
@@ -43,7 +41,7 @@ impl<T> From<Vec<T>> for SplitVec<T, DoublingGrowth> {
     /// let vec = vec!['a', 'b', 'c'];
     /// let vec_capacity = vec.capacity();
     ///
-    /// let split_vec: SplitVec<_> = vec.into();
+    /// let split_vec: SplitVec<_, Doubling> = vec.into();
     ///
     /// assert_eq!(split_vec, &['a', 'b', 'c']);
     /// assert_eq!(1, split_vec.fragments().len());
@@ -52,11 +50,11 @@ impl<T> From<Vec<T>> for SplitVec<T, DoublingGrowth> {
     fn from(value: Vec<T>) -> Self {
         Self {
             fragments: vec![value.into()],
-            growth: DoublingGrowth,
+            growth: Doubling,
         }
     }
 }
-impl<T> From<Vec<T>> for SplitVec<T, ExponentialGrowth> {
+impl<T> From<Vec<T>> for SplitVec<T, Exponential> {
     /// Converts a `Vec` into a `SplitVec` by
     /// moving the vector into the split vector as the first fragment,
     /// without copying the data.
@@ -69,7 +67,7 @@ impl<T> From<Vec<T>> for SplitVec<T, ExponentialGrowth> {
     /// let vec = vec!['a', 'b', 'c'];
     /// let vec_capacity = vec.capacity();
     ///
-    /// let split_vec: SplitVec<_> = vec.into();
+    /// let split_vec: SplitVec<_, Exponential> = vec.into();
     ///
     /// assert_eq!(split_vec, &['a', 'b', 'c']);
     /// assert_eq!(1, split_vec.fragments().len());
@@ -78,33 +76,7 @@ impl<T> From<Vec<T>> for SplitVec<T, ExponentialGrowth> {
     fn from(value: Vec<T>) -> Self {
         Self {
             fragments: vec![value.into()],
-            growth: ExponentialGrowth::default(),
-        }
-    }
-}
-impl<T: 'static> From<Vec<T>> for SplitVec<T, CustomGrowth<T>> {
-    /// Converts a `Vec` into a `SplitVec` by
-    /// moving the vector into the split vector as the first fragment,
-    /// without copying the data.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use orx_split_vec::prelude::*;
-    ///
-    /// let vec = vec!['a', 'b', 'c'];
-    /// let vec_capacity = vec.capacity();
-    ///
-    /// let split_vec: SplitVec<_> = vec.into();
-    ///
-    /// assert_eq!(split_vec, &['a', 'b', 'c']);
-    /// assert_eq!(1, split_vec.fragments().len());
-    /// assert_eq!(vec_capacity, split_vec.fragments()[0].capacity());
-    /// ```
-    fn from(value: Vec<T>) -> Self {
-        Self {
-            fragments: vec![value.into()],
-            growth: CustomGrowth::<T>::default(),
+            growth: Exponential::default(),
         }
     }
 }
@@ -112,7 +84,8 @@ impl<T: 'static> From<Vec<T>> for SplitVec<T, CustomGrowth<T>> {
 // from SplitVec
 impl<T, G> From<SplitVec<T, G>> for Vec<T>
 where
-    G: SplitVecGrowth<T>,
+    G: SplitVecGrowth,
+    T: NotSelfRefVecItem,
 {
     /// Converts the `SplitVec` into a standard `Vec` with a contagious memory layout.
     ///
@@ -141,7 +114,6 @@ where
     /// assert_eq!(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], vec.as_slice());
     /// ```
     fn from(mut value: SplitVec<T, G>) -> Self {
-        // todo: copy can be avoided if there exists only one fragment.
         let mut vec = vec![];
         vec.reserve(value.len());
         for f in &mut value.fragments {
@@ -152,7 +124,8 @@ where
 }
 impl<T, G> SplitVec<T, G>
 where
-    G: SplitVecGrowth<T>,
+    G: SplitVecGrowth,
+    T: NotSelfRefVecItem,
 {
     /// Converts the `SplitVec` into a standard `Vec` with a contagious memory layout.
     ///
@@ -166,7 +139,7 @@ where
     ///
     /// assert_eq!(1, split_vec.fragments().len());
     ///
-    /// let vec = split_vec.to_vec(); // no mem-copies
+    /// let vec = split_vec.to_vec();
     /// assert_eq!(vec, &['a', 'b', 'c']);
     ///
     /// let mut split_vec = SplitVec::with_linear_growth(4);

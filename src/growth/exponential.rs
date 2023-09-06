@@ -1,7 +1,4 @@
-use super::{
-    any,
-    growth_trait::{SplitVecGrowth, SplitVecGrowthWithFlexibleIndexAccess},
-};
+use super::growth_trait::SplitVecGrowth;
 use crate::{Fragment, SplitVec};
 
 /// Stategy which allows new fragments grow exponentially.
@@ -66,10 +63,10 @@ use crate::{Fragment, SplitVec};
 /// assert_eq!(vec.fragments().last().map(|f| f.len()), Some(1));
 /// ```
 #[derive(Debug, Clone, PartialEq)]
-pub struct ExponentialGrowth {
+pub struct Exponential {
     growth_coefficient: f32,
 }
-impl ExponentialGrowth {
+impl Exponential {
     /// Creates a new exponential growth strategy with the given `growth_coefficient`.
     ///
     /// The capacity of the n-th fragment is computed as
@@ -90,7 +87,7 @@ impl ExponentialGrowth {
         self.growth_coefficient
     }
 }
-impl Default for ExponentialGrowth {
+impl Default for Exponential {
     /// Creates a default exponential growth strategy with
     /// `growth_coefficient` being equal to 1.5.
     fn default() -> Self {
@@ -100,25 +97,16 @@ impl Default for ExponentialGrowth {
     }
 }
 
-impl<T> SplitVecGrowth<T> for ExponentialGrowth {
-    fn new_fragment_capacity(&self, fragments: &[Fragment<T>]) -> usize {
+impl SplitVecGrowth for Exponential {
+    fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
         fragments
             .last()
             .map(|f| (f.capacity() as f32 * self.growth_coefficient) as usize)
             .unwrap_or(4)
     }
-
-    fn get_fragment_and_inner_indices(
-        &self,
-        fragments: &[Fragment<T>],
-        element_index: usize,
-    ) -> Option<(usize, usize)> {
-        any::get_fragment_and_inner_indices(fragments, element_index)
-    }
 }
-impl<T> SplitVecGrowthWithFlexibleIndexAccess<T> for ExponentialGrowth {}
 
-impl<T> SplitVec<T, ExponentialGrowth> {
+impl<T> SplitVec<T, Exponential> {
     /// Stategy which allows new fragments grow exponentially.
     ///
     /// The capacity of the n-th fragment is computed as
@@ -192,17 +180,17 @@ impl<T> SplitVec<T, ExponentialGrowth> {
         assert!(growth_coefficient >= 1.0);
         Self {
             fragments: vec![Fragment::new(first_fragment_capacity)],
-            growth: ExponentialGrowth::new(growth_coefficient),
+            growth: Exponential::new(growth_coefficient),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{ExponentialGrowth, Fragment, SplitVecGrowth};
+    use crate::{Exponential, Fragment, SplitVecGrowth};
 
-    fn growth() -> ExponentialGrowth {
-        ExponentialGrowth {
+    fn growth() -> Exponential {
+        Exponential {
             growth_coefficient: 1.5,
         }
     }
@@ -225,7 +213,7 @@ mod tests {
     fn indices_when_fragments_is_empty() {
         assert_eq!(
             None,
-            <ExponentialGrowth as SplitVecGrowth<usize>>::get_fragment_and_inner_indices(
+            <Exponential as SplitVecGrowth>::get_fragment_and_inner_indices::<usize>(
                 &growth(),
                 &[],
                 0

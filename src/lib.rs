@@ -87,18 +87,28 @@
 //! ```rust
 //! use orx_split_vec::prelude::*;
 //! use std::rc::Rc;
-//!
-//! fn custom_growth_fun<T>(fragments: &[Fragment<T>]) -> usize {
-//!     if fragments.len() < 4 {
-//!         4
-//!     } else {
-//!         8
+//! #[derive(Clone)]
+//! pub struct DoubleEverySecondFragment(usize); // any custom growth strategy
+//! impl SplitVecGrowth for DoubleEverySecondFragment {
+//!     fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
+//!         fragments
+//!             .last()
+//!             .map(|f| {
+//!                 let do_double = fragments.len() % 2 == 0;
+//!                 if do_double {
+//!                     f.capacity() * 2
+//!                 } else {
+//!                     f.capacity()
+//!                 }
+//!             })
+//!             .unwrap_or(self.0)
 //!     }
 //! }
-//! fn get_fragment_capacities<T, G: SplitVecGrowth<T>>(vec: &SplitVec<T, G>) -> Vec<usize> {
+//!
+//! fn get_fragment_capacities<T, G: SplitVecGrowth>(vec: &SplitVec<T, G>) -> Vec<usize> {
 //!     vec.fragments().iter().map(|f| f.capacity()).collect()
 //! }
-//! fn get_fragment_lengths<T, G: SplitVecGrowth<T>>(vec: &SplitVec<T, G>) -> Vec<usize> {
+//! fn get_fragment_lengths<T, G: SplitVecGrowth>(vec: &SplitVec<T, G>) -> Vec<usize> {
 //!     vec.fragments().iter().map(|f| f.len()).collect()
 //! }
 //!
@@ -106,7 +116,7 @@
 //! let mut vec_lin = SplitVec::with_linear_growth(10);
 //! let mut vec_dbl = SplitVec::with_doubling_growth(4);
 //! let mut vec_exp = SplitVec::with_exponential_growth(4, 1.5);
-//! let mut vec_custom = SplitVec::with_custom_growth_function(Rc::new(custom_growth_fun));
+//! let mut vec_custom = SplitVec::with_growth(DoubleEverySecondFragment(1));
 //!
 //! // and push 35 elements to all vectors
 //! for i in 0..35 {
@@ -130,10 +140,10 @@
 //!
 //! // # custom: pretty much any growth strategy
 //! assert_eq!(
-//!     vec![4, 4, 4, 4, 8, 8, 8],
+//!     vec![1, 1, 2, 2, 4, 4, 8, 8, 16],
 //!     get_fragment_capacities(&vec_custom)
 //! );
-//! assert_eq!(vec![4, 4, 4, 4, 8, 8, 3], get_fragment_lengths(&vec_custom));
+//! assert_eq!(vec![1, 1, 2, 2, 4, 4, 8, 8, 5], get_fragment_lengths(&vec_custom));
 //! ```
 
 #![warn(
@@ -159,13 +169,11 @@ mod slice;
 mod split_vec;
 #[cfg(test)]
 pub(crate) mod test;
-mod vec;
 
 pub use common_traits::iterator::iter::Iter;
 pub use fragment::fragment_struct::Fragment;
 pub use growth::{
-    custom::CustomGrowth, doubling::DoublingGrowth, exponential::ExponentialGrowth,
-    growth_trait::SplitVecGrowth, linear::LinearGrowth,
+    doubling::Doubling, exponential::Exponential, growth_trait::SplitVecGrowth, linear::Linear,
 };
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;

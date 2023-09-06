@@ -2,20 +2,24 @@
 #[cfg(test)]
 macro_rules! test_all_growth_types {
     ($fun:tt) => {
-        let custom_fun = std::rc::Rc::new(
-            |fragments: &[$crate::Fragment<_>]| {
-                if fragments.len() % 2 == 0 {
-                    2
+        #[derive(Clone)]
+        pub struct DoubleEveryFourFragments;
+        impl SplitVecGrowth for DoubleEveryFourFragments {
+            fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
+                let do_double = fragments.len() % 4 == 0;
+                let last_capacity = fragments.last().map(|f| f.capacity()).unwrap_or(4);
+                if do_double {
+                    last_capacity * 2
                 } else {
-                    8
+                    last_capacity
                 }
-            },
-        );
-        $fun::<$crate::CustomGrowth<_>>(SplitVec::with_custom_growth_function(custom_fun));
-        $fun::<$crate::LinearGrowth>(SplitVec::with_linear_growth(2));
-        $fun::<$crate::DoublingGrowth>(SplitVec::with_doubling_growth(2));
-        $fun::<$crate::ExponentialGrowth>(SplitVec::with_exponential_growth(4, 1.5));
-        $fun::<$crate::ExponentialGrowth>(SplitVec::with_exponential_growth(4, 2.5));
+            }
+        }
+        $fun::<DoubleEveryFourFragments>(SplitVec::with_growth(DoubleEveryFourFragments));
+        $fun::<$crate::Linear>(SplitVec::with_linear_growth(2));
+        $fun::<$crate::Doubling>(SplitVec::with_doubling_growth(2));
+        $fun::<$crate::Exponential>(SplitVec::with_exponential_growth(4, 1.5));
+        $fun::<$crate::Exponential>(SplitVec::with_exponential_growth(4, 2.5));
     };
 }
 

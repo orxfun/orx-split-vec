@@ -3,7 +3,7 @@ use std::iter::FusedIterator;
 
 impl<T, G> SplitVec<T, G>
 where
-    G: SplitVecGrowth<T>,
+    G: SplitVecGrowth,
 {
     /// Iterator over the split vec.
     ///
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn iter() {
-        fn test<G: SplitVecGrowth<usize>>(mut vec: SplitVec<usize, G>) {
+        fn test<G: SplitVecGrowth>(mut vec: SplitVec<usize, G>) {
             for i in 0..1000 {
                 vec.push(i);
             }

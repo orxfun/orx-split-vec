@@ -1,6 +1,5 @@
-use crate::{Fragment, SplitVec};
-
 use super::growth_trait::SplitVecGrowth;
+use crate::{Fragment, SplitVec};
 
 /// Stategy which allows creates a fragment with double the capacity
 /// of the prior fragment every time the split vector needs to expand.
@@ -50,14 +49,14 @@ use super::growth_trait::SplitVecGrowth;
 /// assert_eq!(vec.fragments().last().map(|f| f.len()), Some(1));
 /// ```
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct DoublingGrowth;
+pub struct Doubling;
 
-impl<T> SplitVecGrowth<T> for DoublingGrowth {
-    fn new_fragment_capacity(&self, fragments: &[Fragment<T>]) -> usize {
+impl SplitVecGrowth for Doubling {
+    fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
         fragments.last().map(|f| f.capacity() * 2).unwrap_or(4)
     }
 
-    fn get_fragment_and_inner_indices(
+    fn get_fragment_and_inner_indices<T>(
         &self,
         fragments: &[Fragment<T>],
         element_index: usize,
@@ -79,7 +78,7 @@ impl<T> SplitVecGrowth<T> for DoublingGrowth {
     }
 }
 
-impl<T> SplitVec<T, DoublingGrowth> {
+impl<T> SplitVec<T, Doubling> {
     /// Stategy which allows to create a fragment with double the capacity
     /// of the prior fragment every time the split vector needs to expand.
     ///
@@ -134,14 +133,14 @@ impl<T> SplitVec<T, DoublingGrowth> {
         assert!(first_fragment_capacity > 0);
         Self {
             fragments: vec![Fragment::new(first_fragment_capacity)],
-            growth: DoublingGrowth,
+            growth: Doubling,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{DoublingGrowth, Fragment, SplitVecGrowth};
+    use crate::{Doubling, Fragment, SplitVecGrowth};
 
     #[test]
     fn new_cap() {
@@ -149,7 +148,7 @@ mod tests {
             Vec::<usize>::with_capacity(cap).into()
         }
 
-        let growth = DoublingGrowth;
+        let growth = Doubling;
         assert_eq!(4, growth.new_fragment_capacity(&[new_fra(2)]));
         assert_eq!(12, growth.new_fragment_capacity(&[new_fra(3), new_fra(6)]));
         assert_eq!(
@@ -163,8 +162,8 @@ mod tests {
     fn indices_panics_when_fragments_is_empty() {
         assert_eq!(
             None,
-            <DoublingGrowth as SplitVecGrowth<usize>>::get_fragment_and_inner_indices(
-                &DoublingGrowth,
+            <Doubling as SplitVecGrowth>::get_fragment_and_inner_indices::<usize>(
+                &Doubling,
                 &[],
                 0
             )
@@ -184,7 +183,7 @@ mod tests {
             vec.into()
         }
 
-        let growth = DoublingGrowth;
+        let growth = Doubling;
 
         for i in 0..10 {
             assert_eq!(
