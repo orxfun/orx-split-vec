@@ -29,21 +29,4 @@ impl<T> Fragment<T> {
     pub fn room(&self) -> usize {
         self.data.capacity() - self.data.len()
     }
-
-    // helpers
-    pub(crate) fn index_of(&self, ptr_element: usize) -> Option<usize> {
-        let ptr_beg = self.data.as_ptr() as usize;
-        if ptr_element < ptr_beg {
-            None
-        } else {
-            let ptr_end = (unsafe { self.data.as_ptr().add(self.data.len() - 1) }) as usize;
-            if ptr_element > ptr_end {
-                None
-            } else {
-                let diff = ptr_element - ptr_beg;
-                let count = diff / std::mem::size_of::<T>();
-                Some(count)
-            }
-        }
-    }
 }

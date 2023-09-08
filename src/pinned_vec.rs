@@ -1,4 +1,5 @@
 use crate::{eq::are_fragments_eq_to_slice, Growth, SplitVec};
+use orx_pinned_vec::utils::slice;
 use orx_pinned_vec::PinnedVec;
 use std::fmt::{Debug, Formatter, Result};
 
@@ -52,10 +53,9 @@ where
     /// }
     /// ```
     fn index_of(&self, element: &T) -> Option<usize> {
-        let ptr_element = element as *const T as usize;
         let mut count = 0;
         for fragment in &self.fragments {
-            if let Some(index) = fragment.index_of(ptr_element) {
+            if let Some(index) = slice::index_of(&fragment.data, element) {
                 return Some(count + index);
             } else {
                 count += fragment.len()
