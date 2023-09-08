@@ -1,6 +1,6 @@
 [package]
 name = "orx-split-vec"
-version = "0.9.0"
+version = "0.9.1"
 edition = "2021"
 authors = ["orxfun <orx.ugur.arikan@gmail.com>"]
 description = "A split vector is a vector represented as a sequence of multiple contagious data fragments which avoids copies while growing and preserves the memory location of its elements."
@@ -10,5 +10,5 @@ keywords = ["vec", "array", "split", "fragments", "pinned"]
 categories = ["data-structures"]
 
 [dependencies]
-orx-fixed-vec = "0.3.2"
-orx-pinned-vec = "0.4.2"
+orx-fixed-vec = "0.3.3"
+orx-pinned-vec = "0.4.3"
