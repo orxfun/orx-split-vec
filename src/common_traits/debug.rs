@@ -24,6 +24,9 @@ mod tests {
         }
 
         let debug_str = format!("{:?}", vec);
-        assert_eq!("SplitVec [\n[0]\n[1, 2]\n[3, 4, 5, 6]\n[7]\n]\n", debug_str);
+        assert_eq!(
+            "SplitVec [\n    [0]\n    [1, 2]\n    [3, 4, 5, 6]\n    [7]\n]\n",
+            debug_str
+        );
     }
 }
