@@ -653,7 +653,7 @@ where
     {
         writeln!(f, "SplitVec [")?;
         for frag in &self.fragments {
-            writeln!(f, "{:?}", frag)?;
+            writeln!(f, "    {:?}", frag)?;
         }
         writeln!(f, "]")
     }
