@@ -1,6 +1,6 @@
 [package]
 name = "orx-split-vec"
-version = "0.9.4"
+version = "0.9.5"
 edition = "2021"
 authors = ["orxfun <orx.ugur.arikan@gmail.com>"]
 description = "A dynamic capacity vector with pinned elements."
@@ -10,5 +10,5 @@ keywords = ["vec", "array", "split", "fragments", "pinned"]
 categories = ["data-structures"]
 
 [dependencies]
-orx-fixed-vec = "0.4.4"
-orx-pinned-vec = "0.5.1"
+orx-fixed-vec = "0.4"
+orx-pinned-vec = "0.5"
