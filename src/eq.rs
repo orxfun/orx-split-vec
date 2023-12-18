@@ -1,4 +1,5 @@
 use crate::{Fragment, Growth, SplitVec};
+use orx_pinned_vec::PinnedVec;
 
 impl<T: PartialEq, G> PartialEq<SplitVec<T, G>> for [T]
 where

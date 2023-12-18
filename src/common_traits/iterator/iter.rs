@@ -1,42 +1,5 @@
-use crate::{fragment::fragment_struct::Fragment, Growth, SplitVec};
+use crate::fragment::fragment_struct::Fragment;
 use std::iter::FusedIterator;
-
-impl<T, G> SplitVec<T, G>
-where
-    G: Growth,
-{
-    /// Iterator over the split vec.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use orx_split_vec::prelude::*;
-    ///
-    /// let mut vec = SplitVec::with_linear_growth(3);
-    ///
-    /// vec.push(0);
-    /// vec.push(1);
-    /// vec.push(2);
-    /// vec.push(3);
-    ///
-    /// let mut iter = vec.iter();
-    /// assert_eq!(iter.next(), Some(&0));
-    /// assert_eq!(iter.next(), Some(&1));
-    /// assert_eq!(iter.next(), Some(&2));
-    /// assert_eq!(iter.next(), Some(&3));
-    /// assert_eq!(iter.next(), None);
-    /// ```
-    pub fn iter<'v, 'i>(&'v self) -> Iter<'i, T>
-    where
-        'v: 'i,
-    {
-        Iter {
-            fragments: &self.fragments,
-            f: 0,
-            i: 0,
-        }
-    }
-}
 
 /// Iterator over the `SplitVec`.
 ///
@@ -88,7 +51,7 @@ impl<T> FusedIterator for Iter<'_, T> {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_all_growth_types;
+    use crate::{test_all_growth_types, Growth, SplitVec};
     use orx_pinned_vec::PinnedVec;
 
     #[test]
