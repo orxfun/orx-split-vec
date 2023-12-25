@@ -123,7 +123,7 @@ fn bench(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("random_access");
 
-    const N: usize = 1;
+    const N: usize = 16;
     test_for_type::<[u64; N]>(&mut group, N, &treatments, get_value, add);
 
     group.finish();

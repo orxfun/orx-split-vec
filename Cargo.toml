@@ -1,6 +1,6 @@
 [package]
 name = "orx-split-vec"
-version = "0.9.5"
+version = "1.0.0"
 edition = "2021"
 authors = ["orxfun <orx.ugur.arikan@gmail.com>"]
 description = "A dynamic capacity vector with pinned elements."
@@ -15,7 +15,7 @@ orx-pinned-vec = "0.5"
 
 
 [[bench]]
-name = "grow"
+name = "random_access"
 harness = false
 
 [dev-dependencies]
