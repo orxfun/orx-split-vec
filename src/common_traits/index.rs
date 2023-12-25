@@ -48,7 +48,7 @@ where
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// let mut vec = SplitVec::with_linear_growth(4);
+    /// let mut vec = SplitVec::with_linear_growth(2);
     ///
     /// vec.extend_from_slice(&[0, 1, 2, 3]);
     ///
@@ -93,7 +93,7 @@ where
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// let mut vec = SplitVec::with_linear_growth(4);
+    /// let mut vec = SplitVec::with_linear_growth(2);
     ///
     /// for i in 0..10 {
     ///     vec.push(i);
@@ -150,7 +150,7 @@ where
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// let mut vec = SplitVec::with_linear_growth(4);
+    /// let mut vec = SplitVec::with_linear_growth(2);
     ///
     /// for i in 0..10 {
     ///     vec.push(i);

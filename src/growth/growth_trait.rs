@@ -11,6 +11,7 @@ pub trait Growth: Clone {
     /// Returns None if the element index is out of bounds.
     fn get_fragment_and_inner_indices<T>(
         &self,
+        _vec_len: usize,
         fragments: &[Fragment<T>],
         element_index: usize,
     ) -> Option<(usize, usize)> {

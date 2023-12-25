@@ -1,4 +1,4 @@
-use crate::{Doubling, Fragment, Growth, SplitVec};
+use crate::{Fragment, Growth, SplitVec};
 
 impl<T> SplitVec<T> {
     /// Creates an empty split vector with default growth strategy.
@@ -16,28 +16,7 @@ impl<T> SplitVec<T> {
     /// assert_eq!(4, vec.fragments()[0].capacity());
     /// ```
     pub fn new() -> Self {
-        let growth = Doubling;
-        let capacity = Growth::new_fragment_capacity::<T>(&growth, &[]);
-        let fragment = Fragment::new(capacity);
-        let fragments = vec![fragment];
-        Self { fragments, growth }
-    }
-    /// Creates an empty split vector with default growth strategy.
-    ///
-    /// Default growth strategy is `Doubling` with the given `initial_capacity`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use orx_split_vec::*;
-    ///
-    /// let vec: SplitVec<f32> = SplitVec::with_initial_capacity(8);
-    ///
-    /// assert_eq!(1, vec.fragments().len());
-    /// assert_eq!(8, vec.fragments()[0].capacity());
-    /// ```
-    pub fn with_initial_capacity(initial_capacity: usize) -> Self {
-        Self::with_doubling_growth(initial_capacity)
+        Self::with_doubling_growth()
     }
 }
 
@@ -91,14 +70,18 @@ where
         let capacity = Growth::new_fragment_capacity::<T>(&growth, &[]);
         let fragment = Fragment::new(capacity);
         let fragments = vec![fragment];
-        Self { fragments, growth }
+        Self {
+            fragments,
+            growth,
+            len: 0,
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Exponential, Linear};
+    use crate::{Doubling, Linear};
 
     #[test]
     fn new() {
@@ -111,24 +94,20 @@ mod tests {
 
     #[test]
     fn with_initial_capacity() {
-        let vec: SplitVec<usize> = SplitVec::with_initial_capacity(32);
+        let vec: SplitVec<usize> = SplitVec::new();
         let vec: SplitVec<usize, Doubling> = vec;
 
         assert_eq!(1, vec.fragments().len());
-        assert_eq!(32, vec.fragments()[0].capacity());
+        assert_eq!(4, vec.fragments()[0].capacity());
     }
 
     #[test]
     fn with_growth() {
-        let vec: SplitVec<char, Linear> = SplitVec::with_growth(Linear);
+        let vec: SplitVec<char, Linear> = SplitVec::with_growth(Linear::new(3));
         assert_eq!(1, vec.fragments().len());
-        assert_eq!(32, vec.fragments()[0].capacity());
+        assert_eq!(8, vec.fragments()[0].capacity());
 
         let vec: SplitVec<char, Doubling> = SplitVec::with_growth(Doubling);
-        assert_eq!(1, vec.fragments().len());
-        assert_eq!(4, vec.fragments()[0].capacity());
-
-        let vec: SplitVec<char, Exponential> = SplitVec::with_growth(Exponential::new(1.25));
         assert_eq!(1, vec.fragments().len());
         assert_eq!(4, vec.fragments()[0].capacity());
     }

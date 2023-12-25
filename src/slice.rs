@@ -1,5 +1,7 @@
+use orx_pinned_vec::PinnedVec;
+
 use crate::{Fragment, Growth, SplitVec};
-use std::ops::Range;
+use std::ops::{Range, RangeBounds};
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 /// Returns the result of trying to get a slice as a contagious memory from the split vector.
@@ -14,10 +16,22 @@ pub enum SplitVecSlice<'a, T> {
     OutOfBounds,
 }
 
-impl<T, G> SplitVec<T, G>
-where
-    G: Growth,
-{
+impl<T, G: Growth> SplitVec<T, G> {
+    fn range_start(range: &Range<usize>) -> usize {
+        match range.start_bound() {
+            std::ops::Bound::Excluded(x) => x + 1,
+            std::ops::Bound::Included(x) => *x,
+            std::ops::Bound::Unbounded => 0,
+        }
+    }
+    fn range_end(&self, range: &Range<usize>) -> usize {
+        match range.end_bound() {
+            std::ops::Bound::Excluded(x) => *x,
+            std::ops::Bound::Included(x) => x + 1,
+            std::ops::Bound::Unbounded => self.len(),
+        }
+    }
+
     /// Returns the result of trying to return the required `range` as a contagious slice of data.
     /// It might return Ok of the slice if the range belongs to one fragment.
     ///
@@ -30,7 +44,7 @@ where
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// let mut vec = SplitVec::with_linear_growth(4);
+    /// let mut vec = SplitVec::with_linear_growth(2);
     ///
     /// vec.extend_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     ///
@@ -57,8 +71,13 @@ where
     /// assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(10..11));
     /// ```
     pub fn try_get_slice(&self, range: Range<usize>) -> SplitVecSlice<T> {
-        if let Some((sf, si)) = self.get_fragment_and_inner_indices(range.start) {
-            if let Some((ef, ei)) = self.get_fragment_and_inner_indices(range.end - 1) {
+        let a = Self::range_start(&range);
+        let b = self.range_end(&range);
+
+        if b == 0 {
+            SplitVecSlice::Ok(&[])
+        } else if let Some((sf, si)) = self.get_fragment_and_inner_indices(a) {
+            if let Some((ef, ei)) = self.get_fragment_and_inner_indices(b - 1) {
                 if sf == ef {
                     SplitVecSlice::Ok(&self.fragments[sf][si..=ei])
                 } else {
@@ -83,7 +102,7 @@ where
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// let mut vec = SplitVec::with_linear_growth(4);
+    /// let mut vec = SplitVec::with_linear_growth(2);
     ///
     /// vec.extend_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     ///
@@ -110,12 +129,17 @@ where
     /// assert!(vec.slice(10..11).is_empty());
     /// ```
     pub fn slice(&self, range: Range<usize>) -> Vec<&[T]> {
-        if let Some((sf, si)) = self.get_fragment_and_inner_indices(range.start) {
-            if let Some((ef, ei)) = self.get_fragment_and_inner_indices(range.end - 1) {
+        let a = Self::range_start(&range);
+        let b = self.range_end(&range);
+
+        if b == 0 {
+            vec![]
+        } else if let Some((sf, si)) = self.get_fragment_and_inner_indices(a) {
+            if let Some((ef, ei)) = self.get_fragment_and_inner_indices(b - 1) {
                 if sf == ef {
                     vec![&self.fragments[sf][si..=ei]]
                 } else {
-                    let mut vec = Vec::with_capacity(ef - sf);
+                    let mut vec = Vec::with_capacity(ef - sf + 1);
                     vec.push(&self.fragments[sf][si..]);
                     for f in sf + 1..ef {
                         vec.push(&self.fragments[f]);
@@ -221,23 +245,5 @@ mod tests {
             }
         }
         test_all_growth_types!(test);
-    }
-}
-
-#[derive(Clone)]
-pub struct DoubleEverySecondFragment(usize);
-impl Growth for DoubleEverySecondFragment {
-    fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
-        fragments
-            .last()
-            .map(|f| {
-                let do_double = fragments.len() % 2 == 0;
-                if do_double {
-                    f.capacity() * 2
-                } else {
-                    f.capacity()
-                }
-            })
-            .unwrap_or(self.0)
     }
 }

@@ -10,6 +10,7 @@ pub struct SplitVec<T, G = Doubling>
 where
     G: Growth,
 {
+    pub(crate) len: usize,
     pub(crate) fragments: Vec<Fragment<T>>,
     /// Growth strategy of the split vector.
     ///
@@ -65,7 +66,7 @@ where
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// let mut vec = SplitVec::with_linear_growth(4);
+    /// let mut vec = SplitVec::with_linear_growth(2);
     ///
     /// for i in 0..6 {
     ///     vec.push(i);
@@ -87,7 +88,7 @@ where
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// let mut vec = SplitVec::with_linear_growth(4);
+    /// let mut vec = SplitVec::with_linear_growth(2);
     ///
     /// for i in 0..6 {
     ///     vec.push(i);
@@ -109,9 +110,10 @@ where
     /// // out of bounds
     /// assert_eq!(None, vec.get_fragment_and_inner_indices(6));
     /// ```
+    #[inline(always)]
     pub fn get_fragment_and_inner_indices(&self, index: usize) -> Option<(usize, usize)> {
         self.growth
-            .get_fragment_and_inner_indices(&self.fragments, index)
+            .get_fragment_and_inner_indices(self.len, &self.fragments, index)
     }
 
     // helpers

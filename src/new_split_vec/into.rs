@@ -15,7 +15,7 @@ where
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// let mut split_vec = SplitVec::with_linear_growth(4);
+    /// let mut split_vec = SplitVec::with_linear_growth(2);
     /// split_vec.extend_from_slice(&['a', 'b', 'c']);
     ///
     /// assert_eq!(1, split_vec.fragments().len());
@@ -23,7 +23,7 @@ where
     /// let vec: Vec<_> = split_vec.into();
     /// assert_eq!(vec, &['a', 'b', 'c']);
     ///
-    /// let mut split_vec = SplitVec::with_linear_growth(4);
+    /// let mut split_vec = SplitVec::with_linear_growth(2);
     /// for i in 0..10 {
     ///     split_vec.push(i);
     /// }
@@ -56,7 +56,7 @@ where
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// let mut split_vec = SplitVec::with_linear_growth(4);
+    /// let mut split_vec = SplitVec::with_linear_growth(2);
     /// split_vec.extend_from_slice(&['a', 'b', 'c']);
     ///
     /// assert_eq!(1, split_vec.fragments().len());
@@ -64,7 +64,7 @@ where
     /// let vec = split_vec.to_vec();
     /// assert_eq!(vec, &['a', 'b', 'c']);
     ///
-    /// let mut split_vec = SplitVec::with_linear_growth(4);
+    /// let mut split_vec = SplitVec::with_linear_growth(2);
     /// for i in 0..10 {
     ///     split_vec.push(i);
     /// }
@@ -99,7 +99,7 @@ where
     /// use orx_split_vec::prelude::*;
     ///
     /// // SplitVec with dynamic capacity and configurable growth strategy.
-    /// let mut split = SplitVec::with_linear_growth(32);
+    /// let mut split = SplitVec::with_linear_growth(5);
     /// for i in 0..35 {
     ///     split.push(i);
     /// }
@@ -117,6 +117,7 @@ where
         unsafe { self.unsafe_collect_fixed_vec() }
     }
 }
+
 impl<T, G> SplitVec<T, G>
 where
     G: Growth,

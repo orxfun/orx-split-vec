@@ -18,14 +18,14 @@ mod tests {
 
     #[test]
     fn debug() {
-        let mut vec = SplitVec::with_doubling_growth(1);
+        let mut vec = SplitVec::with_doubling_growth();
         for i in 0..8 {
             vec.push(i);
         }
 
         let debug_str = format!("{:?}", vec);
         assert_eq!(
-            "SplitVec [\n    [0]\n    [1, 2]\n    [3, 4, 5, 6]\n    [7]\n]\n",
+            "SplitVec [\n    [0, 1, 2, 3]\n    [4, 5, 6, 7]\n]\n",
             debug_str
         );
     }

@@ -12,3 +12,13 @@ categories = ["data-structures"]
 [dependencies]
 orx-fixed-vec = "0.4"
 orx-pinned-vec = "0.5"
+
+
+[[bench]]
+name = "serial_access"
+harness = false
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+rand = "0.8"
+rand_chacha = "0.3"

@@ -6,9 +6,16 @@ use std::iter::FusedIterator;
 /// This struct is created by `SplitVec::iter()` method.
 #[derive(Debug)]
 pub struct Iter<'a, T> {
-    pub(crate) fragments: &'a Vec<Fragment<T>>,
+    pub(crate) fragments: &'a [Fragment<T>],
     pub(crate) f: usize,
     pub(crate) i: usize,
+}
+impl<'a, T> Iter<'a, T> {
+    pub(crate) fn new(fragments: &'a [Fragment<T>]) -> Self {
+        let f = 0;
+        let i = 0;
+        Self { fragments, f, i }
+    }
 }
 impl<'a, T> Clone for Iter<'a, T> {
     fn clone(&self) -> Self {
@@ -21,6 +28,7 @@ impl<'a, T> Clone for Iter<'a, T> {
 }
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         if self.i == self.fragments[self.f].len() {
             self.f += 1;
@@ -47,27 +55,3 @@ impl<T> ExactSizeIterator for Iter<'_, T> {
     }
 }
 impl<T> FusedIterator for Iter<'_, T> {}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{test_all_growth_types, Growth, SplitVec};
-    use orx_pinned_vec::PinnedVec;
-
-    #[test]
-    fn iter() {
-        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            for i in 0..1000 {
-                vec.push(i);
-            }
-
-            let mut iter = vec.iter();
-            for i in 0..1000 {
-                assert_eq!(1000 - i, iter.len());
-                assert_eq!(Some(&i), iter.next());
-            }
-            assert_eq!(None, iter.next());
-        }
-        test_all_growth_types!(test);
-    }
-}

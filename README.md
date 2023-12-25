@@ -7,7 +7,7 @@ A dynamic capacity vector with pinned elements.
 There might be various situations where pinned elements are helpful.
 
 * It is somehow required for async code, following [blog](https://blog.cloudflare.com/pin-and-unpin-in-rust) could be useful for the interested.
-* It is a requirement to make self-referential types possible.
+* It is a requirement to represent self-referential types with thin references.
 
 This crate focuses more on the latter. Particularly, it aims to make it safely and conveniently possible to build **self-referential collections** such as linked list, tree or graph.
 

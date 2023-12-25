@@ -1,4 +1,5 @@
-use super::growth_trait::Growth;
+use super::constants::*;
+use crate::growth::growth_trait::Growth;
 use crate::{Fragment, SplitVec};
 
 /// Stategy which allows creates a fragment with double the capacity
@@ -13,14 +14,14 @@ use crate::{Fragment, SplitVec};
 /// use orx_split_vec::prelude::*;
 ///
 /// // SplitVec<usize, DoublingGrowth>
-/// let mut vec = SplitVec::with_doubling_growth(2);
+/// let mut vec = SplitVec::with_doubling_growth();
 ///
 /// assert_eq!(1, vec.fragments().len());
-/// assert_eq!(Some(2), vec.fragments().first().map(|f| f.capacity()));
+/// assert_eq!(Some(4), vec.fragments().first().map(|f| f.capacity()));
 /// assert_eq!(Some(0), vec.fragments().first().map(|f| f.len()));
 ///
 /// // fill the first 5 fragments
-/// let expected_fragment_capacities = vec![2, 4, 8, 16, 32];
+/// let expected_fragment_capacities = vec![4, 8, 16, 32];
 /// let num_items: usize = expected_fragment_capacities.iter().sum();
 /// for i in 0..num_items {
 ///     vec.push(i);
@@ -56,24 +57,20 @@ impl Growth for Doubling {
         fragments.last().map(|f| f.capacity() * 2).unwrap_or(4)
     }
 
+    #[inline(always)]
     fn get_fragment_and_inner_indices<T>(
         &self,
-        fragments: &[Fragment<T>],
+        vec_len: usize,
+        _fragments: &[Fragment<T>],
         element_index: usize,
     ) -> Option<(usize, usize)> {
-        let c = fragments.first().map(|f| f.capacity()).unwrap_or(4);
-
-        if element_index < c && element_index < fragments[0].len() {
-            Some((0, element_index))
+        if element_index < vec_len {
+            let element_index_offset = element_index + FIRST_FRAGMENT_CAPACITY;
+            let leading_zeros = usize::leading_zeros(element_index_offset) as usize;
+            let f = OFFSET_FRAGMENT_IDX - leading_zeros;
+            Some((f, element_index - CUMULATIVE_CAPACITIES[f]))
         } else {
-            let f = ((element_index + c) as f32 / c as f32).log2() as usize;
-            let beg = (usize::pow(2, f as u32) - 1) * c;
-            let i = element_index - beg;
-            if f < fragments.len() && i < fragments[f].len() {
-                Some((f, i))
-            } else {
-                None
-            }
+            None
         }
     }
 }
@@ -94,14 +91,14 @@ impl<T> SplitVec<T, Doubling> {
     /// use orx_split_vec::prelude::*;
     ///
     /// // SplitVec<usize, DoublingGrowth>
-    /// let mut vec = SplitVec::with_doubling_growth(2);
+    /// let mut vec = SplitVec::with_doubling_growth();
     ///
     /// assert_eq!(1, vec.fragments().len());
-    /// assert_eq!(Some(2), vec.fragments().first().map(|f| f.capacity()));
+    /// assert_eq!(Some(4), vec.fragments().first().map(|f| f.capacity()));
     /// assert_eq!(Some(0), vec.fragments().first().map(|f| f.len()));
     ///
     /// // fill the first 5 fragments
-    /// let expected_fragment_capacities = vec![2, 4, 8, 16, 32];
+    /// let expected_fragment_capacities = vec![4, 8, 16, 32];
     /// let num_items: usize = expected_fragment_capacities.iter().sum();
     /// for i in 0..num_items {
     ///     vec.push(i);
@@ -129,84 +126,11 @@ impl<T> SplitVec<T, Doubling> {
     /// assert_eq!(vec.fragments().last().map(|f| f.capacity()), Some(32 * 2));
     /// assert_eq!(vec.fragments().last().map(|f| f.len()), Some(1));
     /// ```
-    pub fn with_doubling_growth(first_fragment_capacity: usize) -> Self {
-        assert!(first_fragment_capacity > 0);
+    pub fn with_doubling_growth() -> Self {
         Self {
-            fragments: vec![Fragment::new(first_fragment_capacity)],
+            fragments: vec![Fragment::new(FIRST_FRAGMENT_CAPACITY)],
             growth: Doubling,
+            len: 0,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{Doubling, Fragment, Growth};
-
-    #[test]
-    fn new_cap() {
-        fn new_fra(cap: usize) -> Fragment<usize> {
-            Vec::<usize>::with_capacity(cap).into()
-        }
-
-        let growth = Doubling;
-        assert_eq!(4, growth.new_fragment_capacity(&[new_fra(2)]));
-        assert_eq!(12, growth.new_fragment_capacity(&[new_fra(3), new_fra(6)]));
-        assert_eq!(
-            56,
-            growth.new_fragment_capacity(&[new_fra(7), new_fra(14), new_fra(28)])
-        );
-    }
-
-    #[test]
-    #[should_panic]
-    fn indices_panics_when_fragments_is_empty() {
-        assert_eq!(
-            None,
-            <Doubling as Growth>::get_fragment_and_inner_indices::<usize>(&Doubling, &[], 0)
-        );
-    }
-
-    #[test]
-    fn indices() {
-        fn new_full() -> Fragment<usize> {
-            (0..10).collect::<Vec<_>>().into()
-        }
-        fn new_half() -> Fragment<usize> {
-            let mut vec = Vec::with_capacity(20);
-            for i in 0..5 {
-                vec.push(10 + i);
-            }
-            vec.into()
-        }
-
-        let growth = Doubling;
-
-        for i in 0..10 {
-            assert_eq!(
-                Some((0, i)),
-                growth.get_fragment_and_inner_indices(&[new_full()], i)
-            );
-        }
-        assert_eq!(
-            None,
-            growth.get_fragment_and_inner_indices(&[new_full()], 10)
-        );
-
-        for i in 0..10 {
-            assert_eq!(
-                Some((0, i)),
-                growth.get_fragment_and_inner_indices(&[new_full(), new_half()], i)
-            );
-        }
-        for i in 10..15 {
-            assert_eq!(
-                Some((1, i - 10)),
-                growth.get_fragment_and_inner_indices(&[new_full(), new_half()], i)
-            );
-        }
-        assert_eq!(
-            None,
-            growth.get_fragment_and_inner_indices(&[new_full(), new_half()], 15)
-        );
     }
 }

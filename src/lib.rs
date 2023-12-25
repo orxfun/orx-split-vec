@@ -7,7 +7,7 @@
 //! There might be various situations where pinned elements are helpful.
 //!
 //! * It is somehow required for async code, following [blog](https://blog.cloudflare.com/pin-and-unpin-in-rust) could be useful for the interested.
-//! * It is a requirement to make self-referential types possible.
+//! * It is a requirement to represent self-referential types with thin references.
 //!
 //! This crate focuses more on the latter. Particularly, it aims to make it safely and conveniently possible to build **self-referential collections** such as linked list, tree or graph.
 //!
@@ -97,13 +97,12 @@
 //! }
 //!
 //! // set the growth explicitly
-//! let vec: SplitVec<i32, Linear> = SplitVec::with_linear_growth(16);
-//! let vec: SplitVec<i32, Doubling> = SplitVec::with_doubling_growth(4);
-//! let vec: SplitVec<i32, Exponential> = SplitVec::with_exponential_growth(4, 1.5);
+//! let vec: SplitVec<i32, Linear> = SplitVec::with_linear_growth(4);
+//! let vec: SplitVec<i32, Doubling> = SplitVec::with_doubling_growth();
 //! let vec: SplitVec<i32, MyCustomGrowth> = SplitVec::with_growth(MyCustomGrowth);
 //!
 //! // methods revealing fragments
-//! let mut vec = SplitVec::with_doubling_growth(4);
+//! let mut vec = SplitVec::with_doubling_growth();
 //! vec.extend_from_slice(&[0, 1, 2, 3]);
 //!
 //! assert_eq!(4, vec.capacity());
@@ -151,7 +150,7 @@
 //! ```rust
 //! use orx_split_vec::prelude::*;
 //!
-//! let mut vec = SplitVec::with_linear_growth(10);
+//! let mut vec = SplitVec::with_linear_growth(3);
 //!
 //! // split vec with 1 item in 1 fragment
 //! vec.push(42usize);
@@ -162,8 +161,8 @@
 //! // let's get a pointer to the first element
 //! let addr42 = &vec[0] as *const usize;
 //!
-//! // let's push 100 new elements
-//! for i in 1..101 {
+//! // let's push 80 new elements
+//! for i in 1..81 {
 //!     vec.push(i);
 //! }
 //!
@@ -171,7 +170,7 @@
 //!     assert_eq!(if i == 0 { 42 } else { i }, *elem);
 //! }
 //!
-//! // now the split vector is composed of 11 fragments each with a capacity of 10
+//! // now the split vector is composed of 11 fragments each with a capacity of 8 (2^3)
 //! assert_eq!(11, vec.fragments().len());
 //!
 //! // the memory location of the first element remains intact
@@ -211,9 +210,7 @@ pub(crate) mod test;
 
 pub use common_traits::iterator::iter::Iter;
 pub use fragment::fragment_struct::Fragment;
-pub use growth::{
-    doubling::Doubling, exponential::Exponential, growth_trait::Growth, linear::Linear,
-};
+pub use growth::{doubling::Doubling, growth_trait::Growth, linear::Linear};
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;
 
