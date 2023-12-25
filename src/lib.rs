@@ -189,7 +189,7 @@
 //!
 //! The benchmark compares the build up time of vectors by pushing elements one by one. The baseline is the vector created by `std::vec::Vec::with_capacity` which has the perfect information on the number of elements to be pushed and writes to a contagious memory location. The compared variants are vectors created with no prior knowledge about capacity: `std::vec::Vec::new`, `SplitVec<_, Linear>` and `SplitVec<_, Doubling>`.
 //!
-//! ![](https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG)
+//! ![https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG](https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG)
 //!
 //! Allowing copy-free growth, split vector variants have a comparable speed with `std::vec::Vec::with_capacity`, which can be around 1.5 times faster for 1-u64 size elements (2-3 times faster for 16-u64 size elements) than `std::vec::Vec::new`. Overall, the differences can be considered insignificant in most cases.
 //!
@@ -199,7 +199,7 @@
 //!
 //! In this benchmark, we access vector elements by indices in a random order. Note that due to the fragmentation and additional book-keeping, `SplitVec` cannot be as fast as the standard `Vec`. However, `Linear` and `Doubling` growth strategies are optimized to minimize the gap as much as possible.
 //!
-//! ![](https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG)
+//! ![https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG](https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG)
 //!
 //! For vectors having u64-sized elements, the split vector variants are around 2-4 times slower than the standard vector; the difference gets smaller as the number of elements increases. The difference further diminishes as the size of each element increases, as can be observed in 16-u64-sized elements.
 //!
