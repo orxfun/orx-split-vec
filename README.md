@@ -196,7 +196,7 @@ Allowing copy-free growth, split vector variants have a comparable speed with `s
 
 ### E.2. Random Access
 
-*You may see the benchmark at [benches/random-access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/random-access.rs).*
+*You may see the benchmark at [benches/random-access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/random_access.rs).*
 
 In this benchmark, we access vector elements by indices in a random order. Note that due to the fragmentation and additional book-keeping, `SplitVec` cannot be as fast as the standard `Vec`. However, `Linear` and `Doubling` growth strategies are optimized to minimize the gap as much as possible.
 
