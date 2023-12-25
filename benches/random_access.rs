@@ -119,8 +119,7 @@ fn test_for_type<T: Default>(
 }
 
 fn bench(c: &mut Criterion) {
-    let treatments = vec![100_000, 1_000_000, 10_000_000];
-    let treatments = vec![1_000_000];
+    let treatments = vec![1_024, 16_384, 262_144, 4_194_304];
 
     let mut group = c.benchmark_group("random_access");
 

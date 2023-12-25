@@ -15,7 +15,7 @@ orx-pinned-vec = "0.5"
 
 
 [[bench]]
-name = "serial_access"
+name = "grow"
 harness = false
 
 [dev-dependencies]

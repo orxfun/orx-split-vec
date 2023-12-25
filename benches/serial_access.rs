@@ -65,13 +65,13 @@ fn calc_split_vec<T: Default, F: Fn(T, &T) -> T, G: Growth>(add: F, vec: &SplitV
 
 fn test_for_type<T: Default>(
     group: &mut BenchmarkGroup<'_, WallTime>,
-    element_type: &str,
+    num_u64s: usize,
     treatments: &[usize],
     value: fn(usize) -> T,
     add: fn(T, &T) -> T,
 ) {
     for n in treatments {
-        let treatment = format!("n={},elem-type={}", n, element_type);
+        let treatment = format!("n={},elem-type=[u64;{}]", n, num_u64s);
 
         group.bench_with_input(BenchmarkId::new("std_vec", &treatment), n, |b, _| {
             let vec = std_vec_with_capacity(black_box(*n), value);
@@ -89,7 +89,6 @@ fn test_for_type<T: Default>(
             },
         );
 
-        // doubling
         group.bench_with_input(
             BenchmarkId::new("split_vec_doubling", &treatment),
             n,
@@ -104,12 +103,12 @@ fn test_for_type<T: Default>(
 }
 
 fn bench(c: &mut Criterion) {
-    let treatments = vec![100_000, 1_000_000, 10_000_000];
-    let treatments = vec![1_000_000];
+    let treatments = vec![1_024, 16_384, 262_144, 4_194_304];
 
     let mut group = c.benchmark_group("serial_access");
 
-    test_for_type::<[u64; 1]>(&mut group, "[u64;8]", &treatments, get_value, add);
+    const N: usize = 1;
+    test_for_type::<[u64; N]>(&mut group, N, &treatments, get_value, add);
 
     group.finish();
 }

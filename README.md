@@ -23,7 +23,7 @@ See [`PinnedVec`](https://crates.io/crates/orx-pinned-vec) for complete document
 |------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
 | Implements `PinnedVec` => can be wrapped by an `ImpVec`.                     | Implements `PinnedVec` => can be wrapped by an `ImpVec`.                         |
 | Requires exact capacity to be known while creating.                          | Can be created with any level of prior information about required capacity.      |
-| Cannot grow beyond capacity; panics when `push` is called at capacity.       | Can grow dynamically. Further, it provides detailed control on how it must grow. |
+| Cannot grow beyond capacity; panics when `push` is called at capacity.       | Can grow dynamically. Further, it provides control on how it must grow. |
 | It is just a wrapper around `std::vec::Vec`; hence, has similar performance. | Performs additional tasks to provide flexibility; hence, slightly slower.        |
 
 ## C. Growth with Pinned Elements
@@ -40,9 +40,8 @@ The capacity of the new fragment is determined by the chosen growth strategy. As
 |-----------------------------------------|-----------------------|-----------------------|-----------------|
 | `Linear`                                | `C`                   | `C`                   | `2 * C`         |
 | `Doubling`                              | `C`                   | `2 * C`               | `3 * C`         |
-| `Exponential { growth_coefficient: a }` | `C`                   | `a * C`               | `(1 + a) * C`   |
 
-It is straightforward to derive the growth formula from the example. Further, you may notice that `Doubling` is a special case of `Exponential` where `growth_coefficient` is 2; the reason it co-exists is that it allows for faster element access in general.
+`C` is set on initialization as a power of two for `Linear` and fixed to 4 for `Doubling` to allow for access time optimizations.
 
 ### C.2. Custom Growth Strategies
 
@@ -54,7 +53,7 @@ fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize
 
 Notice that it takes as argument all priorly allocated fragments and needs to decide on the capacity of the new fragment.
 
-The second method `fn get_fragment_and_inner_indices<T>(&self, fragments: &[Fragment<T>], element_index: usize) -> Option<(usize, usize)>` has a default implementation and can be overwritten if the strategy allows for efficient computation of the indices.
+The second method `fn get_fragment_and_inner_indices<T>(&self, vec_len: usize, fragments: &[Fragment<T>], element_index: usize) -> Option<(usize, usize)>` has a default implementation and can be overwritten if the strategy allows for efficient computation of the indices.
 
 ## D. Examples
 
@@ -180,6 +179,16 @@ assert_eq!(addr42, &vec[0] as *const usize);
 // we can safely (using unsafe!) dereference it and read the correct value
 assert_eq!(unsafe { *addr42 }, 42);
 ```
+
+## E. Benchmarks
+
+### E.1. Grow
+
+You may see the benchmark at (https://github.com/orxfun/orx-split-vec/blob/main/benches/grow.rs)[https://github.com/orxfun/orx-split-vec/blob/main/benches/grow.rs].
+
+The benchmark compares the build up time of vectors by pushing elements one by one. The baseline is the vector created by `std::vec::Vec::with_capacity` which has the perfect information on the number of elements to be pushed and writes to a contagious memory location. The compared variants are vectors created with no prior knowledge about capacity: `std::vec::Vec::new`, `SplitVec<_, Linear>` and `SplitVec<_, Doubling>`.
+
+![](https://github.com/orxfun/orx-split-vec/blob/main/docs/img/bench_grow.PNG)
 
 ## License
 
