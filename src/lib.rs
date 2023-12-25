@@ -7,7 +7,7 @@
 //! There might be various situations where pinned elements are helpful.
 //!
 //! * It is somehow required for async code, following [blog](https://blog.cloudflare.com/pin-and-unpin-in-rust) could be useful for the interested.
-//! * It is a requirement to make self-referential types possible.
+//! * It is a requirement to represent self-referential types with thin references.
 //!
 //! This crate focuses more on the latter. Particularly, it aims to make it safely and conveniently possible to build **self-referential collections** such as linked list, tree or graph.
 //!
@@ -23,7 +23,7 @@
 //! |------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
 //! | Implements `PinnedVec` => can be wrapped by an `ImpVec`.                     | Implements `PinnedVec` => can be wrapped by an `ImpVec`.                         |
 //! | Requires exact capacity to be known while creating.                          | Can be created with any level of prior information about required capacity.      |
-//! | Cannot grow beyond capacity; panics when `push` is called at capacity.       | Can grow dynamically. Further, it provides detailed control on how it must grow. |
+//! | Cannot grow beyond capacity; panics when `push` is called at capacity.       | Can grow dynamically. Further, it provides control on how it must grow. |
 //! | It is just a wrapper around `std::vec::Vec`; hence, has similar performance. | Performs additional tasks to provide flexibility; hence, slightly slower.        |
 //!
 //! ## C. Growth with Pinned Elements
@@ -40,21 +40,20 @@
 //! |-----------------------------------------|-----------------------|-----------------------|-----------------|
 //! | `Linear`                                | `C`                   | `C`                   | `2 * C`         |
 //! | `Doubling`                              | `C`                   | `2 * C`               | `3 * C`         |
-//! | `Exponential { growth_coefficient: a }` | `C`                   | `a * C`               | `(1 + a) * C`   |
 //!
-//! It is straightforward to derive the growth formula from the example. Further, you may notice that `Doubling` is a special case of `Exponential` where `growth_coefficient` is 2; the reason it co-exists is that it allows for faster element access in general.
+//! `C` is set on initialization as a power of two for `Linear` and fixed to 4 for `Doubling` to allow for access time optimizations.
 //!
 //! ### C.2. Custom Growth Strategies
 //!
 //! In order to define a custom growth strategy, one needs to implement the `Growth` trait. Implementation is straightforward. The trait contains two methods. The following method is required:
 //!
 //! ```rust ignore
-//! fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize;
+//! fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize
 //! ```
 //!
 //! Notice that it takes as argument all priorly allocated fragments and needs to decide on the capacity of the new fragment.
 //!
-//! The second method `fn get_fragment_and_inner_indices<T>(&self, fragments: &[Fragment<T>], element_index: usize) -> Option<(usize, usize)>` has a default implementation and can be overwritten if the strategy allows for efficient computation of the indices.
+//! The second method `fn get_fragment_and_inner_indices<T>(&self, vec_len: usize, fragments: &[Fragment<T>], element_index: usize) -> Option<(usize, usize)>` has a default implementation and can be overwritten if the strategy allows for efficient computation of the indices.
 //!
 //! ## D. Examples
 //!
@@ -97,13 +96,12 @@
 //! }
 //!
 //! // set the growth explicitly
-//! let vec: SplitVec<i32, Linear> = SplitVec::with_linear_growth(16);
-//! let vec: SplitVec<i32, Doubling> = SplitVec::with_doubling_growth(4);
-//! let vec: SplitVec<i32, Exponential> = SplitVec::with_exponential_growth(4, 1.5);
+//! let vec: SplitVec<i32, Linear> = SplitVec::with_linear_growth(4);
+//! let vec: SplitVec<i32, Doubling> = SplitVec::with_doubling_growth();
 //! let vec: SplitVec<i32, MyCustomGrowth> = SplitVec::with_growth(MyCustomGrowth);
 //!
 //! // methods revealing fragments
-//! let mut vec = SplitVec::with_doubling_growth(4);
+//! let mut vec = SplitVec::with_doubling_growth();
 //! vec.extend_from_slice(&[0, 1, 2, 3]);
 //!
 //! assert_eq!(4, vec.capacity());
@@ -151,7 +149,7 @@
 //! ```rust
 //! use orx_split_vec::prelude::*;
 //!
-//! let mut vec = SplitVec::with_linear_growth(10);
+//! let mut vec = SplitVec::with_linear_growth(3);
 //!
 //! // split vec with 1 item in 1 fragment
 //! vec.push(42usize);
@@ -162,8 +160,8 @@
 //! // let's get a pointer to the first element
 //! let addr42 = &vec[0] as *const usize;
 //!
-//! // let's push 100 new elements
-//! for i in 1..101 {
+//! // let's push 80 new elements
+//! for i in 1..81 {
 //!     vec.push(i);
 //! }
 //!
@@ -171,7 +169,7 @@
 //!     assert_eq!(if i == 0 { 42 } else { i }, *elem);
 //! }
 //!
-//! // now the split vector is composed of 11 fragments each with a capacity of 10
+//! // now the split vector is composed of `11` fragments each with a capacity of 8 (2^3)
 //! assert_eq!(11, vec.fragments().len());
 //!
 //! // the memory location of the first element remains intact
@@ -180,6 +178,31 @@
 //! // we can safely (using unsafe!) dereference it and read the correct value
 //! assert_eq!(unsafe { *addr42 }, 42);
 //! ```
+//!
+//! ## E. Benchmarks
+//!
+//! Split vector variants have a comparable speed with the standard vector while building and between 1 - 4 times slower with random access. The latter varies on the element size of the vector and the number of elements in the network. The gap diminishes as either of these factors increases. You may see the details below.
+//!
+//! ### E.1. Grow
+//!
+//! *You may see the benchmark at [benches/grow.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/grow.rs).*
+//!
+//! The benchmark compares the build up time of vectors by pushing elements one by one. The baseline is the vector created by `std::vec::Vec::with_capacity` which has the perfect information on the number of elements to be pushed and writes to a contagious memory location. The compared variants are vectors created with no prior knowledge about capacity: `std::vec::Vec::new`, `SplitVec<_, Linear>` and `SplitVec<_, Doubling>`.
+//!
+//! ![](https://github.com/orxfun/orx-split-vec/blob/main/docs/img/bench_grow.PNG)
+//!
+//! Allowing copy-free growth, split vector variants have a comparable speed with `std::vec::Vec::with_capacity`, which can be around 1.5 times faster for 1-u64 size elements (2-3 times faster for 16-u64 size elements) than `std::vec::Vec::new`. Overall, the differences can be considered insignificant in most cases.
+//!
+//! ### E.2. Random Access
+//!
+//! *You may see the benchmark at [benches/random-access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/random-access.rs).*
+//!
+//! In this benchmark, we access vector elements by indices in a random order. Note that due to the fragmentation and additional book-keeping, `SplitVec` cannot be as fast as the standard `Vec`. However, `Linear` and `Doubling` growth strategies are optimized to minimize the gap as much as possible.
+//!
+//! ![](https://github.com/orxfun/orx-split-vec/blob/main/docs/img/bench_random_access.PNG)
+//!
+//! For vectors having u64-sized elements, the split vector variants are around 2-4 times slower than the standard vector; the difference gets smaller as the number of elements increases. The difference further diminishes as the size of each element increases, as can be observed in 16-u64-sized elements.
+//!
 //!
 //! ## License
 //!
@@ -211,9 +234,7 @@ pub(crate) mod test;
 
 pub use common_traits::iterator::iter::Iter;
 pub use fragment::fragment_struct::Fragment;
-pub use growth::{
-    doubling::Doubling, exponential::Exponential, growth_trait::Growth, linear::Linear,
-};
+pub use growth::{doubling::Doubling, growth_trait::Growth, linear::Linear};
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;
 

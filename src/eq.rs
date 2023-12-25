@@ -33,9 +33,19 @@ where
     G: Growth,
 {
     fn eq(&self, other: &SplitVec<T, G>) -> bool {
-        let iter1 = self.iter();
-        let iter2 = other.iter();
-        iter1 == iter2
+        let mut iter1 = self.iter();
+        let mut iter2 = other.iter();
+        loop {
+            match (iter1.next(), iter2.next()) {
+                (Some(x), Some(y)) => {
+                    if x != y {
+                        return false;
+                    }
+                }
+                (None, None) => return true,
+                _ => return false,
+            }
+        }
     }
 }
 

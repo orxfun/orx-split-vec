@@ -77,7 +77,7 @@ where
     /// use orx_split_vec::prelude::*;
     ///
     /// // default growth starting with 4, and doubling at each new fragment.
-    /// let mut vec = SplitVec::with_doubling_growth(4);
+    /// let mut vec = SplitVec::with_doubling_growth();
     /// assert_eq!(4, vec.capacity());
     ///
     /// for i in 0..4 {
@@ -104,7 +104,7 @@ where
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// let mut vec = SplitVec::with_linear_growth(32);
+    /// let mut vec = SplitVec::with_linear_growth(5);
     /// for _ in 0..10 {
     ///     vec.push(4.2);
     /// }
@@ -118,6 +118,7 @@ where
             self.fragments.truncate(1);
             self.fragments[0].clear();
         }
+        self.len = 0;
     }
 
     /// Clones and appends all elements in a slice to the vec.
@@ -143,6 +144,7 @@ where
     where
         T: Clone,
     {
+        self.len += other.len();
         let mut slice = other;
         while !slice.is_empty() {
             if !self.has_capacity_for_one() {
@@ -172,7 +174,7 @@ where
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// let mut vec = SplitVec::with_linear_growth(32);
+    /// let mut vec = SplitVec::with_linear_growth(5);
     /// vec.extend_from_slice(&[10, 40, 30]);
     /// assert_eq!(Some(&40), vec.get(1));
     /// assert_eq!(None, vec.get(3));
@@ -189,7 +191,7 @@ where
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// let mut vec = SplitVec::with_linear_growth(32);
+    /// let mut vec = SplitVec::with_linear_growth(5);
     /// vec.extend_from_slice(&[0, 1, 2]);
     ///
     /// if let Some(elem) = vec.get_mut(1) {
@@ -211,9 +213,7 @@ where
     /// Calling this method with an out-of-bounds index is *[undefined behavior]*
     /// even if the resulting reference is not used.
     unsafe fn get_unchecked(&self, index: usize) -> &T {
-        self.get_fragment_and_inner_indices(index)
-            .map(|(f, i)| self.fragments.get_unchecked(f).get_unchecked(i))
-            .expect("out-of-bounds")
+        self.get(index).expect("out-of-bounds")
     }
     /// Returns a mutable reference to an element or subslice, without doing bounds checking.
     ///
@@ -224,9 +224,7 @@ where
     /// Calling this method with an out-of-bounds index is *[undefined behavior]*
     /// even if the resulting reference is not used.
     unsafe fn get_unchecked_mut(&mut self, index: usize) -> &mut T {
-        self.get_fragment_and_inner_indices(index)
-            .map(|(f, i)| self.fragments.get_unchecked_mut(f).get_unchecked_mut(i))
-            .expect("out-of-bounds")
+        self.get_mut(index).expect("out-of-bounds")
     }
 
     /// Inserts an element at position `index` within the vector, shifting all
@@ -283,7 +281,7 @@ where
     /// are **unsafe** and the caller is responsible for correcting the references
     /// if it needs to use this method.
     unsafe fn unsafe_insert(&mut self, index: usize, value: T) {
-        if index == self.len() {
+        if index == self.len {
             self.push(value);
         } else {
             // make room for one
@@ -314,6 +312,7 @@ where
                     }
                 }
             }
+            self.len += 1;
         }
     }
 
@@ -330,7 +329,7 @@ where
     /// assert!(!vec.is_empty());
     /// ```
     fn is_empty(&self) -> bool {
-        self.fragments.iter().all(|f| f.is_empty())
+        self.len == 0
     }
 
     /// Returns the number of elements in the vector, also referred to
@@ -349,7 +348,7 @@ where
     /// assert_eq!(3, vec.len());
     /// ```
     fn len(&self) -> usize {
-        self.fragments.iter().map(|f| f.len()).sum()
+        self.len
     }
 
     /// Removes the last element from a vector and returns it, or [`None`] if it
@@ -405,10 +404,12 @@ where
                 if f == 0 {
                     None
                 } else {
+                    self.len -= 1;
                     self.fragments.pop();
                     self.fragments[f - 1].pop()
                 }
             } else {
+                self.len -= 1;
                 self.fragments[f].pop()
             }
         }
@@ -428,6 +429,7 @@ where
     /// assert_eq!(vec, [1, 2, 3]);
     /// ```
     fn push(&mut self, value: T) {
+        self.len += 1;
         if self.has_capacity_for_one() {
             let last_f = self.fragments.len() - 1;
             self.fragments[last_f].push(value);
@@ -515,6 +517,7 @@ where
             }
         }
 
+        self.len -= 1;
         value
     }
     /// Swaps the two elements of the vector with at the given positions 'a' and 'b'.
@@ -638,6 +641,7 @@ where
         if let Some((f, i)) = self.get_fragment_and_inner_indices(len) {
             self.fragments.truncate(f + 1);
             self.fragments[f].truncate(i);
+            self.len = len;
         }
     }
 
@@ -675,16 +679,19 @@ where
             .collect();
         Self {
             fragments,
+            len: self.len,
             growth: self.growth.clone(),
         }
     }
 
     fn iter(&self) -> Self::Iter<'_> {
-        Self::Iter {
-            fragments: &self.fragments,
-            f: 0,
-            i: 0,
-        }
+        // crate::common_traits::iterator::iter::get_iter16(&self.fragments)
+        Self::Iter::new(&self.fragments)
+        // Self::Iter {
+        //     fragments: &self.fragments,
+        //     f: 0,
+        //     i: 0,
+        // }
     }
 }
 
@@ -759,6 +766,7 @@ mod tests {
             for i in 0..42 {
                 assert_eq!(i, vec.len());
                 vec.insert(i, i);
+                assert_eq!(i + 1, vec.len());
             }
             assert_eq!(42, vec.len());
 

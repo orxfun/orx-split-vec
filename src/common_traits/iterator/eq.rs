@@ -1,4 +1,4 @@
-use crate::Iter;
+use super::iter::Iter;
 
 impl<'a, T: PartialEq> PartialEq for Iter<'a, T> {
     fn eq(&self, other: &Self) -> bool {
