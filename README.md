@@ -96,13 +96,12 @@ impl Growth for MyCustomGrowth {
 }
 
 // set the growth explicitly
-let vec: SplitVec<i32, Linear> = SplitVec::with_linear_growth(16);
-let vec: SplitVec<i32, Doubling> = SplitVec::with_doubling_growth(4);
-let vec: SplitVec<i32, Exponential> = SplitVec::with_exponential_growth(4, 1.5);
+let vec: SplitVec<i32, Linear> = SplitVec::with_linear_growth(4);
+let vec: SplitVec<i32, Doubling> = SplitVec::with_doubling_growth();
 let vec: SplitVec<i32, MyCustomGrowth> = SplitVec::with_growth(MyCustomGrowth);
 
 // methods revealing fragments
-let mut vec = SplitVec::with_doubling_growth(4);
+let mut vec = SplitVec::with_doubling_growth();
 vec.extend_from_slice(&[0, 1, 2, 3]);
 
 assert_eq!(4, vec.capacity());
@@ -150,7 +149,7 @@ Unless elements are removed from the vector, the memory location of an element p
 ```rust
 use orx_split_vec::prelude::*;
 
-let mut vec = SplitVec::with_linear_growth(10);
+let mut vec = SplitVec::with_linear_growth(3);
 
 // split vec with 1 item in 1 fragment
 vec.push(42usize);
@@ -161,8 +160,8 @@ assert_eq!(&[42], &vec.fragments()[0]);
 // let's get a pointer to the first element
 let addr42 = &vec[0] as *const usize;
 
-// let's push 100 new elements
-for i in 1..101 {
+// let's push 80 new elements
+for i in 1..81 {
     vec.push(i);
 }
 
@@ -182,7 +181,11 @@ assert_eq!(unsafe { *addr42 }, 42);
 
 ## E. Benchmarks
 
-Split vector variants have a comparable speed with the standard vector while building and between 1 - 4 times slower with random access. The latter varies on the element size of the vector and the number of elements in the network. The gap diminishes as either of these factors increases. You may see the details below.
+Split vector variants have a comparable speed with (slightly faster than) the standard vector while growing and between 1 - 4 times slower with random access. The latter varies on the element size of the vector and the number of elements in the network. The gap diminishes as either of these factors increases. You may see the details below.
+
+Recall that the motivation of using a split vector is to get benefit of the pinned elements, rather than to be used in place of the standard vector which is highly efficient. The aim of the performance optimizations and benchmarks is to make sure that the gap is kept within acceptable limits.
+
+*All the numbers in tables below represent duration in milliseconds.*
 
 ### E.1. Grow
 
@@ -190,9 +193,9 @@ Split vector variants have a comparable speed with the standard vector while bui
 
 The benchmark compares the build up time of vectors by pushing elements one by one. The baseline is the vector created by `std::vec::Vec::with_capacity` which has the perfect information on the number of elements to be pushed and writes to a contagious memory location. The compared variants are vectors created with no prior knowledge about capacity: `std::vec::Vec::new`, `SplitVec<_, Linear>` and `SplitVec<_, Doubling>`.
 
-![](https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG)
+<img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG" />
 
-Allowing copy-free growth, split vector variants have a comparable speed with `std::vec::Vec::with_capacity`, which can be around 1.5 times faster for 1-u64 size elements (2-3 times faster for 16-u64 size elements) than `std::vec::Vec::new`. Overall, the differences can be considered insignificant in most cases.
+Allowing copy-free growth, split vector variants have a comparable speed with `std::vec::Vec::with_capacity`, which can be around 1.5 times faster for u64-sized elements (2-3 times faster for 16-times-u64-sized elements) than `std::vec::Vec::new`. Overall, the differences can be considered insignificant in most cases.
 
 ### E.2. Random Access
 
@@ -200,9 +203,9 @@ Allowing copy-free growth, split vector variants have a comparable speed with `s
 
 In this benchmark, we access vector elements by indices in a random order. Note that due to the fragmentation and additional book-keeping, `SplitVec` cannot be as fast as the standard `Vec`. However, `Linear` and `Doubling` growth strategies are optimized to minimize the gap as much as possible.
 
-![](https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG)
+<img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG" />
 
-For vectors having u64-sized elements, the split vector variants are around 2-4 times slower than the standard vector; the difference gets smaller as the number of elements increases. The difference further diminishes as the size of each element increases, as can be observed in 16-u64-sized elements.
+For vectors having u64-sized elements, the split vector variants are around 2-4 times slower than the standard vector; the difference gets smaller as the number of elements increases. The difference further diminishes as the size of each element increases, as can be observed in 16-times-u64-sized elements (sometimes faster for unknown reasons:).
 
 
 ## License

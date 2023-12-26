@@ -169,7 +169,7 @@
 //!     assert_eq!(if i == 0 { 42 } else { i }, *elem);
 //! }
 //!
-//! // now the split vector is composed of `11` fragments each with a capacity of 8 (2^3)
+//! // now the split vector is composed of 11 fragments each with a capacity of 10
 //! assert_eq!(11, vec.fragments().len());
 //!
 //! // the memory location of the first element remains intact
@@ -181,7 +181,11 @@
 //!
 //! ## E. Benchmarks
 //!
-//! Split vector variants have a comparable speed with the standard vector while building and between 1 - 4 times slower with random access. The latter varies on the element size of the vector and the number of elements in the network. The gap diminishes as either of these factors increases. You may see the details below.
+//! Split vector variants have a comparable speed with (slightly faster than) the standard vector while growing and between 1 - 4 times slower with random access. The latter varies on the element size of the vector and the number of elements in the network. The gap diminishes as either of these factors increases. You may see the details below.
+//!
+//! Recall that the motivation of using a split vector is to get benefit of the pinned elements, rather than to be used in place of the standard vector which is highly efficient. The aim of the performance optimizations and benchmarks is to make sure that the gap is kept within acceptable limits.
+//!
+//! *All the numbers in tables below represent duration in milliseconds.*
 //!
 //! ### E.1. Grow
 //!
@@ -189,9 +193,9 @@
 //!
 //! The benchmark compares the build up time of vectors by pushing elements one by one. The baseline is the vector created by `std::vec::Vec::with_capacity` which has the perfect information on the number of elements to be pushed and writes to a contagious memory location. The compared variants are vectors created with no prior knowledge about capacity: `std::vec::Vec::new`, `SplitVec<_, Linear>` and `SplitVec<_, Doubling>`.
 //!
-//! ![](https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG)
+//! <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG" />
 //!
-//! Allowing copy-free growth, split vector variants have a comparable speed with `std::vec::Vec::with_capacity`, which can be around 1.5 times faster for 1-u64 size elements (2-3 times faster for 16-u64 size elements) than `std::vec::Vec::new`. Overall, the differences can be considered insignificant in most cases.
+//! Allowing copy-free growth, split vector variants have a comparable speed with `std::vec::Vec::with_capacity`, which can be around 1.5 times faster for u64-sized elements (2-3 times faster for 16-times-u64-sized elements) than `std::vec::Vec::new`. Overall, the differences can be considered insignificant in most cases.
 //!
 //! ### E.2. Random Access
 //!
@@ -199,9 +203,9 @@
 //!
 //! In this benchmark, we access vector elements by indices in a random order. Note that due to the fragmentation and additional book-keeping, `SplitVec` cannot be as fast as the standard `Vec`. However, `Linear` and `Doubling` growth strategies are optimized to minimize the gap as much as possible.
 //!
-//! ![](https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG)
+//! <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG" />
 //!
-//! For vectors having u64-sized elements, the split vector variants are around 2-4 times slower than the standard vector; the difference gets smaller as the number of elements increases. The difference further diminishes as the size of each element increases, as can be observed in 16-u64-sized elements.
+//! For vectors having u64-sized elements, the split vector variants are around 2-4 times slower than the standard vector; the difference gets smaller as the number of elements increases. The difference further diminishes as the size of each element increases, as can be observed in 16-times-u64-sized elements (sometimes faster for unknown reasons:).
 //!
 //!
 //! ## License
