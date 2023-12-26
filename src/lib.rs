@@ -1,17 +1,15 @@
 //! # orx-split-vec
 //!
-//! A dynamic capacity vector with pinned elements.
+//! An efficient dynamic capacity vector with pinned elements.
 //!
 //! ## A. Motivation
 //!
 //! There might be various situations where pinned elements are helpful.
 //!
 //! * It is somehow required for async code, following [blog](https://blog.cloudflare.com/pin-and-unpin-in-rust) could be useful for the interested.
-//! * It is a requirement to represent self-referential types with thin references.
+//! * It is crucial in representing self-referential types with thin references.
 //!
-//! This crate focuses more on the latter. Particularly, it aims to make it safely and conveniently possible to build **self-referential collections** such as linked list, tree or graph.
-//!
-//! See [`PinnedVec`](https://crates.io/crates/orx-pinned-vec) for complete documentation.
+//! This crate focuses more on the latter. Particularly, it aims to make it safe and convenient to build **performant self-referential collections** such as linked lists, trees or graphs. See [`PinnedVec`](https://crates.io/crates/orx-pinned-vec) for complete documentation on the motivation.
 //!
 //! `SplitVec` is one of the pinned vec implementations which can be wrapped by an [`ImpVec`](https://crates.io/crates/orx-imp-vec) and allow building self referential collections.
 //!
@@ -24,24 +22,26 @@
 //! | Implements `PinnedVec` => can be wrapped by an `ImpVec`.                     | Implements `PinnedVec` => can be wrapped by an `ImpVec`.                         |
 //! | Requires exact capacity to be known while creating.                          | Can be created with any level of prior information about required capacity.      |
 //! | Cannot grow beyond capacity; panics when `push` is called at capacity.       | Can grow dynamically. Further, it provides control on how it must grow. |
-//! | It is just a wrapper around `std::vec::Vec`; hence, has similar performance. | Performs additional tasks to provide flexibility; hence, slightly slower.        |
+//! | It is just a wrapper around `std::vec::Vec`; hence, has equivalent performance. | Performance-optimized built-in growth strategies also have `std::vec::Vec` equivalent performance. |
+//!
+//! After the performance optimizations on the `SplitVec`, it is now comparable to `std::vec::Vec` in terms of performance (see <a href="#section-benchmarks">E. Benchmarks</a> for the experiments). This might make `SplitVec` a dominating choice over `FixedVec`.
 //!
 //! ## C. Growth with Pinned Elements
 //!
 //! As the name suggests, `SplitVec` is a vector represented as a sequence of multiple contagious data fragments.
 //!
-//! The vector is at its capacity when all fragments are completely utilized. When the vector needs to grow further while at capacity, a new fragment is allocated. Therefore, growth does <ins>not</ins> require copying memory to a new memory location. Priorly pushed elements stay <ins>pinned</ins> to their memory locations.
+//! The vector is said to be at its capacity when all fragments are completely utilized. When the vector needs to grow further while at capacity, a new fragment is allocated. Therefore, growth does <ins>not</ins> require copying memory to a new memory location. Priorly pushed elements stay <ins>pinned</ins> to their memory locations.
 //!
 //! ### C.1. Available Growth Strategies
 //!
-//! The capacity of the new fragment is determined by the chosen growth strategy. Assume that `vec: SplitVec<_>` contains one fragment of capacity `C`, which is also the capacity of the vector since it is the only fragment. Assume, we used up all capacity; i.e., `vec.len() == vec.capacity()` (`C`). If we attempt to push a new element, `SplitVec` will allocate the second fragment with the following capacity:
+//! The capacity of the new fragment is determined by the chosen growth strategy. Assume that `vec: SplitVec<_, G>` where `G: Growth` contains one fragment of capacity `C`, which is also the capacity of the vector since it is the only fragment. Assume, we used up all capacity; i.e., `vec.len() == vec.capacity()` (`C`). If we attempt to push a new element, `SplitVec` will allocate the second fragment with the following capacity:
 //!
 //! | **`Growth`** Strategy                   | 1st Fragment Capacity | 2nd Fragment Capacity | Vector Capacity |
 //! |-----------------------------------------|-----------------------|-----------------------|-----------------|
 //! | `Linear`                                | `C`                   | `C`                   | `2 * C`         |
 //! | `Doubling`                              | `C`                   | `2 * C`               | `3 * C`         |
 //!
-//! `C` is set on initialization as a power of two for `Linear` and fixed to 4 for `Doubling` to allow for access time optimizations.
+//! `C` is set on initialization as a power of two for `Linear` strategy, and it is fixed to 4 for `Doubling` strategy to allow for access time optimizations.
 //!
 //! ### C.2. Custom Growth Strategies
 //!
@@ -149,10 +149,11 @@
 //! ```rust
 //! use orx_split_vec::prelude::*;
 //!
-//! let mut vec = SplitVec::with_linear_growth(3);
+//! let mut vec = SplitVec::new(); // Doubling growth as the default strategy
 //!
 //! // split vec with 1 item in 1 fragment
 //! vec.push(42usize);
+//!
 //! assert_eq!(&[42], &vec);
 //! assert_eq!(1, vec.fragments().len());
 //! assert_eq!(&[42], &vec.fragments()[0]);
@@ -160,8 +161,8 @@
 //! // let's get a pointer to the first element
 //! let addr42 = &vec[0] as *const usize;
 //!
-//! // let's push 80 new elements
-//! for i in 1..81 {
+//! // let's push 3 + 8 + 16 new elements to end up with 3 fragments
+//! for i in 1..(3 + 8 + 16) {
 //!     vec.push(i);
 //! }
 //!
@@ -170,43 +171,56 @@
 //! }
 //!
 //! // now the split vector is composed of 11 fragments each with a capacity of 10
-//! assert_eq!(11, vec.fragments().len());
+//! assert_eq!(3, vec.fragments().len());
 //!
 //! // the memory location of the first element remains intact
 //! assert_eq!(addr42, &vec[0] as *const usize);
 //!
-//! // we can safely (using unsafe!) dereference it and read the correct value
+//! // we can safely dereference it and read the correct value
+//! // the method is still unsafe for SplitVec
+//! // but the undelrying guarantee will be used by ImpVec
 //! assert_eq!(unsafe { *addr42 }, 42);
 //! ```
 //!
+//! <div id="section-benchmarks"></div>
+//!
 //! ## E. Benchmarks
 //!
-//! Split vector variants have a comparable speed with (slightly faster than) the standard vector while growing and between 1 - 4 times slower with random access. The latter varies on the element size of the vector and the number of elements in the network. The gap diminishes as either of these factors increases. You may see the details below.
+//! Recall that the motivation of using a split vector is to get benefit of the pinned elements, rather than to be used in place of the standard vector which is highly efficient. The aim of the performance optimizations and benchmarks is to make sure that the gap is kept within acceptable and constant limits. `SplitVec` seems to comfortably satisfy this. After optimizations, built-in growth strategies appear to have a similar peformance to `std::vec::Vec` in growth, serial access and random access benchmarks.
 //!
-//! Recall that the motivation of using a split vector is to get benefit of the pinned elements, rather than to be used in place of the standard vector which is highly efficient. The aim of the performance optimizations and benchmarks is to make sure that the gap is kept within acceptable limits.
-//!
-//! *All the numbers in tables below represent duration in milliseconds.*
+//! *You may find the details of each benchmark in the following subsections. All the numbers in tables below represent duration in milliseconds.*
 //!
 //! ### E.1. Grow
 //!
 //! *You may see the benchmark at [benches/grow.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/grow.rs).*
 //!
-//! The benchmark compares the build up time of vectors by pushing elements one by one. The baseline is the vector created by `std::vec::Vec::with_capacity` which has the perfect information on the number of elements to be pushed and writes to a contagious memory location. The compared variants are vectors created with no prior knowledge about capacity: `std::vec::Vec::new`, `SplitVec<_, Linear>` and `SplitVec<_, Doubling>`.
+//! The benchmark compares the build up time of vectors by pushing elements one by one. The baseline is the vector created by `std::vec::Vec::with_capacity` which has the perfect information on the number of elements to be pushed. The compared variants are vectors created with no prior knowledge about capacity: `std::vec::Vec::new`, `SplitVec<_, Linear>` and `SplitVec<_, Doubling>`.
 //!
 //! <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG" />
 //!
-//! Allowing copy-free growth, split vector variants have a comparable speed with `std::vec::Vec::with_capacity`, which can be around 1.5 times faster for u64-sized elements (2-3 times faster for 16-times-u64-sized elements) than `std::vec::Vec::new`. Overall, the differences can be considered insignificant in most cases.
+//! The baseline **std_vec_with_capacity** performs between 1.5 and 2.0 times faster than **std_vec_new** which has no capacity information and requires copies while growing. As mentioned before, **`SplitVec`** growth is copy-free guaranteeing that pushed elements stay pinned. Therefore, it is expected to perform in between. However, it performs almost as well as, and sometimes faster than, std_vec_with_capacity.
+//!
 //!
 //! ### E.2. Random Access
 //!
-//! *You may see the benchmark at [benches/random-access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/random-access.rs).*
+//! *You may see the benchmark at [benches/random_access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/random_access.rs).*
 //!
-//! In this benchmark, we access vector elements by indices in a random order. Note that due to the fragmentation and additional book-keeping, `SplitVec` cannot be as fast as the standard `Vec`. However, `Linear` and `Doubling` growth strategies are optimized to minimize the gap as much as possible.
+//! In this benchmark, we access vector elements by indices in a random order. Here the baseline is again the standard vector created by `Vec::with_capacity`, which is compared with `Linear` and `Doubling` growth strategies of the `SplitVec` which are optimized specifically for the random access.
 //!
 //! <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG" />
 //!
-//! For vectors having u64-sized elements, the split vector variants are around 2-4 times slower than the standard vector; the difference gets smaller as the number of elements increases. The difference further diminishes as the size of each element increases, as can be observed in 16-times-u64-sized elements (sometimes faster for unknown reasons:).
+//! We can see that `Linear` is slower than `Doubling`. The difference of performances between `SplitVec<_, Doubling>` (the default growth) is always less than 50% and approaches to zero as the element size or number of elements gets larger.
 //!
+//!
+//! ### E.3. Serial Access
+//!
+//! *You may see the benchmark at [benches/serial_access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/serial_access.rs).*
+//!
+//! Lastly, we benchmark the case where we access each element of the vector in order starting from the first element to the last. We use the same standard vector as the baseline. For completeness, baseline is compared with `Linear` and `Doubling` strategies; however, `SplitVec` actually uses the same iterator to allow for the serial access for any growth startegy.
+//!
+//! <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_serial_access.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_serial_access.PNG" />
+//!
+//! The results show that there are minor deviations but no significant difference between the variants.
 //!
 //! ## License
 //!
