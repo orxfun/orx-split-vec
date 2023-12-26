@@ -82,10 +82,8 @@ fn test_for_type<T: Default>(
             BenchmarkId::new("split_vec_linear - 2^10", &treatment),
             n,
             |b, _| {
-                b.iter(|| {
-                    let vec = split_vec_linear(black_box(*n), value, 10);
-                    calc_split_vec(add, &vec)
-                })
+                let vec = split_vec_linear(black_box(*n), value, 10);
+                b.iter(|| calc_split_vec(add, &vec))
             },
         );
 
@@ -93,10 +91,8 @@ fn test_for_type<T: Default>(
             BenchmarkId::new("split_vec_doubling", &treatment),
             n,
             |b, _| {
-                b.iter(|| {
-                    let vec = split_vec_doubling(black_box(*n), value);
-                    calc_split_vec(add, &vec)
-                })
+                let vec = split_vec_doubling(black_box(*n), value);
+                b.iter(|| calc_split_vec(add, &vec))
             },
         );
     }
@@ -107,7 +103,7 @@ fn bench(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("serial_access");
 
-    const N: usize = 1;
+    const N: usize = 16;
     test_for_type::<[u64; N]>(&mut group, N, &treatments, get_value, add);
 
     group.finish();
