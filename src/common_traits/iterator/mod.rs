@@ -1,5 +1,4 @@
 mod eq;
+mod from_iter;
 pub(crate) mod iter;
-
-#[cfg(test)]
-mod tests;
+pub(crate) mod iter_mut;

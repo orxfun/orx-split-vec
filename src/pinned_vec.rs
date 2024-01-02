@@ -8,6 +8,7 @@ where
     G: Growth,
 {
     type Iter<'a> = crate::common_traits::iterator::iter::Iter<'a, T> where T: 'a, Self: 'a;
+    type IterMut<'a> = crate::common_traits::iterator::iter_mut::IterMut<'a, T> where T: 'a, Self: 'a;
 
     /// Returns the index of the `element` with the given reference.
     /// This method has *O(f)* time complexity where f is the number of fragments.
@@ -685,13 +686,10 @@ where
     }
 
     fn iter(&self) -> Self::Iter<'_> {
-        // crate::common_traits::iterator::iter::get_iter16(&self.fragments)
         Self::Iter::new(&self.fragments)
-        // Self::Iter {
-        //     fragments: &self.fragments,
-        //     f: 0,
-        //     i: 0,
-        // }
+    }
+    fn iter_mut(&mut self) -> Self::IterMut<'_> {
+        Self::IterMut::new(&mut self.fragments)
     }
 }
 
