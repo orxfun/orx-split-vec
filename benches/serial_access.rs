@@ -62,6 +62,16 @@ fn calc_split_vec<T: Default, F: Fn(T, &T) -> T, G: Growth>(add: F, vec: &SplitV
     }
     sum
 }
+fn calc_split_vec_itermut<T: Default, F: Fn(T, &T) -> T, G: Growth>(
+    add: F,
+    vec: &mut SplitVec<T, G>,
+) -> T {
+    let mut sum = T::default();
+    for x in vec.iter_mut() {
+        sum = add(sum, x);
+    }
+    sum
+}
 
 fn test_for_type<T: Default>(
     group: &mut BenchmarkGroup<'_, WallTime>,
@@ -93,6 +103,24 @@ fn test_for_type<T: Default>(
             |b, _| {
                 let vec = split_vec_doubling(black_box(*n), value);
                 b.iter(|| calc_split_vec(add, &vec))
+            },
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("split_vec_linear - 2^10 - iter_mut", &treatment),
+            n,
+            |b, _| {
+                let mut vec = split_vec_linear(black_box(*n), value, 10);
+                b.iter(|| calc_split_vec_itermut(add, &mut vec))
+            },
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("split_vec_doubling - iter_mut", &treatment),
+            n,
+            |b, _| {
+                let mut vec = split_vec_doubling(black_box(*n), value);
+                b.iter(|| calc_split_vec_itermut(add, &mut vec))
             },
         );
     }
