@@ -1,6 +1,6 @@
 //! # orx-split-vec
 //!
-//! An efficient dynamic capacity vector with pinned elements.
+//! An efficient constant access time vector with dynamic capacity and pinned elements.
 //!
 //! ## A. Motivation
 //!
@@ -9,7 +9,7 @@
 //! * It is somehow required for async code, following [blog](https://blog.cloudflare.com/pin-and-unpin-in-rust) could be useful for the interested.
 //! * It is crucial in representing self-referential types with thin references.
 //!
-//! This crate focuses more on the latter. Particularly, it aims to make it safe and convenient to build **performant self-referential collections** such as linked lists, trees or graphs. See [`PinnedVec`](https://crates.io/crates/orx-pinned-vec) for complete documentation on the motivation.
+//! This crate focuses on the latter. Particularly, it aims to make it safe and convenient to build **performant self-referential collections** such as linked lists, trees or graphs. See [`PinnedVec`](https://crates.io/crates/orx-pinned-vec) for complete documentation on the motivation.
 //!
 //! `SplitVec` is one of the pinned vec implementations which can be wrapped by an [`ImpVec`](https://crates.io/crates/orx-imp-vec) and allow building self referential collections.
 //!
@@ -221,6 +221,10 @@
 //! <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_serial_access.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_serial_access.PNG" />
 //!
 //! The results show that there are minor deviations but no significant difference between the variants.
+//!
+//! ## F. Relation to the `ImpVec`
+//!
+//! Providing pinned memory location elements with `PinnedVec` is the first block for building self referential structures; the second building block is the [`ImpVec`](https://crates.io/crates/orx-imp-vec). An `ImpVec` wraps any `PinnedVec` implementation and provides specialized methods built on the pinned element guarantee in order to allow building self referential collections.
 //!
 //! ## License
 //!

@@ -3,11 +3,11 @@ name = "orx-split-vec"
 version = "1.2.0"
 edition = "2021"
 authors = ["orxfun <orx.ugur.arikan@gmail.com>"]
-description = "An efficient dynamic capacity vector with pinned elements."
+description = "An efficient constant access time vector with dynamic capacity and pinned elements."
 license = "MIT"
 repository = "https://github.com/orxfun/orx-split-vec/"
 keywords = ["vec", "array", "split", "fragments", "pinned"]
-categories = ["data-structures"]
+categories = ["data-structures", "rust-patterns"]
 
 [dependencies]
 orx-pinned-vec = "1.0"
