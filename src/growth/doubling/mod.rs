@@ -1,8 +1,8 @@
 mod constants;
+mod doubling_growth;
 mod from;
-mod impl_growth;
 
 #[cfg(test)]
 mod tests;
 
-pub use impl_growth::Doubling;
+pub use doubling_growth::Doubling;

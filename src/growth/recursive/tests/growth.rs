@@ -1,4 +1,4 @@
-use crate::{Doubling, Fragment, Growth};
+use crate::{Fragment, Growth, Recursive};
 
 #[test]
 fn new_cap() {
@@ -6,7 +6,7 @@ fn new_cap() {
         Vec::<usize>::with_capacity(cap).into()
     }
 
-    let growth = Doubling;
+    let growth = Recursive;
     assert_eq!(4, growth.new_fragment_capacity(&[new_fra(2)]));
     assert_eq!(12, growth.new_fragment_capacity(&[new_fra(3), new_fra(6)]));
     assert_eq!(
@@ -19,7 +19,7 @@ fn new_cap() {
 fn indices_panics_when_fragments_is_empty() {
     assert_eq!(
         None,
-        <Doubling as Growth>::get_fragment_and_inner_indices::<usize>(&Doubling, 0, &[], 0)
+        <Recursive as Growth>::get_fragment_and_inner_indices::<usize>(&Recursive, 0, &[], 0)
     );
 }
 
@@ -36,7 +36,7 @@ fn indices() {
         vec.into()
     }
 
-    let growth = Doubling;
+    let growth = Recursive;
 
     for i in 0..4 {
         assert_eq!(

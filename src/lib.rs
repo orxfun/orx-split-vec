@@ -32,7 +32,7 @@
 //!
 //! The vector is said to be at its capacity when all fragments are completely utilized. When the vector needs to grow further while at capacity, a new fragment is allocated. Therefore, growth does <ins>not</ins> require copying memory to a new memory location. Priorly pushed elements stay <ins>pinned</ins> to their memory locations.
 //!
-//! ### C.1. Available Growth Strategies
+//! ### C.1. Available Growth Strategies: **`Linear` | `Doubling` | `Recursive`**
 //!
 //! The capacity of the new fragment is determined by the chosen growth strategy. Assume that `vec: SplitVec<_, G>` where `G: Growth` contains one fragment of capacity `C`, which is also the capacity of the vector since it is the only fragment. Assume, we used up all capacity; i.e., `vec.len() == vec.capacity()` (`C`). If we attempt to push a new element, `SplitVec` will allocate the second fragment with the following capacity:
 //!
@@ -42,6 +42,17 @@
 //! | `Doubling`                              | `C`                   | `2 * C`               | `3 * C`         |
 //!
 //! `C` is set on initialization as a power of two for `Linear` strategy, and it is fixed to 4 for `Doubling` strategy to allow for access time optimizations.
+//!
+//! In addition there exists the `Recursive` growth strategy, which behaves as the `Doubling` strategy at the beginning. However, it allows for zero-cost `append` operation at the expense of a reduced random access time performance. Please see the <a href="#section-benchmarks">E. Benchmarks</a> section for tradeoffs and details. The summary is as follows:
+//!
+//! * Use `std::vec::Vec<T>` :)
+//! * Use `SplitVec<T, Doubling>` (or equivalently `SplitVec<T>`)
+//!   * when it is required to have pinned elements and we need close to standard vector serial and random access performance, or
+//!   * when the elements are large and we don't have good capacity estimates, so that we can benefit from split vector's no-copy growth
+//!     * `SplitVec<T, Linear>` may be preferred when we have a good idea on the chunk size of the growth to reduce impact of wasted capacity with doubling of `std::vec::Vec` or `Doubling`.
+//! * Use `SplitVec<T, Recursive>`
+//!   * when it is required to have pinned elements and we need close to standard vector serial access performance while it is okay to have slower random access performance, or
+//!   * when `append`ing other vectors or split vectors is a frequent and important operation.
 //!
 //! ### C.2. Custom Growth Strategies
 //!
@@ -186,7 +197,7 @@
 //!
 //! ## E. Benchmarks
 //!
-//! Recall that the motivation of using a split vector is to get benefit of the pinned elements, rather than to be used in place of the standard vector which is highly efficient. The aim of the performance optimizations and benchmarks is to make sure that the gap is kept within acceptable and constant limits. `SplitVec` seems to comfortably satisfy this. After optimizations, built-in growth strategies appear to have a similar peformance to `std::vec::Vec` in growth, serial access and random access benchmarks.
+//! Recall that the motivation of using a split vector is to get benefit of the pinned elements and to avoid standard vector's memory copies in very specific situations; rather than to be a replacement. The aim of performance optimizations and benchmarks is to make sure that performance of critical operations is kept within desired ranges. `SplitVec` seems to satisfy this. After optimizations, built-in growth strategies appear to have a similar peformance to `std::vec::Vec` in growth, serial access and random access benchmarks, and a better performance in append benchmarks.
 //!
 //! *You may find the details of each benchmark in the following subsections. All the numbers in tables below represent duration in milliseconds.*
 //!
@@ -200,27 +211,46 @@
 //!
 //! The baseline **std_vec_with_capacity** performs between 1.5 and 2.0 times faster than **std_vec_new** which has no capacity information and requires copies while growing. As mentioned before, **`SplitVec`** growth is copy-free guaranteeing that pushed elements stay pinned. Therefore, it is expected to perform in between. However, it performs almost as well as, and sometimes faster than, std_vec_with_capacity.
 //!
+//! *`Recursive` strategy is omitted here since it behaves exactly as the `Doubling` strategy. For its differences, please see random access and append benchmarks.*
 //!
 //! ### E.2. Random Access
 //!
 //! *You may see the benchmark at [benches/random_access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/random_access.rs).*
 //!
-//! In this benchmark, we access vector elements by indices in a random order. Here the baseline is again the standard vector created by `Vec::with_capacity`, which is compared with `Linear` and `Doubling` growth strategies of the `SplitVec` which are optimized specifically for the random access.
+//! In this benchmark, we access vector elements by indices in a random order. Here the baseline is again the standard vector created by `Vec::with_capacity`, which is compared with `Linear` and `Doubling` growth strategies of the `SplitVec` which are optimized specifically for the random access. Furthermore, `Recursive` growth strategy which does not provide constant time random access operation is included in the benchmarks.
+//!
+//! Note that `Recursive` uses the `Growth` trait's default `get_fragment_and_inner_indices` implementation, and hence, reflects the expected random access performance of custom growth strategies without a specialized access method.
 //!
 //! <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG" />
 //!
-//! We can see that `Linear` is slower than `Doubling`. The difference of performances between `SplitVec<_, Doubling>` (the default growth) is always less than 50% and approaches to zero as the element size or number of elements gets larger.
+//! We can see that `Linear` is slower than `Doubling`. Random access performance of `Doubling` is at most 50% slower than the standard vector and the difference approaches to zero as the element size or number of elements gets larger.
 //!
+//! `Recursive`, on the other hand, does not have constant time complexity for random access operation which can be observed in the table. It is between 4 and 7 times slower than the slower access for small elements and around 1.5 times slower for large structs. In order to make the tradeoffs clear and brief; `SplitVec<_, Recursive>` mainly differs from standard and split vector alternatives by random access performance (worse) and append performance (better).
 //!
 //! ### E.3. Serial Access
 //!
 //! *You may see the benchmark at [benches/serial_access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/serial_access.rs).*
 //!
-//! Lastly, we benchmark the case where we access each element of the vector in order starting from the first element to the last. We use the same standard vector as the baseline. For completeness, baseline is compared with `Linear` and `Doubling` strategies; however, `SplitVec` actually uses the same iterator to allow for the serial access for any growth startegy.
+//! Here, we benchmark the case where we access each element of the vector in order starting from the first element to the last. We use the same standard vector as the baseline. For completeness, baseline is compared with `Doubling`, `Linear` and `Recursive` growth strategies; however, `SplitVec` actually uses the same iterator to allow for the serial access for any growth startegy.
 //!
 //! <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_serial_access.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_serial_access.PNG" />
 //!
 //! The results show that there are minor deviations but no significant difference between the variants.
+//!
+//! ### E.4. Append
+//!
+//! *You may see the benchmark at [benches/serial_access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/append.rs).*
+//!
+//! Appending vectors to vectors might be a critical operation in certain cases. One example is the recursive data structures such as trees or linked lists or vectors themselves. We might append a tree to another tree to get a new merged tree. This operation could be handled by copying data to keep a certain required structure or by simply accepting the incoming chunk (no-ops).
+//!
+//! * `std::vec::Vec<_>`, `SplitVec<_, Doubling>` and `SplitVec<_, Linear>` do the prior one in order to keep their internal structure which allows for efficient random access.
+//! * `SplitVec<_, Recursive>`, on the other hand, utilizes its fragmented structure and follows the latter approach. Hence, appending another vector to it has no cost, simply no-ops. This does not degrade serial access performance. However, it leads to slower random access. Please refer to the corresponding benchmarks above.
+//!
+//! <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_append.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_append.PNG" />
+//!
+//! You may see that `SplitVec<T, Doubling>` (equivalently `SplitVec<T>` using the default) is around twice faster than `std::vec::Vec` when we don't have any prior information about the required capacity. When we have perfect information and create our vector with `std::vec::Vec::with_capacity` providing the exact required capacity, `std::vec::Vec` and `SplitVec` perform equivalently. This makes `SplitVec` a preferrable option.
+//!
+//! `SplitVec<T, Recursive>` on the other hand is a different story allowing zero-cost appends which is independent of size of the data being appended.
 //!
 //! ## F. Relation to the `ImpVec`
 //!
@@ -256,7 +286,8 @@ pub(crate) mod test;
 
 pub use common_traits::iterator::iter::Iter;
 pub use fragment::fragment_struct::Fragment;
-pub use growth::{doubling::Doubling, growth_trait::Growth, linear::Linear};
+pub use fragment::into_fragments::IntoFragments;
+pub use growth::{doubling::Doubling, growth_trait::Growth, linear::Linear, recursive::Recursive};
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;
 

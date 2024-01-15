@@ -1,8 +1,8 @@
 mod constants;
 mod from;
-mod impl_growth;
+mod linear_growth;
 
 #[cfg(test)]
 mod tests;
 
-pub use impl_growth::Linear;
+pub use linear_growth::Linear;
