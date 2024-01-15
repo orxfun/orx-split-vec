@@ -110,6 +110,15 @@ fn test_for_type<T: Default>(
                 b.iter(|| calc_split_vec(add, &vec, &indices))
             },
         );
+
+        group.bench_with_input(
+            BenchmarkId::new("split_vec_recursive", &treatment),
+            n,
+            |b, _| {
+                let vec: SplitVec<_, Recursive> = split_vec_doubling(black_box(*n), value).into();
+                b.iter(|| calc_split_vec(add, &vec, &indices))
+            },
+        );
     }
 }
 
@@ -118,7 +127,7 @@ fn bench(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("random_access");
 
-    const N: usize = 1;
+    const N: usize = 16;
     test_for_type::<[u64; N]>(&mut group, N, &treatments, get_value, add);
 
     group.finish();

@@ -107,6 +107,15 @@ fn test_for_type<T: Default>(
         );
 
         group.bench_with_input(
+            BenchmarkId::new("split_vec_recursive", &treatment),
+            n,
+            |b, _| {
+                let vec: SplitVec<_, Recursive> = split_vec_doubling(black_box(*n), value).into();
+                b.iter(|| calc_split_vec(add, &vec))
+            },
+        );
+
+        group.bench_with_input(
             BenchmarkId::new("split_vec_linear - 2^10 - iter_mut", &treatment),
             n,
             |b, _| {
@@ -120,6 +129,16 @@ fn test_for_type<T: Default>(
             n,
             |b, _| {
                 let mut vec = split_vec_doubling(black_box(*n), value);
+                b.iter(|| calc_split_vec_itermut(add, &mut vec))
+            },
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("split_vec_recursive - iter_mut", &treatment),
+            n,
+            |b, _| {
+                let mut vec: SplitVec<_, Recursive> =
+                    split_vec_doubling(black_box(*n), value).into();
                 b.iter(|| calc_split_vec_itermut(add, &mut vec))
             },
         );

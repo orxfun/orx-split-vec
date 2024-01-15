@@ -13,7 +13,7 @@ use crate::{Fragment, SplitVec};
 /// ```
 /// use orx_split_vec::prelude::*;
 ///
-/// // SplitVec<usize, DoublingGrowth>
+/// // SplitVec<usize, Doubling>
 /// let mut vec = SplitVec::with_doubling_growth();
 ///
 /// assert_eq!(1, vec.fragments().len());
