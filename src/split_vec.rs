@@ -17,16 +17,15 @@ where
     /// Note that allocated data of split vector is pinned and allocated in fragments.
     /// Therefore, growth does not require copying data.
     ///
-    /// The growth stratety determines the capacity of each fragment
+    /// The growth strategy determines the capacity of each fragment
     /// that will be added to the split vector when needed.
     ///
     /// Furthermore, it has an impact on index-access to the elements.
     /// See below for the complexities:
     ///
-    /// * `LinearGrowth` (`SplitVec::with_linear_growth`) -> O(1)
-    /// * `DoublingGrowth` (`SplitVec::with_doubling_growth`) -> O(1), however slower than linear
-    /// * `ExponentialGrowth` (`SplitVec::with_exponential_growth`) -> O(f) where f is the number of fragments
-    /// * `CustomGrowth` (`SplitVec::with_custom_growth`) -> O(f) where f is the number of fragments
+    /// * `Linear` (`SplitVec::with_linear_growth`) -> O(1)
+    /// * `Doubling` (`SplitVec::with_doubling_growth`) -> O(1)
+    /// * `Recursive` (`SplitVec::with_recursive_growth`) -> O(f) where f is the number of fragments; and O(1) append time complexity
     pub growth: G,
 }
 
@@ -51,6 +50,7 @@ where
     pub unsafe fn fragments_mut(&mut self) -> &mut Vec<Fragment<T>> {
         &mut self.fragments
     }
+
     /// Returns the fragments of the split vector.
     ///
     /// The fragments of the split vector satisfy the following structure:
@@ -80,6 +80,7 @@ where
     pub fn fragments(&self) -> &[Fragment<T>] {
         &self.fragments
     }
+
     /// Returns the fragment index and the index within fragment of the item with the given `index`;
     /// None if the index is out of bounds.
     ///
@@ -123,15 +124,24 @@ where
             .map(|f| f.has_capacity_for_one())
             .unwrap_or(false)
     }
+
     pub(crate) fn add_fragment(&mut self) {
         let capacity = self.growth.new_fragment_capacity(&self.fragments);
         let new_fragment = Fragment::new(capacity);
         self.fragments.push(new_fragment);
     }
+
     pub(crate) fn add_fragment_with_first_value(&mut self, first_value: T) {
         let capacity = self.growth.new_fragment_capacity(&self.fragments);
         let new_fragment = Fragment::new_with_first_value(capacity, first_value);
         self.fragments.push(new_fragment);
+    }
+
+    pub(crate) fn drop_last_empty_fragment(&mut self) {
+        let drop_empty_last_fragment = self.fragments.last().map(|f| f.is_empty()).unwrap_or(false);
+        if drop_empty_last_fragment {
+            _ = self.fragments.pop();
+        }
     }
 }
 

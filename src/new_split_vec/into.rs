@@ -1,11 +1,10 @@
 use crate::{Growth, SplitVec};
-use orx_pinned_vec::{NotSelfRefVecItem, PinnedVec};
+use orx_pinned_vec::PinnedVec;
 
 // std::vec::vec
 impl<T, G> From<SplitVec<T, G>> for Vec<T>
 where
     G: Growth,
-    T: NotSelfRefVecItem,
 {
     /// Converts the `SplitVec` into a standard `Vec` with a contagious memory layout.
     ///
@@ -46,7 +45,6 @@ where
 impl<T, G> SplitVec<T, G>
 where
     G: Growth,
-    T: NotSelfRefVecItem,
 {
     /// Converts the `SplitVec` into a standard `Vec` with a contagious memory layout.
     ///

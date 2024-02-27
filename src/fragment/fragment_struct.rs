@@ -29,13 +29,4 @@ impl<T> Fragment<T> {
     pub fn room(&self) -> usize {
         self.data.capacity() - self.data.len()
     }
-
-    // helpers
-    pub(crate) fn get_as_mut_ptr(&mut self) -> Option<*mut T> {
-        if self.is_empty() {
-            None
-        } else {
-            Some(self.data.as_mut_ptr())
-        }
-    }
 }

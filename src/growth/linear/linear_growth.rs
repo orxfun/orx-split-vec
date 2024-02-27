@@ -88,7 +88,7 @@ impl<T> SplitVec<T, Linear> {
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// // SplitVec<usize, LinearGrowth>
+    /// // SplitVec<usize, Linear>
     /// let mut vec = SplitVec::with_linear_growth(4);
     ///
     /// assert_eq!(1, vec.fragments().len());

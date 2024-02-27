@@ -4,6 +4,7 @@ macro_rules! test_all_growth_types {
     ($fun:tt) => {
         $fun::<$crate::Linear>(SplitVec::with_linear_growth(2));
         $fun::<$crate::Doubling>(SplitVec::with_doubling_growth());
+        $fun::<$crate::Recursive>(SplitVec::with_recursive_growth());
     };
 }
 
