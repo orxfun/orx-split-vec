@@ -84,7 +84,7 @@ impl<T> SplitVec<T, Recursive> {
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// // SplitVec<usize, DoublingGrowth>
+    /// // SplitVec<usize, Doubling>
     /// let mut vec = SplitVec::with_recursive_growth();
     ///
     /// assert_eq!(1, vec.fragments().len());

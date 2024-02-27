@@ -4,18 +4,17 @@
 //!
 //! ## A. Motivation
 //!
-//! There might be various situations where pinned elements are helpful.
+//! There are various situations where pinned elements are necessary.
 //!
-//! * It is somehow required for async code, following [blog](https://blog.cloudflare.com/pin-and-unpin-in-rust) could be useful for the interested.
-//! * It is crucial in representing self-referential types with thin references.
+//! * It is critical in enabling **efficient, convenient and safe self-referential collections** with thin references, see [`SelfRefCol`](https://crates.io/crates/orx-self-ref-col) for details.
+//! * It is essential in allowing an **immutable push** vector; i.e., [`ImpVec`](https://crates.io/crates/orx-imp-vec). This is a very useful operation when the desired collection is a bag or a container of things, rather than having a collective meaning. In such cases, `ImpVec` avoids heap allocations and wide pointers such as `Box` or `Rc` or etc.
+//! * It is important for **async** code; following [blog](https://blog.cloudflare.com/pin-and-unpin-in-rust) could be useful for the interested.
 //!
-//! This crate focuses on the latter. Particularly, it aims to make it safe and convenient to build **performant self-referential collections** such as linked lists, trees or graphs. See [`PinnedVec`](https://crates.io/crates/orx-pinned-vec) for complete documentation on the motivation.
-//!
-//! `SplitVec` is one of the pinned vec implementations which can be wrapped by an [`ImpVec`](https://crates.io/crates/orx-imp-vec) and allow building self referential collections.
+//! *As explained in [rust-docs](https://doc.rust-lang.org/std/pin/index.html), there exist `Pin` and `Unpin` types for similar purposes. However, the solution is complicated and low level using `PhantomPinned`, `NonNull`, `dangling`, `Box::pin`, pointer accesses, etc.*
 //!
 //! ## B. Comparison with `FixedVec`
 //!
-//! [`FixedVec`](https://crates.io/crates/orx-fixed-vec) is another `PinnedVec` implementation aiming the same goal but with different features. You may see the comparison in the table below.
+//! [`FixedVec`](https://crates.io/crates/orx-fixed-vec) is another [`PinnedVec`](https://crates.io/crates/orx-pinned-vec) implementation aiming the same goal but with different features. You may see the comparison in the table below.
 //!
 //! | **`FixedVec`**                                                               | **`SplitVec`**                                                                   |
 //! |------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
@@ -30,7 +29,7 @@
 //!
 //! As the name suggests, `SplitVec` is a vector represented as a sequence of multiple contagious data fragments.
 //!
-//! The vector is said to be at its capacity when all fragments are completely utilized. When the vector needs to grow further while at capacity, a new fragment is allocated. Therefore, growth does <ins>not</ins> require copying memory to a new memory location. Priorly pushed elements stay <ins>pinned</ins> to their memory locations.
+//! The vector is said to be at its capacity when all fragments are completely utilized. When the vector needs to grow further while at capacity, a new fragment is allocated. Therefore, growth does <ins>not</ins> require copying memory to a new memory location. Already pushed elements stay <ins>pinned</ins> to their memory locations.
 //!
 //! ### C.1. Available Growth Strategies: **`Linear` | `Doubling` | `Recursive`**
 //!
@@ -45,14 +44,13 @@
 //!
 //! In addition there exists the `Recursive` growth strategy, which behaves as the `Doubling` strategy at the beginning. However, it allows for zero-cost `append` operation at the expense of a reduced random access time performance. Please see the <a href="#section-benchmarks">E. Benchmarks</a> section for tradeoffs and details. The summary is as follows:
 //!
-//! * Use `std::vec::Vec<T>` :)
 //! * Use `SplitVec<T, Doubling>` (or equivalently `SplitVec<T>`)
 //!   * when it is required to have pinned elements and we need close to standard vector serial and random access performance, or
 //!   * when the elements are large and we don't have good capacity estimates, so that we can benefit from split vector's no-copy growth
-//!     * `SplitVec<T, Linear>` may be preferred when we have a good idea on the chunk size of the growth to reduce impact of wasted capacity with doubling of `std::vec::Vec` or `Doubling`.
 //! * Use `SplitVec<T, Recursive>`
 //!   * when it is required to have pinned elements and we need close to standard vector serial access performance while it is okay to have slower random access performance, or
 //!   * when `append`ing other vectors or split vectors is a frequent and important operation.
+//! * Use `SplitVec<T, Linear>` when we have a good idea on the chunk size of the growth to reduce impact of wasted capacity with doubling of `std::vec::Vec` or `Doubling` or `Recursive`.
 //!
 //! ### C.2. Custom Growth Strategies
 //!
@@ -62,7 +60,7 @@
 //! fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize
 //! ```
 //!
-//! Notice that it takes as argument all priorly allocated fragments and needs to decide on the capacity of the new fragment.
+//! Notice that it takes as argument all already allocated fragments and needs to decide on the capacity of the new fragment.
 //!
 //! The second method `fn get_fragment_and_inner_indices<T>(&self, vec_len: usize, fragments: &[Fragment<T>], element_index: usize) -> Option<(usize, usize)>` has a default implementation and can be overwritten if the strategy allows for efficient computation of the indices.
 //!
@@ -89,8 +87,8 @@
 //!
 //! assert_eq!(vec.clone(), vec);
 //!
-//! let stdvec: Vec<_> = vec.into();
-//! assert_eq!(&stdvec, &[0, 1, 2, 3]);
+//! let std_vec: Vec<_> = vec.into();
+//! assert_eq!(&std_vec, &[0, 1, 2, 3]);
 //! ```
 //!
 //! ### D.2. `SplitVec` Specific Operations
@@ -155,7 +153,7 @@
 //!
 //! ### D.3. Pinned Elements
 //!
-//! Unless elements are removed from the vector, the memory location of an element priorly pushed to the `SplitVec` <ins>never</ins> changes. This guarantee is utilized by `ImpVec` in enabling immutable growth to build self referential collections.
+//! Unless elements are removed from the vector, the memory location of an element already pushed to the `SplitVec` <ins>never</ins> changes unless explicitly changed.
 //!
 //! ```rust
 //! use orx_split_vec::prelude::*;
@@ -188,8 +186,8 @@
 //! assert_eq!(addr42, &vec[0] as *const usize);
 //!
 //! // we can safely dereference it and read the correct value
-//! // the method is still unsafe for SplitVec
-//! // but the undelrying guarantee will be used by ImpVec
+//! // dereferencing is still unsafe for SplitVec,
+//! // but the underlying guarantee will be used by wrappers such as ImpVec or SelfRefCol
 //! assert_eq!(unsafe { *addr42 }, 42);
 //! ```
 //!
@@ -197,7 +195,7 @@
 //!
 //! ## E. Benchmarks
 //!
-//! Recall that the motivation of using a split vector is to get benefit of the pinned elements and to avoid standard vector's memory copies in very specific situations; rather than to be a replacement. The aim of performance optimizations and benchmarks is to make sure that performance of critical operations is kept within desired ranges. `SplitVec` seems to satisfy this. After optimizations, built-in growth strategies appear to have a similar peformance to `std::vec::Vec` in growth, serial access and random access benchmarks, and a better performance in append benchmarks.
+//! Recall that the motivation of using a split vector is to get benefit of the pinned elements and to avoid standard vector's memory copies in very specific situations; rather than to be a replacement. The aim of performance optimizations and benchmarks is to make sure that performance of critical operations is kept within desired ranges. `SplitVec` seems to satisfy this. After optimizations, built-in growth strategies appear to have a similar performance to `std::vec::Vec` in growth, serial access and random access benchmarks, and a better performance in append benchmarks.
 //!
 //! *You may find the details of each benchmark in the following subsections. All the numbers in tables below represent duration in milliseconds.*
 //!
@@ -231,7 +229,7 @@
 //!
 //! *You may see the benchmark at [benches/serial_access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/serial_access.rs).*
 //!
-//! Here, we benchmark the case where we access each element of the vector in order starting from the first element to the last. We use the same standard vector as the baseline. For completeness, baseline is compared with `Doubling`, `Linear` and `Recursive` growth strategies; however, `SplitVec` actually uses the same iterator to allow for the serial access for any growth startegy.
+//! Here, we benchmark the case where we access each element of the vector in order starting from the first element to the last. We use the same standard vector as the baseline. For completeness, baseline is compared with `Doubling`, `Linear` and `Recursive` growth strategies; however, `SplitVec` actually uses the same iterator to allow for the serial access for any growth strategy.
 //!
 //! <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_serial_access.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_serial_access.PNG" />
 //!
@@ -248,13 +246,9 @@
 //!
 //! <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_append.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_append.PNG" />
 //!
-//! You may see that `SplitVec<T, Doubling>` (equivalently `SplitVec<T>` using the default) is around twice faster than `std::vec::Vec` when we don't have any prior information about the required capacity. When we have perfect information and create our vector with `std::vec::Vec::with_capacity` providing the exact required capacity, `std::vec::Vec` and `SplitVec` perform equivalently. This makes `SplitVec` a preferrable option.
+//! You may see that `SplitVec<T, Doubling>` (equivalently `SplitVec<T>` using the default) is around twice faster than `std::vec::Vec` when we don't have any prior information about the required capacity. When we have perfect information and create our vector with `std::vec::Vec::with_capacity` providing the exact required capacity, `std::vec::Vec` and `SplitVec` perform equivalently. This makes `SplitVec` a preferable option.
 //!
 //! `SplitVec<T, Recursive>` on the other hand is a different story allowing zero-cost appends which is independent of size of the data being appended.
-//!
-//! ## F. Relation to the `ImpVec`
-//!
-//! Providing pinned memory location elements with `PinnedVec` is the first block for building self referential structures; the second building block is the [`ImpVec`](https://crates.io/crates/orx-imp-vec). An `ImpVec` wraps any `PinnedVec` implementation and provides specialized methods built on the pinned element guarantee in order to allow building self referential collections.
 //!
 //! ## License
 //!

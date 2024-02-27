@@ -1,5 +1,4 @@
-use crate::{Growth, SplitVec};
-use orx_pinned_vec::PinnedVec;
+use crate::{eq::are_fragments_eq_to_slice, Growth, SplitVec};
 
 impl<T, G, U> PartialEq<U> for SplitVec<T, G>
 where
@@ -8,7 +7,7 @@ where
     G: Growth,
 {
     fn eq(&self, other: &U) -> bool {
-        <Self as PinnedVec<T>>::partial_eq(self, other.as_ref())
+        are_fragments_eq_to_slice(&self.fragments, other.as_ref())
     }
 }
 

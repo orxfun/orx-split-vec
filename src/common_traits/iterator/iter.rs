@@ -7,56 +7,54 @@ use std::iter::FusedIterator;
 #[derive(Debug)]
 #[must_use = "iterators are lazy and do nothing unless consumed"]
 pub struct Iter<'a, T> {
-    pub(crate) fragments: &'a [Fragment<T>],
-    pub(crate) f: usize,
-    pub(crate) i: usize,
+    iter_outer: std::slice::Iter<'a, Fragment<T>>,
+    iter_inner: std::slice::Iter<'a, T>,
 }
+
 impl<'a, T> Iter<'a, T> {
     pub(crate) fn new(fragments: &'a [Fragment<T>]) -> Self {
-        let f = 0;
-        let i = 0;
-        Self { fragments, f, i }
-    }
-}
-impl<'a, T> Clone for Iter<'a, T> {
-    fn clone(&self) -> Self {
+        let mut iter_outer = fragments.iter();
+        let iter_inner = iter_outer.next().map(|x| x.iter()).unwrap_or([].iter());
         Self {
-            fragments: self.fragments,
-            f: self.f,
-            i: self.i,
+            iter_outer,
+            iter_inner,
+        }
+    }
+
+    fn next_fragment(&mut self) -> Option<&'a T> {
+        match self.iter_outer.next() {
+            Some(f) => {
+                self.iter_inner = f.iter();
+                self.next()
+            }
+            None => None,
         }
     }
 }
+
+impl<'a, T> Clone for Iter<'a, T> {
+    fn clone(&self) -> Self {
+        Self {
+            iter_outer: self.iter_outer.clone(),
+            iter_inner: self.iter_inner.clone(),
+        }
+    }
+}
+
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
-        if self.i < self.fragments[self.f].len() {
-            let val = Some(unsafe { self.fragments.get_unchecked(self.f).get_unchecked(self.i) });
-            self.i += 1;
-            val
+        let next_element = self.iter_inner.next();
+        if next_element.is_some() {
+            next_element
         } else {
-            self.f += 1;
-            self.i = 1;
-            self.fragments.get(self.f).and_then(|f| f.get(0))
+            self.next_fragment()
         }
     }
 }
-impl<T> ExactSizeIterator for Iter<'_, T> {
-    fn len(&self) -> usize {
-        self.fragments
-            .iter()
-            .skip(self.f + 1)
-            .map(|x| x.len())
-            .sum::<usize>()
-            + if self.f == self.fragments.len() || self.i == self.fragments[self.f].len() {
-                0
-            } else {
-                self.fragments[self.f].len() - self.i
-            }
-    }
-}
+
 impl<T> FusedIterator for Iter<'_, T> {}
 
 #[cfg(test)]
@@ -79,27 +77,40 @@ mod tests {
     }
 
     #[test]
-    fn iter_len() {
+    fn iter_empty_split_vec() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            let n = 564;
-            let n1 = 25;
-            let n2 = 184;
-            let stdvec: Vec<_> = (0..n).collect();
-            vec.extend(stdvec);
+            vec.clear();
+            let mut iter = vec.iter();
+            assert!(iter.next().is_none());
+            assert!(iter.next().is_none());
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn iter_empty_first_fragment() {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+            vec.clear();
+            vec.push(0);
+            _ = vec.pop();
+            assert!(vec.is_empty());
 
             let mut iter = vec.iter();
-
-            for _ in 0..n1 {
-                _ = iter.next();
-            }
-            assert_eq!(n - n1, iter.len());
-
-            for _ in 0..n2 {
-                _ = iter.next();
-            }
-            assert_eq!(n - n1 - n2, iter.len());
+            assert!(iter.next().is_none());
+            assert!(iter.next().is_none());
         }
+        test_all_growth_types!(test);
+    }
 
+    #[test]
+    fn iter_one_fragment() {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+            vec.clear();
+            vec.push(0);
+            vec.push(1);
+
+            assert_eq!(vec![0, 1], vec.iter().copied().collect::<Vec<_>>());
+        }
         test_all_growth_types!(test);
     }
 }

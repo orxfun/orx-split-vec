@@ -76,7 +76,7 @@ impl Growth for Doubling {
 }
 
 impl<T> SplitVec<T, Doubling> {
-    /// Stategy which allows to create a fragment with double the capacity
+    /// Strategy which allows to create a fragment with double the capacity
     /// of the prior fragment every time the split vector needs to expand.
     ///
     /// Assuming it is the common case compared to empty vector scenarios,
@@ -90,7 +90,7 @@ impl<T> SplitVec<T, Doubling> {
     /// ```
     /// use orx_split_vec::prelude::*;
     ///
-    /// // SplitVec<usize, DoublingGrowth>
+    /// // SplitVec<usize, Doubling>
     /// let mut vec = SplitVec::with_doubling_growth();
     ///
     /// assert_eq!(1, vec.fragments().len());
