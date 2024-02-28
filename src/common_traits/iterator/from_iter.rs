@@ -20,13 +20,13 @@ mod tests {
 
     #[test]
     fn collect() {
-        let vec = SplitVec::<_, Doubling>::from_iter([0, 1, 2, 3, 4, 5].into_iter());
+        let vec = SplitVec::<_, Doubling>::from_iter([0, 1, 2, 3, 4, 5]);
         assert_eq!(&vec, &[0, 1, 2, 3, 4, 5]);
 
-        let vec = SplitVec::<_, Linear>::from_iter([0, 1, 2, 3, 4, 5].into_iter());
+        let vec = SplitVec::<_, Linear>::from_iter([0, 1, 2, 3, 4, 5]);
         assert_eq!(&vec, &[0, 1, 2, 3, 4, 5]);
 
-        let vec = SplitVec::<_>::from_iter([0, 1, 2, 3, 4, 5].into_iter());
+        let vec = SplitVec::<_>::from_iter([0, 1, 2, 3, 4, 5]);
         assert_eq!(&vec, &[0, 1, 2, 3, 4, 5]);
 
         let vec: SplitVec<_, Doubling> = (0..6).collect();

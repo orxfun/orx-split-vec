@@ -33,7 +33,7 @@ where
     /// assert_eq!(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], vec.as_slice());
     /// ```
     fn from(mut value: SplitVec<T, G>) -> Self {
-        let mut vec = vec![];
+        let mut vec = Vec::with_capacity(value.len());
         vec.reserve(value.len());
         for f in &mut value.fragments {
             vec.append(&mut f.data);
