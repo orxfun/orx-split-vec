@@ -12,7 +12,7 @@ where
     type IterMutRev<'a> = crate::common_traits::iterator::iter_mut_rev::IterMutRev<'a, T> where T: 'a, Self: 'a;
 
     /// Returns the index of the `element` with the given reference.
-    /// This method has *O(f)* time complexity where f is the number of fragments.
+    /// This method has *O(f)* time complexity where `f << vec.len()` is the number of fragments.
     ///
     /// Note that `T: Eq` is not required; reference equality is used.
     ///
@@ -66,6 +66,54 @@ where
             }
         }
         None
+    }
+
+    /// Returns whether or not the `element` with the given reference belongs to the vector.
+    /// This method has *O(f)* time complexity where `f << vec.len()` is the number of fragments.
+    ///
+    /// Note that `T: Eq` is not required; memory address is used.
+    ///
+    /// # Safety
+    ///
+    /// Since `FixedVec` implements `PinnedVec`, the underlying memory
+    /// of the vector stays pinned; i.e., is not carried to different memory
+    /// locations.
+    /// Therefore, it is possible and safe to compare an element's reference
+    /// to find its position in the vector.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_split_vec::prelude::*;
+    ///
+    /// let mut vec = SplitVec::new();
+    /// for i in 0..4 {
+    ///     vec.push(10 * i);
+    /// }
+    ///
+    /// assert!(vec.contains_reference(&vec[0]));
+    /// assert!(vec.contains_reference(&vec[1]));
+    /// assert!(vec.contains_reference(&vec[2]));
+    /// assert!(vec.contains_reference(&vec[3]));
+    ///
+    /// // num certainly does not belong to `vec`
+    /// let num = 42;
+    /// assert!(!vec.contains_reference(&num));
+    ///
+    /// // even if its value belongs
+    /// let num = 20;
+    /// assert!(!vec.contains_reference(&num));
+    ///
+    /// // as expected, querying elements of another vector will also fail
+    /// let eq_vec = vec![0, 10, 20, 30];
+    /// for i in 0..4 {
+    ///     assert!(!vec.contains_reference(&eq_vec[i]));
+    /// }
+    /// ```
+    fn contains_reference(&self, element: &T) -> bool {
+        self.fragments
+            .iter()
+            .any(|fragment| slice::contains_reference(&fragment.data, element))
     }
 
     /// Returns the total number of elements the split vector can hold without
@@ -495,7 +543,7 @@ mod tests {
     }
 
     #[test]
-    fn index_of() {
+    fn index_of_and_contains() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             let mut another_vec = vec![];
             for i in 0..157 {
@@ -504,10 +552,14 @@ mod tests {
             }
             for i in 0..vec.len() {
                 assert_eq!(Some(i), vec.index_of(&vec[i]));
+                assert!(vec.contains_reference(&vec[i]));
+
                 assert_eq!(None, vec.index_of(&another_vec[i]));
+                assert!(!vec.contains_reference(&another_vec[i]));
 
                 let scalar = another_vec[i];
                 assert_eq!(None, vec.index_of(&scalar));
+                assert!(!vec.contains_reference(&scalar));
             }
         }
         test_all_growth_types!(test);
