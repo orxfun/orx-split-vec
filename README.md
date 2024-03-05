@@ -1,5 +1,8 @@
 # orx-split-vec
 
+[![orx-split-vec crate](https://img.shields.io/crates/v/orx-split-vec.svg)](https://crates.io/crates/orx-split-vec)
+[![orx-split-vec documentation](https://docs.rs/orx-split-vec/badge.svg)](https://docs.rs/orx-split-vec)
+
 An efficient constant access time vector with dynamic capacity and pinned elements.
 
 ## A. Motivation
