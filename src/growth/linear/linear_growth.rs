@@ -1,8 +1,8 @@
-use crate::growth::growth_trait::Growth;
+use crate::growth::growth_trait::{Growth, GrowthWithConstantTimeAccess};
 use crate::growth::linear::constants::FIXED_CAPACITIES;
 use crate::{Fragment, SplitVec};
 
-/// Stategy which allows the split vector to grow linearly.
+/// Strategy which allows the split vector to grow linearly.
 ///
 /// In other words, each new fragment will have equal capacity,
 /// which is equal to the capacity of the first fragment.
@@ -73,6 +73,14 @@ impl Growth for Linear {
     }
 }
 
+impl GrowthWithConstantTimeAccess for Linear {
+    fn get_fragment_and_inner_indices_unchecked(&self, element_index: usize) -> (usize, usize) {
+        let f = element_index >> self.constant_fragment_capacity_exponent;
+        let i = element_index % self.constant_fragment_capacity;
+        (f, i)
+    }
+}
+
 impl<T> SplitVec<T, Linear> {
     /// Creates a split vector with linear growth where each fragment will have a capacity of `2 ^ constant_fragment_capacity_exponent`.
     ///
@@ -120,5 +128,21 @@ impl<T> SplitVec<T, Linear> {
             growth: Linear::new(constant_fragment_capacity_exponent),
             len: 0,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_fragment_and_inner_indices_unchecked() {
+        let growth = Linear::new(2);
+
+        assert_eq!((0, 0), growth.get_fragment_and_inner_indices_unchecked(0));
+        assert_eq!((0, 1), growth.get_fragment_and_inner_indices_unchecked(1));
+        assert_eq!((1, 0), growth.get_fragment_and_inner_indices_unchecked(4));
+        assert_eq!((2, 1), growth.get_fragment_and_inner_indices_unchecked(9));
+        assert_eq!((4, 0), growth.get_fragment_and_inner_indices_unchecked(16));
     }
 }

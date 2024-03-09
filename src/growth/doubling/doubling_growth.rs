@@ -1,8 +1,8 @@
 use super::constants::*;
-use crate::growth::growth_trait::Growth;
+use crate::growth::growth_trait::{Growth, GrowthWithConstantTimeAccess};
 use crate::{Fragment, SplitVec};
 
-/// Stategy which allows creates a fragment with double the capacity
+/// Strategy which allows creates a fragment with double the capacity
 /// of the prior fragment every time the split vector needs to expand.
 ///
 /// Assuming it is the common case compared to empty vector scenarios,
@@ -75,6 +75,15 @@ impl Growth for Doubling {
     }
 }
 
+impl GrowthWithConstantTimeAccess for Doubling {
+    fn get_fragment_and_inner_indices_unchecked(&self, element_index: usize) -> (usize, usize) {
+        let element_index_offset = element_index + FIRST_FRAGMENT_CAPACITY;
+        let leading_zeros = usize::leading_zeros(element_index_offset) as usize;
+        let f = OFFSET_FRAGMENT_IDX - leading_zeros;
+        (f, element_index - CUMULATIVE_CAPACITIES[f])
+    }
+}
+
 impl<T> SplitVec<T, Doubling> {
     /// Strategy which allows to create a fragment with double the capacity
     /// of the prior fragment every time the split vector needs to expand.
@@ -132,5 +141,21 @@ impl<T> SplitVec<T, Doubling> {
             growth: Doubling,
             len: 0,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_fragment_and_inner_indices_unchecked() {
+        let growth = Doubling;
+
+        assert_eq!((0, 0), growth.get_fragment_and_inner_indices_unchecked(0));
+        assert_eq!((0, 1), growth.get_fragment_and_inner_indices_unchecked(1));
+        assert_eq!((1, 0), growth.get_fragment_and_inner_indices_unchecked(4));
+        assert_eq!((1, 5), growth.get_fragment_and_inner_indices_unchecked(9));
+        assert_eq!((2, 0), growth.get_fragment_and_inner_indices_unchecked(12));
     }
 }

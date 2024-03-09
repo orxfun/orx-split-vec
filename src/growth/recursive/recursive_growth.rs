@@ -49,7 +49,7 @@ impl Growth for Recursive {
 }
 
 impl<T> SplitVec<T, Recursive> {
-    /// Stategy which allows to create a fragment with double the capacity
+    /// Strategy which allows to create a fragment with double the capacity
     /// of the prior fragment every time the split vector needs to expand.
     ///
     /// Notice that this is similar to the `Doubling` growth strategy.
