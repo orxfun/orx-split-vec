@@ -45,7 +45,11 @@
 //!
 //! `C` is set on initialization as a power of two for `Linear` strategy, and it is fixed to 4 for `Doubling` strategy to allow for access time optimizations.
 //!
-//! In addition there exists the `Recursive` growth strategy, which behaves as the `Doubling` strategy at the beginning. However, it allows for zero-cost `append` operation at the expense of a reduced random access time performance. Please see the <a href="#section-benchmarks">E. Benchmarks</a> section for tradeoffs and details. The summary is as follows:
+//! In addition there exists the `Recursive` growth strategy, which behaves as the `Doubling` strategy at the beginning. However, it allows for zero-cost `append` operation at the expense of a reduced random access time performance.
+//!
+//! Growth strategies which allow for constant time random access additionally implement the `GrowthWithConstantTimeAccess` trait, which are currently `Doubling` and `Linear` strategies.
+//!
+//! Please see the <a href="#section-benchmarks">E. Benchmarks</a> section for tradeoffs and details. The summary is as follows:
 //!
 //! * Use `SplitVec<T, Doubling>` (or equivalently `SplitVec<T>`)
 //!   * when it is required to have pinned elements and we need close to standard vector serial and random access performance, or
@@ -284,10 +288,15 @@ pub(crate) mod test;
 pub use common_traits::iterator::iter::Iter;
 pub use fragment::fragment_struct::Fragment;
 pub use fragment::into_fragments::IntoFragments;
-pub use growth::{doubling::Doubling, growth_trait::Growth, linear::Linear, recursive::Recursive};
+pub use growth::{
+    doubling::Doubling,
+    growth_trait::{Growth, GrowthWithConstantTimeAccess},
+    linear::Linear,
+    recursive::Recursive,
+};
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;
 
 /// The split-vec prelude, along with the `SplitVec`, imports
-/// various growth startegies, iterators and finally the `orx_pinned_vec::PinnedVec` trait.
+/// various growth strategies, iterators and finally the `orx_pinned_vec::PinnedVec` trait.
 pub mod prelude;
