@@ -1,4 +1,7 @@
-use crate::{fragment::fragment_struct::Fragment, Doubling, Growth};
+use crate::{
+    fragment::fragment_struct::Fragment, growth::growth_trait::GrowthWithConstantTimeAccess,
+    Doubling, Growth,
+};
 
 /// A split vector; i.e., a vector of fragments, with the following features:
 ///
@@ -145,8 +148,32 @@ where
     }
 }
 
+impl<T, G: GrowthWithConstantTimeAccess> SplitVec<T, G> {
+    /// Returns a mutable reference to the `index`-th element of the vector if it belongs to the owned memory by the vector,
+    /// None otherwise.
+    ///
+    /// # Safety
+    ///
+    /// This method does not check whether or not `index` is out-of-bounds;
+    /// * Therefore, allows to write to an element which is not pushed yet.
+    ///
+    /// On the other hand, it makes sure that the memory location is owned by this vector;
+    /// * Hence, does not lead to memory access violation.
+    /// * It returns `None` if the assumed position does not belong to this vector.
+    ///
+    /// On the other hand, reading from the returned pointer is also unsafe.
+    /// Since, the method does not perform bounds check, caller might be reading an uninitialized value of `T`.
+    pub unsafe fn ptr_mut(&mut self, index: usize) -> Option<*mut T> {
+        let (f, i) = self.growth.get_fragment_and_inner_indices_unchecked(index);
+        self.fragments
+            .get_mut(f)
+            .map(|fragment| fragment.as_mut_ptr().add(i))
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::growth::growth_trait::GrowthWithConstantTimeAccess;
     use crate::prelude::*;
     use crate::test_all_growth_types;
 
@@ -184,5 +211,30 @@ mod tests {
             }
         }
         test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn ptr_mut() {
+        fn test<G: GrowthWithConstantTimeAccess>(mut vec: SplitVec<usize, G>) {
+            for i in 0..65 {
+                vec.push(i);
+            }
+            for i in 0..64 {
+                let p = unsafe { vec.ptr_mut(i) }.expect("is-some");
+                assert_eq!(i, unsafe { *p });
+            }
+            for i in 64..vec.capacity() {
+                let p = unsafe { vec.ptr_mut(i) };
+                assert!(p.is_some());
+            }
+
+            for i in vec.capacity()..(vec.capacity() * 2) {
+                let p = unsafe { vec.ptr_mut(i) };
+                assert!(p.is_none());
+            }
+        }
+
+        test(SplitVec::with_doubling_growth());
+        test(SplitVec::with_linear_growth(6));
     }
 }

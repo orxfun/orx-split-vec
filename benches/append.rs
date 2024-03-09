@@ -34,7 +34,7 @@ fn calc_split_vec_extend<G: Growth>(
     mut vectors: Vectors,
 ) -> SplitVec<usize, G> {
     for x in &mut vectors.0 {
-        vec.extend_from_slice(&x);
+        vec.extend_from_slice(x);
         x.clear();
     }
     vec

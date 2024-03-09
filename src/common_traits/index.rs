@@ -6,6 +6,7 @@ where
     G: Growth,
 {
     type Output = T;
+
     /// Returns a reference to the `index`-th item of the vector.
     ///
     /// # Panics
@@ -71,6 +72,7 @@ where
     G: Growth,
 {
     type Output = T;
+
     /// One can treat the split vector as a jagged array
     /// and access an item with (fragment_index, inner_fragment_index)
     /// if these numbers are known.
