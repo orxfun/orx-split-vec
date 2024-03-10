@@ -523,6 +523,11 @@ where
     fn iter_mut_rev(&mut self) -> Self::IterMutRev<'_> {
         Self::IterMutRev::new(&mut self.fragments)
     }
+
+    unsafe fn set_len(&mut self, new_len: usize) {
+        debug_assert!(new_len <= self.capacity());
+        self.len = new_len;
+    }
 }
 
 #[cfg(test)]
