@@ -8,10 +8,12 @@ where
 {
     /// Converts the `SplitVec` into a standard `Vec` with a contagious memory layout.
     ///
+    /// If the split vector is composed of only one fragment, it is immediately returned as a `Vec` without any cost.
+    ///
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut split_vec = SplitVec::with_linear_growth(2);
     /// split_vec.extend_from_slice(&['a', 'b', 'c']);
@@ -33,12 +35,23 @@ where
     /// assert_eq!(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], vec.as_slice());
     /// ```
     fn from(mut value: SplitVec<T, G>) -> Self {
-        let mut vec = Vec::with_capacity(value.len());
-        vec.reserve(value.len());
-        for f in &mut value.fragments {
-            vec.append(&mut f.data);
+        if value.fragments().len() == 1 {
+            let mut fragments = value.fragments;
+            let fragment = &mut fragments[0].data;
+            let vec = unsafe {
+                Vec::from_raw_parts(fragment.as_mut_ptr(), fragment.len(), fragment.capacity())
+            };
+
+            std::mem::forget(fragments);
+            vec
+        } else {
+            let mut vec = Vec::with_capacity(value.len());
+            vec.reserve(value.len());
+            for f in &mut value.fragments {
+                vec.append(&mut f.data);
+            }
+            vec
         }
-        vec
     }
 }
 
@@ -51,7 +64,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut split_vec = SplitVec::with_linear_growth(2);
     /// split_vec.extend_from_slice(&['a', 'b', 'c']);
@@ -74,5 +87,37 @@ where
     /// ```
     pub fn to_vec(self) -> Vec<T> {
         self.into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::*;
+
+    #[test]
+    fn single_fragment() {
+        let mut split_vec = SplitVec::with_linear_growth(2);
+        split_vec.extend_from_slice(&['a', 'b', 'c']);
+
+        assert_eq!(1, split_vec.fragments().len());
+        let vec: Vec<_> = split_vec.into();
+        assert_eq!(vec, &['a', 'b', 'c']);
+
+        let mut split_vec = SplitVec::with_doubling_growth();
+        split_vec.extend_from_slice(&['a', 'b', 'c']);
+
+        assert_eq!(1, split_vec.fragments().len());
+        let vec: Vec<_> = split_vec.into();
+        assert_eq!(vec, &['a', 'b', 'c']);
+
+        let vec: Vec<_> = (0..1574).collect();
+        let split_vec: SplitVec<_, Recursive> = vec.into();
+
+        assert_eq!(1, split_vec.fragments().len());
+        let vec: Vec<_> = split_vec.into();
+        assert_eq!(1574, vec.len());
+        for (i, val) in vec.iter().enumerate() {
+            assert_eq!(i, *val);
+        }
     }
 }

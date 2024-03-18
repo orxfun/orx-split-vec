@@ -76,7 +76,7 @@ The second method `fn get_fragment_and_inner_indices<T>(&self, vec_len: usize, f
 ### D.1. Usage similar to `std::vec::Vec`
 
 ```rust
-use orx_split_vec::prelude::*;
+use orx_split_vec::*;
 
 let mut vec = SplitVec::new();
 
@@ -101,7 +101,7 @@ assert_eq!(&std_vec, &[0, 1, 2, 3]);
 ### D.2. `SplitVec` Specific Operations
 
 ```rust
-use orx_split_vec::prelude::*;
+use orx_split_vec::*;
 
 #[derive(Clone)]
 struct MyCustomGrowth;
@@ -163,7 +163,7 @@ assert_eq!(slice[1], &[4]);
 Unless elements are removed from the vector, the memory location of an element already pushed to the `SplitVec` <ins>never</ins> changes unless explicitly changed.
 
 ```rust
-use orx_split_vec::prelude::*;
+use orx_split_vec::*;
 
 let mut vec = SplitVec::new(); // Doubling growth as the default strategy
 

@@ -10,7 +10,7 @@ use crate::{Fragment, SplitVec};
 /// # Examples
 ///
 /// ```
-/// use orx_split_vec::prelude::*;
+/// use orx_split_vec::*;
 ///
 /// // SplitVec<usize, Linear>
 /// let mut vec = SplitVec::with_linear_growth(4);
@@ -71,6 +71,19 @@ impl Growth for Linear {
             None
         }
     }
+
+    /// ***O(1)*** Returns a mutable reference to the `index`-th element of the split vector of the `fragments`.
+    ///
+    /// Returns `None` if `index`-th position does not belong to the split vector; i.e., if `index` is out of cumulative capacity of fragments.
+    ///
+    /// # Safety
+    ///
+    /// This method allows to write to a memory which is greater than the split vector's length.
+    /// On the other hand, it will never return a pointer to a memory location that the vector does not own.
+    #[inline(always)]
+    unsafe fn get_ptr_mut<T>(&self, fragments: &mut [Fragment<T>], index: usize) -> Option<*mut T> {
+        <Self as GrowthWithConstantTimeAccess>::get_ptr_mut(self, fragments, index)
+    }
 }
 
 impl GrowthWithConstantTimeAccess for Linear {
@@ -94,7 +107,7 @@ impl<T> SplitVec<T, Linear> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// // SplitVec<usize, Linear>
     /// let mut vec = SplitVec::with_linear_growth(4);
@@ -136,13 +149,58 @@ mod tests {
     use super::*;
 
     #[test]
-    fn get_fragment_and_inner_indices_unchecked() {
+    fn get_fragment_and_inner_indices() {
         let growth = Linear::new(2);
+
+        let get = |index| growth.get_fragment_and_inner_indices::<char>(usize::MAX, &[], index);
+        let get_none = |index| growth.get_fragment_and_inner_indices::<char>(index, &[], index);
 
         assert_eq!((0, 0), growth.get_fragment_and_inner_indices_unchecked(0));
         assert_eq!((0, 1), growth.get_fragment_and_inner_indices_unchecked(1));
         assert_eq!((1, 0), growth.get_fragment_and_inner_indices_unchecked(4));
         assert_eq!((2, 1), growth.get_fragment_and_inner_indices_unchecked(9));
         assert_eq!((4, 0), growth.get_fragment_and_inner_indices_unchecked(16));
+
+        assert_eq!(Some((0, 0)), get(0));
+        assert_eq!(Some((0, 1)), get(1));
+        assert_eq!(Some((1, 0)), get(4));
+        assert_eq!(Some((2, 1)), get(9));
+        assert_eq!(Some((4, 0)), get(16));
+
+        assert_eq!(None, get_none(0));
+        assert_eq!(None, get_none(1));
+        assert_eq!(None, get_none(4));
+        assert_eq!(None, get_none(9));
+        assert_eq!(None, get_none(16));
+    }
+
+    #[test]
+    fn get_fragment_and_inner_indices_exhaustive() {
+        let growth = Linear::new(5);
+
+        let get = |index| growth.get_fragment_and_inner_indices::<char>(usize::MAX, &[], index);
+        let get_none = |index| growth.get_fragment_and_inner_indices::<char>(index, &[], index);
+
+        let curr_capacity = 32;
+
+        let mut f = 0;
+        let mut prev_cumulative_capacity = 0;
+        let mut cumulative_capacity = curr_capacity;
+
+        for index in 0..1111111 {
+            if index == cumulative_capacity {
+                prev_cumulative_capacity = cumulative_capacity;
+                cumulative_capacity += curr_capacity;
+                f += 1;
+            }
+
+            let (f, i) = (f, index - prev_cumulative_capacity);
+            assert_eq!(
+                (f, i),
+                growth.get_fragment_and_inner_indices_unchecked(index)
+            );
+            assert_eq!(Some((f, i)), get(index));
+            assert_eq!(None, get_none(index));
+        }
     }
 }

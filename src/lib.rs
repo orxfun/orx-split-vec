@@ -76,7 +76,7 @@
 //! ### D.1. Usage similar to `std::vec::Vec`
 //!
 //! ```rust
-//! use orx_split_vec::prelude::*;
+//! use orx_split_vec::*;
 //!
 //! let mut vec = SplitVec::new();
 //!
@@ -101,7 +101,7 @@
 //! ### D.2. `SplitVec` Specific Operations
 //!
 //! ```rust
-//! use orx_split_vec::prelude::*;
+//! use orx_split_vec::*;
 //!
 //! #[derive(Clone)]
 //! struct MyCustomGrowth;
@@ -163,7 +163,7 @@
 //! Unless elements are removed from the vector, the memory location of an element already pushed to the `SplitVec` <ins>never</ins> changes unless explicitly changed.
 //!
 //! ```rust
-//! use orx_split_vec::prelude::*;
+//! use orx_split_vec::*;
 //!
 //! let mut vec = SplitVec::new(); // Doubling growth as the default strategy
 //!
@@ -274,7 +274,6 @@
 )]
 
 mod common_traits;
-mod eq;
 mod fragment;
 mod growth;
 mod new_split_vec;
@@ -294,9 +293,6 @@ pub use growth::{
     linear::Linear,
     recursive::Recursive,
 };
+pub use orx_pinned_vec::PinnedVec;
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;
-
-/// The split-vec prelude, along with the `SplitVec`, imports
-/// various growth strategies, iterators and finally the `orx_pinned_vec::PinnedVec` trait.
-pub mod prelude;

@@ -17,18 +17,18 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::prelude::*;
+    use crate::*;
 
     #[test]
     fn debug() {
         let mut vec = SplitVec::with_doubling_growth();
-        for i in 0..8 {
+        for i in 0..13 {
             vec.push(i);
         }
 
         let debug_str = format!("{:?}", vec);
         assert_eq!(
-            "SplitVec [\n    [0, 1, 2, 3]\n    [4, 5, 6, 7]\n]\n",
+            "SplitVec [\n    [0, 1, 2, 3]\n    [4, 5, 6, 7, 8, 9, 10, 11]\n    [12]\n]\n",
             debug_str
         );
     }

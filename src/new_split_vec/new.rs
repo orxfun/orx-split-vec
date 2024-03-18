@@ -31,7 +31,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// #[derive(Clone)]
     /// pub struct DoubleEverySecondFragment(usize); // any custom growth strategy

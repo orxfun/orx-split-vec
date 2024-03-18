@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
-use orx_split_vec::prelude::*;
+use orx_split_vec::*;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
 

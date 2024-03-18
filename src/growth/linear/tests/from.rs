@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::*;
 
 fn validate_clone(original: Vec<usize>, split_vec: SplitVec<usize, Doubling>) {
     assert_eq!(split_vec, &original);

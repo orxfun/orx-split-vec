@@ -7,7 +7,7 @@ impl<T: Clone> From<Vec<T>> for SplitVec<T, Doubling> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let vec = vec!['a', 'b', 'c'];
     /// let vec_capacity = vec.capacity();

@@ -113,4 +113,22 @@ mod tests {
         }
         test_all_growth_types!(test);
     }
+
+    #[test]
+    fn clone() {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+            let n = 564;
+            let stdvec: Vec<_> = (0..n).collect();
+            vec.extend(stdvec);
+
+            let iter1 = vec.iter();
+            let iter2 = iter1.clone();
+
+            for (i, (a, b)) in iter1.zip(iter2).enumerate() {
+                assert_eq!(i, *a);
+                assert_eq!(i, *b);
+            }
+        }
+        test_all_growth_types!(test);
+    }
 }

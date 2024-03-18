@@ -6,7 +6,7 @@ impl<T> SplitVec<T, Recursive> {
     /// # Example
     ///
     /// ```rust
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut recursive = SplitVec::with_recursive_growth();
     ///

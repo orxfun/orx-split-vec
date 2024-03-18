@@ -20,7 +20,7 @@ use crate::{Doubling, Fragment, Growth, SplitVec};
 /// # Examples
 ///
 /// ```
-/// use orx_split_vec::prelude::*;
+/// use orx_split_vec::*;
 ///
 /// // SplitVec<usize, Recursive>
 /// let mut vec = SplitVec::with_recursive_growth();
@@ -82,7 +82,7 @@ impl<T> SplitVec<T, Recursive> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// // SplitVec<usize, Doubling>
     /// let mut vec = SplitVec::with_recursive_growth();
@@ -122,5 +122,86 @@ impl<T> SplitVec<T, Recursive> {
     /// ```
     pub fn with_recursive_growth() -> Self {
         SplitVec::with_doubling_growth().into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_fragment_and_inner_indices() {
+        let growth = Recursive;
+
+        let vecs = vec![
+            vec![0, 1, 2, 3],
+            vec![4, 5],
+            vec![6, 7, 8],
+            vec![9],
+            vec![10, 11, 12, 13, 14],
+        ];
+        let mut fragments: Vec<Fragment<_>> = vecs.clone().into_iter().map(|x| x.into()).collect();
+        let len = fragments.iter().map(|x| x.len()).sum();
+
+        let mut index = 0;
+        for (f, vec) in vecs.iter().enumerate() {
+            for (i, _) in vec.iter().enumerate() {
+                let maybe_fi = growth.get_fragment_and_inner_indices(len, &fragments, index);
+                assert_eq!(maybe_fi, Some((f, i)));
+
+                let ptr = unsafe { growth.get_ptr_mut(&mut fragments, index) }.expect("is-some");
+                assert_eq!(unsafe { *ptr }, index);
+
+                unsafe { *ptr = 10 * index };
+                assert_eq!(unsafe { *ptr }, 10 * index);
+
+                index += 1;
+            }
+        }
+    }
+
+    #[test]
+    fn get_fragment_and_inner_indices_exhaustive() {
+        let growth = Recursive;
+
+        let mut fragments: Vec<Fragment<_>> = vec![];
+
+        let lengths = [30, 52, 14, 1, 7, 3, 79, 248, 147, 530];
+        let mut index = 0;
+        for _ in 0..100 {
+            for &len in &lengths {
+                let mut vec = Vec::with_capacity(len);
+                for _ in 0..len {
+                    vec.push(index);
+                    index += 1;
+                }
+                fragments.push(vec.into());
+            }
+        }
+
+        let total_len = fragments.iter().map(|x| x.len()).sum();
+
+        let mut index = 0;
+        let mut f = 0;
+        for _ in 0..100 {
+            for &len in &lengths {
+                for i in 0..len {
+                    let maybe_fi =
+                        growth.get_fragment_and_inner_indices(total_len, &fragments, index);
+
+                    assert_eq!(maybe_fi, Some((f, i)));
+
+                    let ptr =
+                        unsafe { growth.get_ptr_mut(&mut fragments, index) }.expect("is-some");
+                    assert_eq!(unsafe { *ptr }, index);
+
+                    unsafe { *ptr = 10 * index };
+                    assert_eq!(unsafe { *ptr }, 10 * index);
+
+                    index += 1;
+                }
+                f += 1;
+            }
+        }
     }
 }

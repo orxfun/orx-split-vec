@@ -10,7 +10,7 @@ impl<T> From<Vec<T>> for SplitVec<T, Linear> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let vec = vec!['a', 'b', 'c'];
     /// let vec_capacity = vec.capacity();
