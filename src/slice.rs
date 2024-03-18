@@ -1,6 +1,6 @@
 use crate::{Growth, SplitVec};
 use orx_pinned_vec::PinnedVec;
-use std::ops::{Range, RangeBounds};
+use std::ops::RangeBounds;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 /// Returns the result of trying to get a slice as a contagious memory from the split vector.
@@ -16,14 +16,14 @@ pub enum SplitVecSlice<'a, T> {
 }
 
 impl<T, G: Growth> SplitVec<T, G> {
-    fn range_start(range: &Range<usize>) -> usize {
+    fn range_start<R: RangeBounds<usize>>(range: &R) -> usize {
         match range.start_bound() {
             std::ops::Bound::Excluded(x) => x + 1,
             std::ops::Bound::Included(x) => *x,
             std::ops::Bound::Unbounded => 0,
         }
     }
-    fn range_end(&self, range: &Range<usize>) -> usize {
+    fn range_end<R: RangeBounds<usize>>(&self, range: &R) -> usize {
         match range.end_bound() {
             std::ops::Bound::Excluded(x) => *x,
             std::ops::Bound::Included(x) => x + 1,
@@ -41,7 +41,7 @@ impl<T, G: Growth> SplitVec<T, G> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(2);
     ///
@@ -69,7 +69,7 @@ impl<T, G: Growth> SplitVec<T, G> {
     /// assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(5..12));
     /// assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(10..11));
     /// ```
-    pub fn try_get_slice(&self, range: Range<usize>) -> SplitVecSlice<T> {
+    pub fn try_get_slice<R: RangeBounds<usize>>(&self, range: R) -> SplitVecSlice<T> {
         let a = Self::range_start(&range);
         let b = self.range_end(&range);
 
@@ -99,7 +99,7 @@ impl<T, G: Growth> SplitVec<T, G> {
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(2);
     ///
@@ -127,7 +127,7 @@ impl<T, G: Growth> SplitVec<T, G> {
     /// assert!(vec.slice(5..12).is_empty());
     /// assert!(vec.slice(10..11).is_empty());
     /// ```
-    pub fn slice(&self, range: Range<usize>) -> Vec<&[T]> {
+    pub fn slice<R: RangeBounds<usize>>(&self, range: R) -> Vec<&[T]> {
         let a = Self::range_start(&range);
         let b = self.range_end(&range);
 
@@ -157,15 +157,37 @@ impl<T, G: Growth> SplitVec<T, G> {
 
 #[cfg(test)]
 mod tests {
-    use crate::prelude::*;
+    use super::*;
     use crate::test_all_growth_types;
+    use crate::*;
+
+    #[test]
+    fn range_start_end() {
+        fn test<G: Growth>(vec: SplitVec<usize, G>) {
+            type S<G> = SplitVec<usize, G>;
+
+            assert_eq!(10, S::<G>::range_start(&(10..20)));
+            assert_eq!(10, S::<G>::range_start(&(10..=20)));
+            assert_eq!(0, S::<G>::range_start(&(..20)));
+            assert_eq!(10, S::<G>::range_start(&(10..)));
+            assert_eq!(0, S::<G>::range_start(&(..)));
+
+            assert_eq!(20, vec.range_end(&(10..20)));
+            assert_eq!(21, vec.range_end(&(10..=20)));
+            assert_eq!(20, vec.range_end(&(..20)));
+            assert_eq!(vec.len(), vec.range_end(&(10..)));
+            assert_eq!(vec.len(), vec.range_end(&(..)));
+        }
+
+        test_all_growth_types!(test);
+    }
 
     #[test]
     fn try_get_slice() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for i in 0..42 {
-                assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(0..i + 1));
-                assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(i..i + 1));
+                assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(0..(i + 1)));
+                assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(i..(i + 1)));
                 vec.push(i);
             }
 

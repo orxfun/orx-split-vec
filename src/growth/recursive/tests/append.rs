@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::*;
 
 #[test]
 fn append_when_empty() {

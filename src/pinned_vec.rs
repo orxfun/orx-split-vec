@@ -27,7 +27,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(2);
     /// for i in 0..4 {
@@ -84,7 +84,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec = SplitVec::new();
     /// for i in 0..4 {
@@ -124,7 +124,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// // default growth starting with 4, and doubling at each new fragment.
     /// let mut vec = SplitVec::with_doubling_growth();
@@ -152,7 +152,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(5);
     /// for _ in 0..10 {
@@ -179,7 +179,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(4);
     /// vec.push(1);
@@ -222,7 +222,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(5);
     /// vec.extend_from_slice(&[10, 40, 30]);
@@ -240,7 +240,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(5);
     /// vec.extend_from_slice(&[0, 1, 2]);
@@ -256,7 +256,7 @@ where
             .map(|(f, i)| unsafe { self.fragments.get_unchecked_mut(f).get_unchecked_mut(i) })
     }
 
-    /// Returns a reference to an element or subslice, without doing bounds checking.
+    /// Returns a reference to an element or sub-slice, without doing bounds checking.
     ///
     /// For a safe alternative see `get`.
     ///
@@ -268,7 +268,7 @@ where
         self.get(index).expect("out-of-bounds")
     }
 
-    /// Returns a mutable reference to an element or subslice, without doing bounds checking.
+    /// Returns a mutable reference to an element or sub-slice, without doing bounds checking.
     ///
     /// For a safe alternative see `get_mut`.
     ///
@@ -285,7 +285,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec = SplitVec::new();
     /// assert!(vec.first().is_none());
@@ -309,7 +309,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec = SplitVec::new();
     /// assert!(vec.last().is_none());
@@ -379,7 +379,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(2);
     /// assert!(vec.is_empty());
@@ -396,7 +396,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec =  SplitVec::with_linear_growth(8);
     /// assert_eq!(0, vec.len());
@@ -438,7 +438,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use orx_split_vec::prelude::*;
+    /// use orx_split_vec::*;
     ///
     /// let mut vec = SplitVec::with_linear_growth(16);
     /// vec.push(1);
@@ -524,17 +524,51 @@ where
         Self::IterMutRev::new(&mut self.fragments)
     }
 
+    /// Returns a mutable reference to the `index`-th element of the vector.
+    ///
+    /// Returns `None` if `index`-th position does not belong to the vector; i.e., if `index` is out of `capacity`.
+    ///
+    /// Time complexity of the method is:
+    /// * ***O(1)*** when `G: GrowthWithConstantTimeAccess`,
+    /// * ***O(f)*** for the general case `G: Growth` where `f` is the number of fragments in the split vector.
+    ///
+    /// # Safety
+    ///
+    /// This method allows to write to a memory which is greater than the vector's length.
+    /// On the other hand, it will never return a pointer to a memory location that the vector does not own.
+    ///
+    #[inline(always)]
+    unsafe fn get_ptr_mut(&mut self, index: usize) -> Option<*mut T> {
+        self.growth.get_ptr_mut(&mut self.fragments, index)
+    }
+
     unsafe fn set_len(&mut self, new_len: usize) {
         debug_assert!(new_len <= self.capacity());
+
         self.len = new_len;
+
+        let mut remaining = new_len;
+
+        for fragment in &mut self.fragments {
+            let capacity = fragment.capacity();
+            if remaining <= capacity {
+                unsafe { fragment.set_len(remaining) };
+            } else {
+                unsafe { fragment.set_len(capacity) };
+                remaining -= capacity;
+            }
+        }
+
+        debug_assert_eq!(new_len, self.len());
+        debug_assert_eq!(new_len, self.fragments.iter().map(|x| x.len()).sum());
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::prelude::*;
     use crate::test::macros::Num;
     use crate::test_all_growth_types;
+    use crate::*;
     use orx_pinned_vec::*;
 
     #[test]
@@ -780,6 +814,7 @@ mod tests {
         }
         test_all_growth_types!(test);
     }
+
     #[test]
     fn swap() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
@@ -800,6 +835,7 @@ mod tests {
         }
         test_all_growth_types!(test);
     }
+
     #[test]
     fn truncate() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
@@ -836,6 +872,7 @@ mod tests {
         }
         test_all_growth_types!(test);
     }
+
     #[test]
     fn clone() {
         fn test<G: Growth>(mut vec: SplitVec<Num, G>) {
@@ -849,5 +886,28 @@ mod tests {
             assert_eq!(vec, clone);
         }
         test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn set_len_get_ptr_mut() {
+        let mut vec = SplitVec::with_doubling_growth();
+        vec.push(0);
+        vec.push(1);
+        vec.push(2);
+        vec.push(3);
+        vec.push(4);
+
+        assert_eq!(vec.capacity(), 12);
+
+        for i in vec.len()..vec.capacity() {
+            unsafe { *(vec.get_ptr_mut(i).expect("is-some")) = i };
+            unsafe { vec.set_len(i + 1) };
+
+            assert_eq!(vec.get(i), Some(&i));
+        }
+
+        for i in vec.capacity()..(vec.capacity() + 100) {
+            assert!(unsafe { vec.get_ptr_mut(i) }.is_none());
+        }
     }
 }
