@@ -36,7 +36,7 @@ use crate::{Fragment, SplitVec};
 /// assert_eq!(Some(16), vec.fragments().last().map(|f| f.capacity()));
 /// assert_eq!(Some(1), vec.fragments().last().map(|f| f.len()));
 /// ```
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Linear {
     constant_fragment_capacity_exponent: usize,
     constant_fragment_capacity: usize,

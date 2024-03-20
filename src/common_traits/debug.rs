@@ -1,3 +1,5 @@
+use orx_pinned_vec::PinnedVec;
+
 use crate::{Growth, SplitVec};
 use std::fmt::Debug;
 
@@ -7,11 +9,16 @@ where
     G: Growth,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "SplitVec [")?;
+        writeln!(
+            f,
+            "SplitVec {{ len: {}, capacity:{}, data: [",
+            self.len(),
+            self.capacity()
+        )?;
         for frag in &self.fragments {
             writeln!(f, "    {:?}", frag)?;
         }
-        writeln!(f, "]")
+        writeln!(f, "] }}")
     }
 }
 
@@ -28,7 +35,7 @@ mod tests {
 
         let debug_str = format!("{:?}", vec);
         assert_eq!(
-            "SplitVec [\n    [0, 1, 2, 3]\n    [4, 5, 6, 7, 8, 9, 10, 11]\n    [12]\n]\n",
+            "SplitVec { len: 13, capacity:28, data: [\n    [0, 1, 2, 3]\n    [4, 5, 6, 7, 8, 9, 10, 11]\n    [12]\n] }\n",
             debug_str
         );
     }
