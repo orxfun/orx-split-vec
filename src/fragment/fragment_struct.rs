@@ -8,6 +8,7 @@
 pub struct Fragment<T> {
     pub(crate) data: Vec<T>,
 }
+
 impl<T> Fragment<T> {
     /// Creates a new fragment with the given `capacity` and pushes already the `first_value`.
     pub fn new_with_first_value(capacity: usize, first_value: T) -> Self {
@@ -15,16 +16,19 @@ impl<T> Fragment<T> {
         data.push(first_value);
         Self { data }
     }
+
     /// Creates a new fragment with the given `capacity`.
     pub fn new(capacity: usize) -> Self {
         Self {
             data: Vec::with_capacity(capacity),
         }
     }
+
     /// Returns whether the fragment has room to push a new item or not.
     pub fn has_capacity_for_one(&self) -> bool {
         self.data.len() < self.data.capacity()
     }
+
     /// Returns the available capacity in the fragment.
     pub fn room(&self) -> usize {
         self.data.capacity() - self.data.len()
