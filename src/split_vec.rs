@@ -134,10 +134,17 @@ where
             .unwrap_or(false)
     }
 
+    /// Adds a new fragment to fragments of the split vector.
     pub(crate) fn add_fragment(&mut self) {
-        let capacity = self.growth.new_fragment_capacity(&self.fragments);
-        let new_fragment = Fragment::new(capacity);
+        self.add_fragment_get_fragment_capacity();
+    }
+
+    /// Adds a new fragment and return the capacity of the added (now last) fragment.
+    pub(crate) fn add_fragment_get_fragment_capacity(&mut self) -> usize {
+        let new_fragment_capacity = self.growth.new_fragment_capacity(&self.fragments);
+        let new_fragment = Fragment::new(new_fragment_capacity);
         self.fragments.push(new_fragment);
+        new_fragment_capacity
     }
 
     pub(crate) fn add_fragment_with_first_value(&mut self, first_value: T) {
@@ -224,5 +231,29 @@ mod tests {
 
         test(SplitVec::with_doubling_growth());
         test(SplitVec::with_linear_growth(6));
+    }
+
+    #[test]
+    fn add_fragment() {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+            for _ in 0..10 {
+                let expected_new_fragment_cap = vec.growth.new_fragment_capacity(&vec.fragments);
+                let new_fragment_cap = vec.add_fragment_get_fragment_capacity();
+                assert_eq!(expected_new_fragment_cap, new_fragment_cap);
+            }
+
+            vec.clear();
+
+            let mut expected_capacity = vec.capacity();
+            for _ in 0..2 {
+                let expected_new_fragment_cap = vec.growth.new_fragment_capacity(&vec.fragments);
+                expected_capacity += expected_new_fragment_cap;
+                vec.add_fragment();
+            }
+
+            assert_eq!(expected_capacity, vec.capacity());
+        }
+
+        test_all_growth_types!(test);
     }
 }

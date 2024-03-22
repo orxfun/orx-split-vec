@@ -1,6 +1,6 @@
 [package]
 name = "orx-split-vec"
-version = "2.5.0"
+version = "2.6.0"
 edition = "2021"
 authors = ["orxfun <orx.ugur.arikan@gmail.com>"]
 description = "An efficient constant access time vector with dynamic capacity and pinned elements."
@@ -10,7 +10,7 @@ keywords = ["vec", "array", "split", "fragments", "pinned"]
 categories = ["data-structures", "rust-patterns"]
 
 [dependencies]
-orx-pinned-vec = "2.4"
+orx-pinned-vec = "2.5"
 
 [[bench]]
 name = "serial_access"

@@ -575,6 +575,20 @@ where
             Ok(self.capacity())
         }
     }
+
+    unsafe fn grow_to(&mut self, new_capacity: usize) -> Result<usize, PinnedVecGrowthError> {
+        if new_capacity <= self.capacity() {
+            Ok(self.capacity())
+        } else {
+            let mut current_capacity = self.capacity();
+            while new_capacity > current_capacity {
+                let new_fragment_capacity = self.add_fragment_get_fragment_capacity();
+                current_capacity += new_fragment_capacity;
+            }
+            debug_assert_eq!(current_capacity, self.capacity());
+            Ok(current_capacity)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -952,6 +966,50 @@ mod tests {
             }
 
             assert_eq!(5 + 1, vec.fragments().len());
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn grow_to_under_capacity() {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+            for _ in 0..10 {
+                assert_eq!(Ok(vec.capacity()), unsafe { vec.grow_to(0) });
+                assert_eq!(Ok(vec.capacity()), unsafe {
+                    vec.grow_to(vec.capacity() - 1)
+                });
+                assert_eq!(Ok(vec.capacity()), unsafe { vec.grow_to(vec.capacity()) });
+            }
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn grow_to() {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+            for _ in 0..10 {
+                let expected_capacity =
+                    vec.capacity() + vec.growth.new_fragment_capacity(vec.fragments());
+                let expected_num_fragments = vec.fragments().len() + 1;
+
+                assert_eq!(Ok(expected_capacity), unsafe {
+                    vec.grow_to(vec.capacity() + 1)
+                });
+
+                assert_eq!(vec.fragments().len(), expected_num_fragments);
+                assert_eq!(vec.capacity(), expected_capacity);
+            }
+
+            vec.clear();
+
+            for _ in 0..10 {
+                let prev_num_fragments = vec.fragments().len();
+
+                let new_capacity = unsafe { vec.grow_to(vec.capacity() + 1000) }.expect("is-okay");
+
+                assert!(vec.fragments().len() >= prev_num_fragments);
+                assert_eq!(vec.capacity(), new_capacity);
+            }
         }
         test_all_growth_types!(test);
     }
