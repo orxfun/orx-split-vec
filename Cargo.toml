@@ -1,6 +1,6 @@
 [package]
 name = "orx-split-vec"
-version = "2.6.0"
+version = "2.7.0"
 edition = "2021"
 authors = ["orxfun <orx.ugur.arikan@gmail.com>"]
 description = "An efficient constant access time vector with dynamic capacity and pinned elements."
