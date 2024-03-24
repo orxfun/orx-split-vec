@@ -10,7 +10,7 @@ keywords = ["vec", "array", "split", "fragments", "pinned"]
 categories = ["data-structures", "rust-patterns"]
 
 [dependencies]
-orx-pinned-vec = "2.5"
+orx-pinned-vec = "2.6"
 
 [[bench]]
 name = "serial_access"

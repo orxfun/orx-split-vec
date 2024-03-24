@@ -48,6 +48,70 @@ pub trait Growth: Clone {
         }
         None
     }
+
+    /// Returns the maximum number of elements that can safely be stored in a concurrent program.
+    ///
+    /// Note that pinned vectors already keep the elements pinned to their memory locations.
+    /// Therefore, concurrently safe growth here corresponds to growth without requiring `fragments` collection to allocate.
+    /// Recall that `fragments` contains meta information about the splits of the `SplitVec`, such as the capacity of each split.
+    ///
+    /// This default implementation is not the most efficient as it allocates a small vector to compute the capacity.
+    /// However, it is almost always possible to provide a non-allocating implementation provided that the concurrency is relevant.
+    /// `Doubling`, `Recursive` and `Linear` growth strategies introduced in this crate all override this method.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `fragments.len() < fragments_capacity`, which must not hold.
+    fn maximum_concurrent_capacity<T>(
+        &self,
+        fragments: &[Fragment<T>],
+        fragments_capacity: usize,
+    ) -> usize {
+        assert!(fragments_capacity >= fragments.len());
+
+        if fragments_capacity == fragments.len() {
+            fragments.iter().map(|x| x.capacity()).sum()
+        } else {
+            let mut cloned: Vec<Fragment<T>> = Vec::with_capacity(fragments_capacity);
+            for fragment in fragments {
+                cloned.push(Vec::with_capacity(fragment.capacity()).into());
+            }
+            for _ in fragments.len()..fragments_capacity {
+                let new_capacity = self.new_fragment_capacity(&cloned);
+                let fragment = Vec::with_capacity(new_capacity).into();
+                cloned.push(fragment);
+            }
+            cloned.iter().map(|x| x.capacity()).sum()
+        }
+    }
+
+    /// Returns the number of fragments with this growth strategy in order to be able to reach a capacity of `maximum_capacity` of elements.
+    ///
+    /// This method is relevant and useful for concurrent programs, which helps in avoiding the fragments to allocate.
+    fn required_fragments_len<T>(
+        &self,
+        fragments: &[Fragment<T>],
+        maximum_capacity: usize,
+    ) -> usize {
+        let mut cloned: Vec<Fragment<T>> = Vec::new();
+        for fragment in fragments {
+            cloned.push(Vec::with_capacity(fragment.capacity()).into());
+        }
+
+        let mut num_fragments = cloned.len();
+        let mut current_capacity: usize = cloned.iter().map(|x| x.capacity()).sum();
+
+        while current_capacity < maximum_capacity {
+            let new_capacity = self.new_fragment_capacity(&cloned);
+            let fragment = Vec::with_capacity(new_capacity).into();
+            cloned.push(fragment);
+
+            current_capacity += new_capacity;
+            num_fragments += 1;
+        }
+
+        num_fragments
+    }
 }
 
 /// Growth strategy of a split vector which allows for constant time access to the elements.

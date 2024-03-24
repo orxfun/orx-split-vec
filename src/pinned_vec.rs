@@ -1,6 +1,6 @@
 use crate::{Growth, SplitVec};
 use orx_pinned_vec::utils::slice;
-use orx_pinned_vec::{PinnedVec, PinnedVecGrowthError};
+use orx_pinned_vec::{CapacityState, PinnedVec, PinnedVecGrowthError};
 
 impl<T, G> PinnedVec<T> for SplitVec<T, G>
 where
@@ -141,6 +141,13 @@ where
     /// ```
     fn capacity(&self) -> usize {
         self.fragments.iter().map(|f| f.capacity()).sum()
+    }
+
+    fn capacity_state(&self) -> CapacityState {
+        CapacityState::DynamicCapacity {
+            current_capacity: self.capacity(),
+            maximum_concurrent_capacity: self.maximum_concurrent_capacity(),
+        }
     }
 
     /// Clears the vector, removing all values.
@@ -332,6 +339,7 @@ where
     unsafe fn first_unchecked(&self) -> &T {
         self.fragments.get_unchecked(0).get_unchecked(0)
     }
+
     #[inline(always)]
     unsafe fn last_unchecked(&self) -> &T {
         let fragment = self.fragments.get_unchecked(self.fragments.len() - 1);
@@ -539,7 +547,7 @@ where
     ///
     #[inline(always)]
     unsafe fn get_ptr_mut(&mut self, index: usize) -> Option<*mut T> {
-        self.growth.get_ptr_mut(&mut self.fragments, index)
+        self.growth_get_ptr_mut(index)
     }
 
     unsafe fn set_len(&mut self, new_len: usize) {
@@ -589,6 +597,26 @@ where
             Ok(current_capacity)
         }
     }
+
+    unsafe fn concurrently_grow_to(
+        &mut self,
+        new_capacity: usize,
+    ) -> Result<usize, PinnedVecGrowthError> {
+        if new_capacity <= self.capacity() {
+            Ok(self.capacity())
+        } else {
+            let mut current_capacity = self.capacity();
+            while new_capacity > current_capacity {
+                if !self.can_concurrently_add_fragment() {
+                    return Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned);
+                }
+                let new_fragment_capacity = self.add_fragment_get_fragment_capacity();
+                current_capacity += new_fragment_capacity;
+            }
+            debug_assert_eq!(current_capacity, self.capacity());
+            Ok(current_capacity)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -626,6 +654,29 @@ mod tests {
                 let scalar = another_vec[i];
                 assert_eq!(None, vec.index_of(&scalar));
                 assert!(!vec.contains_reference(&scalar));
+            }
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn capacity_state() {
+        fn test<G: Growth>(vec: SplitVec<usize, G>) {
+            match vec.capacity_state() {
+                CapacityState::DynamicCapacity {
+                    current_capacity,
+                    maximum_concurrent_capacity,
+                } => {
+                    assert!(maximum_concurrent_capacity >= current_capacity);
+                    assert_eq!(current_capacity, vec.capacity());
+                    assert_eq!(
+                        maximum_concurrent_capacity,
+                        vec.growth()
+                            .maximum_concurrent_capacity(vec.fragments(), vec.fragments.capacity())
+                    );
+                }
+                #[allow(clippy::panic)]
+                _ => panic!("must have dynamic capacity"),
             }
         }
         test_all_growth_types!(test);
@@ -989,7 +1040,7 @@ mod tests {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for _ in 0..10 {
                 let expected_capacity =
-                    vec.capacity() + vec.growth.new_fragment_capacity(vec.fragments());
+                    vec.capacity() + vec.growth().new_fragment_capacity(vec.fragments());
                 let expected_num_fragments = vec.fragments().len() + 1;
 
                 assert_eq!(Ok(expected_capacity), unsafe {
@@ -1012,5 +1063,28 @@ mod tests {
             }
         }
         test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn concurrently_grow_to() {
+        fn test_succeed<G: Growth>(mut vec: SplitVec<usize, G>) {
+            let max_con_cap = vec.capacity_state().maximum_concurrent_capacity();
+
+            assert_eq!(Ok(max_con_cap), unsafe {
+                vec.concurrently_grow_to(max_con_cap)
+            });
+        }
+
+        fn test_fail<G: Growth>(mut vec: SplitVec<usize, G>) {
+            let max_con_cap = vec.capacity_state().maximum_concurrent_capacity();
+
+            assert_eq!(
+                Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned),
+                unsafe { vec.concurrently_grow_to(max_con_cap + 1) }
+            );
+        }
+
+        test_all_growth_types!(test_succeed);
+        test_all_growth_types!(test_fail);
     }
 }

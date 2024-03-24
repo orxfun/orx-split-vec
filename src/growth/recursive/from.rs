@@ -23,11 +23,7 @@ impl<T> From<SplitVec<T, Doubling>> for SplitVec<T, Recursive> {
     /// assert_eq!(split_vec_recursive, &['a', 'b', 'c']);
     /// ```
     fn from(value: SplitVec<T, Doubling>) -> Self {
-        Self {
-            len: value.len,
-            fragments: value.fragments,
-            growth: Recursive,
-        }
+        Self::from_raw_parts(value.len, value.fragments, Recursive)
     }
 }
 
@@ -54,11 +50,7 @@ impl<T> From<SplitVec<T, Linear>> for SplitVec<T, Recursive> {
     /// assert_eq!(split_vec_recursive, &['a', 'b', 'c']);
     /// ```
     fn from(value: SplitVec<T, Linear>) -> Self {
-        Self {
-            len: value.len,
-            fragments: value.fragments,
-            growth: Recursive,
-        }
+        Self::from_raw_parts(value.len, value.fragments, Recursive)
     }
 }
 
