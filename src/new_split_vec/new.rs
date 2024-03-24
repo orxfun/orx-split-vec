@@ -70,11 +70,7 @@ where
         let capacity = Growth::new_fragment_capacity::<T>(&growth, &[]);
         let fragment = Fragment::new(capacity);
         let fragments = vec![fragment];
-        Self {
-            fragments,
-            growth,
-            len: 0,
-        }
+        SplitVec::from_raw_parts(0, fragments, growth)
     }
 }
 

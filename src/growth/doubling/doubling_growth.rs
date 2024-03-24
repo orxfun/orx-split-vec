@@ -86,6 +86,35 @@ impl Growth for Doubling {
     unsafe fn get_ptr_mut<T>(&self, fragments: &mut [Fragment<T>], index: usize) -> Option<*mut T> {
         <Self as GrowthWithConstantTimeAccess>::get_ptr_mut(self, fragments, index)
     }
+
+    fn maximum_concurrent_capacity<T>(
+        &self,
+        fragments: &[Fragment<T>],
+        fragments_capacity: usize,
+    ) -> usize {
+        assert!(fragments_capacity >= fragments.len());
+
+        CUMULATIVE_CAPACITIES[fragments_capacity]
+    }
+
+    /// Returns the number of fragments with this growth strategy in order to be able to reach a capacity of `maximum_capacity` of elements.
+    ///
+    /// This method is relevant and useful for concurrent programs, which helps in avoiding the fragments to allocate.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `maximum_capacity` is greater than sum { 2^f | for f in 2..34 }.
+    fn required_fragments_len<T>(&self, _: &[Fragment<T>], maximum_capacity: usize) -> usize {
+        assert!(maximum_capacity <= CUMULATIVE_CAPACITIES[32]);
+
+        for (f, capacity) in CUMULATIVE_CAPACITIES.iter().enumerate() {
+            if maximum_capacity <= *capacity {
+                return f;
+            }
+        }
+
+        usize::MAX
+    }
 }
 
 impl GrowthWithConstantTimeAccess for Doubling {
@@ -149,16 +178,33 @@ impl<T> SplitVec<T, Doubling> {
     /// assert_eq!(vec.fragments().last().map(|f| f.len()), Some(1));
     /// ```
     pub fn with_doubling_growth() -> Self {
-        Self {
-            fragments: vec![Fragment::new(FIRST_FRAGMENT_CAPACITY)],
-            growth: Doubling,
-            len: 0,
-        }
+        let fragments = Fragment::new(FIRST_FRAGMENT_CAPACITY).into_fragments();
+        Self::from_raw_parts(0, fragments, Doubling)
+    }
+
+    /// Creates a new split vector with `Doubling` growth and initial `fragments_capacity`.
+    ///
+    /// This method differs from [`SplitVec::with_doubling_growth`] only by the pre-allocation of fragments collection.
+    /// Note that this (only) important for concurrent programs:
+    /// * SplitVec already keeps all elements pinned to their locations;
+    /// * Creating a buffer for storing the meta information is important for keeping the meta information pinned as well.
+    /// This is relevant and important for concurrent programs.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `fragments_capacity == 0`.
+    pub fn with_doubling_growth_and_fragments_capacity(fragments_capacity: usize) -> Self {
+        assert!(fragments_capacity > 0);
+        let fragments =
+            Fragment::new(FIRST_FRAGMENT_CAPACITY).into_fragments_with_capacity(fragments_capacity);
+        Self::from_raw_parts(0, fragments, Doubling)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use orx_pinned_vec::{PinnedVec, PinnedVecGrowthError};
+
     use super::*;
 
     #[test]
@@ -215,5 +261,150 @@ mod tests {
             assert_eq!(Some((f, i)), get(index));
             assert_eq!(None, get_none(index));
         }
+    }
+
+    #[test]
+    fn maximum_concurrent_capacity() {
+        fn max_cap<T>(vec: &SplitVec<T, Doubling>) -> usize {
+            vec.growth()
+                .maximum_concurrent_capacity(vec.fragments(), vec.fragments.capacity())
+        }
+
+        let mut vec: SplitVec<char, Doubling> = SplitVec::with_doubling_growth();
+        assert_eq!(max_cap(&vec), 4 + 8 + 16 + 32);
+
+        let until = max_cap(&vec);
+        for _ in 0..until {
+            vec.push('x');
+            assert_eq!(max_cap(&vec), 4 + 8 + 16 + 32);
+        }
+
+        // fragments allocate beyond max_cap
+        vec.push('x');
+        assert_eq!(max_cap(&vec), 4 + 8 + 16 + 32 + 64 + 128 + 256 + 512);
+    }
+
+    #[test]
+    fn with_doubling_growth() {
+        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth();
+
+        assert_eq!(4, vec.fragments.capacity());
+
+        for _ in 0..100_000 {
+            vec.push('x');
+        }
+
+        assert!(vec.fragments.capacity() > 4);
+
+        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth();
+        let result = unsafe { vec.grow_to(100_000) };
+        assert!(result.is_ok());
+        assert!(result.expect("is-ok") >= 100_000);
+    }
+
+    #[test]
+    fn with_doubling_growth_and_fragments_capacity_normal_growth() {
+        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(1);
+
+        assert_eq!(1, vec.fragments.capacity());
+
+        for _ in 0..100_000 {
+            vec.push('x');
+        }
+
+        assert!(vec.fragments.capacity() > 4);
+    }
+
+    #[test]
+    fn with_doubling_growth_and_fragments_capacity_concurrent_grow_never() {
+        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(1);
+
+        assert!(!vec.can_concurrently_add_fragment());
+
+        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1) };
+        assert_eq!(
+            result,
+            Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned)
+        );
+    }
+
+    #[test]
+    fn with_doubling_growth_and_fragments_capacity_concurrent_grow_once() {
+        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(2);
+
+        assert!(vec.can_concurrently_add_fragment());
+
+        let next_capacity = vec.capacity() + vec.growth().new_fragment_capacity(vec.fragments());
+
+        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1) };
+        assert_eq!(result, Ok(next_capacity));
+
+        assert!(!vec.can_concurrently_add_fragment());
+
+        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1) };
+        assert_eq!(
+            result,
+            Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned)
+        );
+    }
+
+    #[test]
+    fn with_doubling_growth_and_fragments_capacity_concurrent_grow_twice() {
+        // when possible
+        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(3);
+
+        assert!(vec.can_concurrently_add_fragment());
+
+        let fragment_2_capacity = vec.growth().new_fragment_capacity(vec.fragments());
+        let fragment_3_capacity = fragment_2_capacity * 2;
+        let new_capacity = vec.capacity() + fragment_2_capacity + fragment_3_capacity;
+
+        let result = unsafe { vec.concurrently_grow_to(new_capacity - 1) };
+        assert_eq!(result, Ok(new_capacity));
+
+        assert!(!vec.can_concurrently_add_fragment());
+
+        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1) };
+        assert_eq!(
+            result,
+            Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned)
+        );
+
+        // when not possible
+        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(2);
+
+        assert!(vec.can_concurrently_add_fragment()); // although we can add one fragment
+
+        let result = unsafe { vec.concurrently_grow_to(new_capacity - 1) }; // we cannot add two
+        assert_eq!(
+            result,
+            Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned)
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn with_doubling_growth_and_fragments_capacity_zero() {
+        let _: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(0);
+    }
+
+    #[test]
+    fn required_fragments_len() {
+        let vec: SplitVec<char, Doubling> = SplitVec::with_doubling_growth();
+        let num_fragments = |max_cap| {
+            vec.growth()
+                .required_fragments_len(vec.fragments(), max_cap)
+        };
+
+        // 4 - 12 - 28 - 60 - 124
+        assert_eq!(num_fragments(0), 0);
+        assert_eq!(num_fragments(1), 1);
+        assert_eq!(num_fragments(4), 1);
+        assert_eq!(num_fragments(5), 2);
+        assert_eq!(num_fragments(12), 2);
+        assert_eq!(num_fragments(13), 3);
+        assert_eq!(num_fragments(36), 4);
+        assert_eq!(num_fragments(67), 5);
+        assert_eq!(num_fragments(136), 6);
     }
 }

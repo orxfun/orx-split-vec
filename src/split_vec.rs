@@ -12,6 +12,23 @@ where
 {
     pub(crate) len: usize,
     pub(crate) fragments: Vec<Fragment<T>>,
+    growth: G,
+}
+
+impl<T, G> SplitVec<T, G>
+where
+    G: Growth,
+{
+    pub(crate) fn from_raw_parts(len: usize, fragments: Vec<Fragment<T>>, growth: G) -> Self {
+        debug_assert_eq!(len, fragments.iter().map(|x| x.len()).sum());
+        Self {
+            len,
+            fragments,
+            growth,
+        }
+    }
+
+    // get
     /// Growth strategy of the split vector.
     ///
     /// Note that allocated data of split vector is pinned and allocated in fragments.
@@ -26,20 +43,8 @@ where
     /// * `Linear` (`SplitVec::with_linear_growth`) -> O(1)
     /// * `Doubling` (`SplitVec::with_doubling_growth`) -> O(1)
     /// * `Recursive` (`SplitVec::with_recursive_growth`) -> O(f) where f is the number of fragments; and O(1) append time complexity
-    pub growth: G,
-}
-
-impl<T, G> SplitVec<T, G>
-where
-    G: Growth,
-{
-    pub(crate) fn from_raw_parts(len: usize, fragments: Vec<Fragment<T>>, growth: G) -> Self {
-        debug_assert_eq!(len, fragments.iter().map(|x| x.len()).sum());
-        Self {
-            len,
-            fragments,
-            growth,
-        }
+    pub fn growth(&self) -> &G {
+        &self.growth
     }
 
     /// Returns a mutable reference to the vector of fragments.
@@ -90,6 +95,42 @@ where
         &self.fragments
     }
 
+    /// Maximum capacity that can safely be reached by the vector in a concurrent program.
+    /// This value is often related with the capacity of the container holding meta information about allocations.
+    /// Note that the split vector can naturally grow beyond this number, this bound is only relevant when the vector is `Sync`ed among threads.
+    pub fn maximum_concurrent_capacity(&self) -> usize {
+        self.growth()
+            .maximum_concurrent_capacity(&self.fragments, self.fragments.capacity())
+    }
+
+    /// Makes sure that the split vector can safely reach the given `maximum_capacity` in a concurrent program.
+    ///
+    /// Note that this method does not allocate the `maximum_capacity`, it only ensures that the concurrent growth to this capacity is safe.
+    /// In order to achieve this, it might need to extend allocation of the fragments collection.
+    /// However, note that by definition number of fragments is insignificant in a split vector.
+    pub fn concurrent_reserve(&mut self, maximum_capacity: usize) {
+        let required_num_fragments = self
+            .growth
+            .required_fragments_len(&self.fragments, maximum_capacity);
+
+        let additional_fragments = if required_num_fragments > self.fragments.capacity() {
+            required_num_fragments - self.fragments.capacity()
+        } else {
+            0
+        };
+
+        if additional_fragments > 0 {
+            let prior_fragments_capacity = self.fragments.capacity();
+            let num_fragments = self.fragments.len();
+
+            unsafe { self.fragments.set_len(prior_fragments_capacity) };
+
+            self.fragments.reserve(additional_fragments);
+
+            unsafe { self.fragments.set_len(num_fragments) };
+        }
+    }
+
     /// Returns the fragment index and the index within fragment of the item with the given `index`;
     /// None if the index is out of bounds.
     ///
@@ -127,6 +168,7 @@ where
     }
 
     // helpers
+
     pub(crate) fn has_capacity_for_one(&self) -> bool {
         self.fragments
             .last()
@@ -158,6 +200,19 @@ where
         if drop_empty_last_fragment {
             _ = self.fragments.pop();
         }
+    }
+
+    #[inline(always)]
+    pub(crate) unsafe fn growth_get_ptr_mut(&mut self, index: usize) -> Option<*mut T> {
+        self.growth.get_ptr_mut(&mut self.fragments, index)
+    }
+
+    /// Returns `true` only if it is concurrently safe to add a new fragment to the split vector.
+    ///
+    /// It is only concurrently safe if the internal `fragments` collection does not move already pushed fragments in memory.
+    /// Note that if the fragments are stored as a vector, an increase in capacity might lead to this concurrency problem.
+    pub(crate) fn can_concurrently_add_fragment(&self) -> bool {
+        self.fragments.capacity() > self.fragments.len()
     }
 }
 
@@ -252,6 +307,24 @@ mod tests {
             }
 
             assert_eq!(expected_capacity, vec.capacity());
+        }
+
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn concurrent_reserve() {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+            let current_max = vec.capacity_state().maximum_concurrent_capacity();
+            let target_max = current_max * 2 + 1;
+
+            vec.concurrent_reserve(target_max);
+
+            match unsafe { vec.concurrently_grow_to(target_max) } {
+                #[allow(clippy::panic)]
+                Err(_) => panic!("failed to reserve"),
+                Ok(new_capacity) => assert!(new_capacity >= target_max),
+            }
         }
 
         test_all_growth_types!(test);

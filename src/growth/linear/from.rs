@@ -29,10 +29,8 @@ impl<T> From<Vec<T>> for SplitVec<T, Linear> {
             .find(|(_, fixed_cap)| **fixed_cap > len)
             .map(|(f, _)| f)
             .expect("overflow");
-        Self {
-            fragments: vec![value.into()],
-            growth: Linear::new(f),
-            len,
-        }
+        let growth = Linear::new(f);
+        let fragments = vec![value.into()];
+        Self::from_raw_parts(len, fragments, growth)
     }
 }

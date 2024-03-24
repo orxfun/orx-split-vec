@@ -49,10 +49,6 @@ impl<T: Clone> From<Vec<T>> for SplitVec<T, Doubling> {
             curr_f += 1;
         }
 
-        Self {
-            fragments,
-            growth: Doubling,
-            len: 123,
-        }
+        Self::from_raw_parts(len, fragments, Doubling)
     }
 }

@@ -33,4 +33,28 @@ impl<T> Fragment<T> {
     pub fn room(&self) -> usize {
         self.data.capacity() - self.data.len()
     }
+
+    // helpers
+    pub(crate) fn fragments_with_default_capacity() -> Vec<Fragment<T>> {
+        Vec::new()
+    }
+
+    pub(crate) fn into_fragments(self) -> Vec<Fragment<T>> {
+        let mut fragments = Self::fragments_with_default_capacity();
+        fragments.push(self);
+        fragments
+    }
+
+    pub(crate) fn fragments_with_capacity(fragments_capacity: usize) -> Vec<Fragment<T>> {
+        Vec::with_capacity(fragments_capacity)
+    }
+
+    pub(crate) fn into_fragments_with_capacity(
+        self,
+        fragments_capacity: usize,
+    ) -> Vec<Fragment<T>> {
+        let mut fragments = Self::fragments_with_capacity(fragments_capacity);
+        fragments.push(self);
+        fragments
+    }
 }

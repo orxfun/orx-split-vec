@@ -284,6 +284,9 @@ mod split_vec;
 #[cfg(test)]
 pub(crate) mod test;
 
+/// Common relevant traits, structs, enums.
+pub mod prelude;
+
 pub use common_traits::iterator::iter::Iter;
 pub use fragment::fragment_struct::Fragment;
 pub use fragment::into_fragments::IntoFragments;
