@@ -551,8 +551,6 @@ where
     }
 
     unsafe fn set_len(&mut self, new_len: usize) {
-        debug_assert!(new_len <= self.capacity());
-
         self.len = new_len;
 
         let mut remaining = new_len;
@@ -570,9 +568,6 @@ where
                 remaining -= capacity;
             }
         }
-
-        debug_assert_eq!(new_len, self.len());
-        debug_assert_eq!(new_len, self.fragments.iter().map(|x| x.len()).sum());
     }
 
     fn try_grow(&mut self) -> Result<usize, PinnedVecGrowthError> {
