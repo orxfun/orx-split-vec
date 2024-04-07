@@ -176,16 +176,30 @@ where
             .unwrap_or(false)
     }
 
-    /// Adds a new fragment to fragments of the split vector.
-    pub(crate) fn add_fragment(&mut self) {
-        self.add_fragment_get_fragment_capacity();
+    /// Adds a new fragment to fragments of the split vector; returns the capacity of the new fragment.
+    #[inline(always)]
+    pub(crate) fn add_fragment(&mut self) -> usize {
+        self.add_fragment_get_fragment_capacity(false)
+    }
+
+    /// Adds a new zeroed-fragment to fragments of the split vector; returns the capacity of the new fragment.
+    #[inline(always)]
+    pub(crate) fn add_zeroed_fragment(&mut self) -> usize {
+        self.add_fragment_get_fragment_capacity(true)
     }
 
     /// Adds a new fragment and return the capacity of the added (now last) fragment.
-    pub(crate) fn add_fragment_get_fragment_capacity(&mut self) -> usize {
+    fn add_fragment_get_fragment_capacity(&mut self, zeroed: bool) -> usize {
         let new_fragment_capacity = self.growth.new_fragment_capacity(&self.fragments);
-        let new_fragment = Fragment::new(new_fragment_capacity);
+
+        let mut new_fragment = Fragment::new(new_fragment_capacity);
+        if zeroed {
+            // SAFETY: new_fragment empty with len=0, zeroed elements will not be read with safe api
+            unsafe { new_fragment.zero() };
+        }
+
         self.fragments.push(new_fragment);
+
         new_fragment_capacity
     }
 
@@ -293,7 +307,15 @@ mod tests {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for _ in 0..10 {
                 let expected_new_fragment_cap = vec.growth.new_fragment_capacity(&vec.fragments);
-                let new_fragment_cap = vec.add_fragment_get_fragment_capacity();
+                let new_fragment_cap = vec.add_fragment();
+                assert_eq!(expected_new_fragment_cap, new_fragment_cap);
+            }
+
+            vec.clear();
+
+            for _ in 0..10 {
+                let expected_new_fragment_cap = vec.growth.new_fragment_capacity(&vec.fragments);
+                let new_fragment_cap = vec.add_zeroed_fragment();
                 assert_eq!(expected_new_fragment_cap, new_fragment_cap);
             }
 
@@ -315,15 +337,19 @@ mod tests {
     #[test]
     fn concurrent_reserve() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            let current_max = vec.capacity_state().maximum_concurrent_capacity();
-            let target_max = current_max * 2 + 1;
+            for zero_memory in [false, true] {
+                vec.clear();
 
-            vec.concurrent_reserve(target_max);
+                let current_max = vec.capacity_state().maximum_concurrent_capacity();
+                let target_max = current_max * 2 + 1;
 
-            match unsafe { vec.concurrently_grow_to(target_max) } {
-                #[allow(clippy::panic)]
-                Err(_) => panic!("failed to reserve"),
-                Ok(new_capacity) => assert!(new_capacity >= target_max),
+                vec.concurrent_reserve(target_max);
+
+                match unsafe { vec.concurrently_grow_to(target_max, zero_memory) } {
+                    #[allow(clippy::panic)]
+                    Err(_) => panic!("failed to reserve"),
+                    Ok(new_capacity) => assert!(new_capacity >= target_max),
+                }
             }
         }
 
