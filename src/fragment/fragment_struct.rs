@@ -57,4 +57,27 @@ impl<T> Fragment<T> {
         fragments.push(self);
         fragments
     }
+
+    /// Zeroes out all memory; i.e., positions in `0..fragment.capacity()`, of the fragment.
+    #[inline(always)]
+    pub(crate) unsafe fn zero(&mut self) {
+        let slice = std::slice::from_raw_parts_mut(self.data.as_mut_ptr(), self.capacity());
+        slice.iter_mut().for_each(|m| *m = std::mem::zeroed());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn zeroed() {
+        let mut fragment: Fragment<i32> = Fragment::new(4);
+        unsafe { fragment.zero() };
+        unsafe { fragment.set_len(4) };
+        let zero: i32 = unsafe { std::mem::zeroed() };
+        for i in 0..4 {
+            assert_eq!(fragment.get(i), Some(&zero));
+        }
+    }
 }

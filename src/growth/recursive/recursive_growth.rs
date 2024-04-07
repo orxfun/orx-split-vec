@@ -184,6 +184,7 @@ impl<T> SplitVec<T, Recursive> {
 mod tests {
     use super::*;
     use orx_pinned_vec::{PinnedVec, PinnedVecGrowthError};
+    use test_case::test_matrix;
 
     #[test]
     fn get_fragment_and_inner_indices() {
@@ -297,8 +298,8 @@ mod tests {
         assert_eq!(max_cap(&vec), 4 + 10 + 20 + 40);
     }
 
-    #[test]
-    fn with_recursive_growth() {
+    #[test_matrix([true, false])]
+    fn with_recursive_growth(zero_memory: bool) {
         let mut vec: SplitVec<char, _> = SplitVec::with_recursive_growth();
 
         assert_eq!(4, vec.fragments.capacity());
@@ -310,7 +311,7 @@ mod tests {
         assert!(vec.fragments.capacity() > 4);
 
         let mut vec: SplitVec<char, _> = SplitVec::with_recursive_growth();
-        let result = unsafe { vec.grow_to(100_000) };
+        let result = unsafe { vec.grow_to(100_000, zero_memory) };
         assert!(result.is_ok());
         assert!(result.expect("is-ok") >= 100_000);
     }
@@ -328,41 +329,41 @@ mod tests {
         assert!(vec.fragments.capacity() > 4);
     }
 
-    #[test]
-    fn with_recursive_growth_and_fragments_capacity_concurrent_grow_never() {
+    #[test_matrix([true, false])]
+    fn with_recursive_growth_and_fragments_capacity_concurrent_grow_never(zero_memory: bool) {
         let mut vec: SplitVec<char, _> = SplitVec::with_recursive_growth_and_fragments_capacity(1);
 
         assert!(!vec.can_concurrently_add_fragment());
 
-        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1) };
+        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1, zero_memory) };
         assert_eq!(
             result,
             Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned)
         );
     }
 
-    #[test]
-    fn with_recursive_growth_and_fragments_capacity_concurrent_grow_once() {
+    #[test_matrix([true, false])]
+    fn with_recursive_growth_and_fragments_capacity_concurrent_grow_once(zero_memory: bool) {
         let mut vec: SplitVec<char, _> = SplitVec::with_recursive_growth_and_fragments_capacity(2);
 
         assert!(vec.can_concurrently_add_fragment());
 
         let next_capacity = vec.capacity() + vec.growth().new_fragment_capacity(vec.fragments());
 
-        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1) };
+        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1, zero_memory) };
         assert_eq!(result, Ok(next_capacity));
 
         assert!(!vec.can_concurrently_add_fragment());
 
-        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1) };
+        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1, zero_memory) };
         assert_eq!(
             result,
             Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned)
         );
     }
 
-    #[test]
-    fn with_recursive_growth_and_fragments_capacity_concurrent_grow_twice() {
+    #[test_matrix([true, false])]
+    fn with_recursive_growth_and_fragments_capacity_concurrent_grow_twice(zero_memory: bool) {
         // when possible
         let mut vec: SplitVec<char, _> = SplitVec::with_recursive_growth_and_fragments_capacity(3);
 
@@ -372,12 +373,12 @@ mod tests {
         let fragment_3_capacity = fragment_2_capacity * 2;
         let new_capacity = vec.capacity() + fragment_2_capacity + fragment_3_capacity;
 
-        let result = unsafe { vec.concurrently_grow_to(new_capacity - 1) };
+        let result = unsafe { vec.concurrently_grow_to(new_capacity - 1, zero_memory) };
         assert_eq!(result, Ok(new_capacity));
 
         assert!(!vec.can_concurrently_add_fragment());
 
-        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1) };
+        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1, zero_memory) };
         assert_eq!(
             result,
             Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned)
@@ -388,7 +389,7 @@ mod tests {
 
         assert!(vec.can_concurrently_add_fragment()); // although we can add one fragment
 
-        let result = unsafe { vec.concurrently_grow_to(new_capacity - 1) }; // we cannot add two
+        let result = unsafe { vec.concurrently_grow_to(new_capacity - 1, zero_memory) }; // we cannot add two
         assert_eq!(
             result,
             Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned)
