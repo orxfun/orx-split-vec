@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::{Growth, SplitVec};
 use orx_pinned_vec::utils::slice;
 use orx_pinned_vec::{CapacityState, PinnedVec, PinnedVecGrowthError};
@@ -585,10 +587,11 @@ where
         new_capacity: usize,
         zero_memory: bool,
     ) -> Result<usize, PinnedVecGrowthError> {
-        if new_capacity <= self.capacity() {
-            Ok(self.capacity())
+        let capacity = self.capacity();
+        if new_capacity <= capacity {
+            Ok(capacity)
         } else {
-            let mut current_capacity = self.capacity();
+            let mut current_capacity = capacity;
             while new_capacity > current_capacity {
                 let new_fragment_capacity = if zero_memory {
                     self.add_zeroed_fragment()
@@ -625,6 +628,20 @@ where
             }
             debug_assert_eq!(current_capacity, self.capacity());
             Ok(current_capacity)
+        }
+    }
+
+    fn try_reserve_maximum_concurrent_capacity(
+        &mut self,
+        new_maximum_capacity: usize,
+    ) -> Result<usize, String> {
+        let current_max = self.maximum_concurrent_capacity();
+        match current_max.cmp(&new_maximum_capacity) {
+            Ordering::Less => {
+                self.concurrent_reserve(new_maximum_capacity)?;
+                Ok(self.maximum_concurrent_capacity())
+            }
+            _ => Ok(self.maximum_concurrent_capacity()),
         }
     }
 }
@@ -1146,6 +1163,21 @@ mod tests {
                 let value = unsafe { *ptr };
                 assert_eq!(value, unsafe { std::mem::zeroed() });
             }
+        }
+
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn try_reserve_maximum_concurrent_capacity() {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+            let current_max = vec.maximum_concurrent_capacity();
+            let target_max = current_max * 2;
+
+            let result = vec.try_reserve_maximum_concurrent_capacity(target_max);
+
+            assert_eq!(result, Ok(vec.maximum_concurrent_capacity()));
+            assert!(vec.maximum_concurrent_capacity() >= target_max);
         }
 
         test_all_growth_types!(test);
