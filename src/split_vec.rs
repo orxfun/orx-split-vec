@@ -104,14 +104,16 @@ where
     }
 
     /// Makes sure that the split vector can safely reach the given `maximum_capacity` in a concurrent program.
+    /// * returns Ok of the new maximum capacity if the vector succeeds to reserve.
+    /// * returns the corresponding error message otherwise.
     ///
     /// Note that this method does not allocate the `maximum_capacity`, it only ensures that the concurrent growth to this capacity is safe.
     /// In order to achieve this, it might need to extend allocation of the fragments collection.
     /// However, note that by definition number of fragments is insignificant in a split vector.
-    pub fn concurrent_reserve(&mut self, maximum_capacity: usize) {
+    pub fn concurrent_reserve(&mut self, maximum_capacity: usize) -> Result<usize, String> {
         let required_num_fragments = self
             .growth
-            .required_fragments_len(&self.fragments, maximum_capacity);
+            .required_fragments_len(&self.fragments, maximum_capacity)?;
 
         let additional_fragments = if required_num_fragments > self.fragments.capacity() {
             required_num_fragments - self.fragments.capacity()
@@ -129,6 +131,8 @@ where
 
             unsafe { self.fragments.set_len(num_fragments) };
         }
+
+        Ok(self.maximum_concurrent_capacity())
     }
 
     /// Returns the fragment index and the index within fragment of the item with the given `index`;
@@ -343,7 +347,9 @@ mod tests {
                 let current_max = vec.capacity_state().maximum_concurrent_capacity();
                 let target_max = current_max * 2 + 1;
 
-                vec.concurrent_reserve(target_max);
+                let result = vec.concurrent_reserve(target_max);
+                assert_eq!(result, Ok(vec.maximum_concurrent_capacity()));
+                assert!(vec.maximum_concurrent_capacity() >= current_max);
 
                 match unsafe { vec.concurrently_grow_to(target_max, zero_memory) } {
                     #[allow(clippy::panic)]

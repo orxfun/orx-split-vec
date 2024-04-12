@@ -86,13 +86,21 @@ pub trait Growth: Clone {
     }
 
     /// Returns the number of fragments with this growth strategy in order to be able to reach a capacity of `maximum_capacity` of elements.
+    /// Returns the error if it the growth strategy does not allow the required number of fragments.
     ///
     /// This method is relevant and useful for concurrent programs, which helps in avoiding the fragments to allocate.
     fn required_fragments_len<T>(
         &self,
         fragments: &[Fragment<T>],
         maximum_capacity: usize,
-    ) -> usize {
+    ) -> Result<usize, String> {
+        fn overflown_err() -> String {
+            format!(
+                "Maximum cumulative capacity that can be reached is {}.",
+                usize::MAX
+            )
+        }
+
         let mut cloned: Vec<Fragment<T>> = Vec::new();
         for fragment in fragments {
             cloned.push(Vec::with_capacity(fragment.capacity()).into());
@@ -103,14 +111,19 @@ pub trait Growth: Clone {
 
         while current_capacity < maximum_capacity {
             let new_capacity = self.new_fragment_capacity(&cloned);
+            let (new_current_capacity, overflown) = current_capacity.overflowing_add(new_capacity);
+            if overflown {
+                return Err(overflown_err());
+            }
+
             let fragment = Vec::with_capacity(new_capacity).into();
             cloned.push(fragment);
 
-            current_capacity += new_capacity;
+            current_capacity = new_current_capacity;
             num_fragments += 1;
         }
 
-        num_fragments
+        Ok(num_fragments)
     }
 }
 

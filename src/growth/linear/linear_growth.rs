@@ -95,12 +95,16 @@ impl Growth for Linear {
         fragments_capacity * self.constant_fragment_capacity
     }
 
-    fn required_fragments_len<T>(&self, _: &[Fragment<T>], maximum_capacity: usize) -> usize {
+    fn required_fragments_len<T>(
+        &self,
+        _: &[Fragment<T>],
+        maximum_capacity: usize,
+    ) -> Result<usize, String> {
         let num_full_fragments = maximum_capacity / self.constant_fragment_capacity;
         let remainder = maximum_capacity % self.constant_fragment_capacity;
         let additional_fragment = if remainder > 0 { 1 } else { 0 };
 
-        num_full_fragments + additional_fragment
+        Ok(num_full_fragments + additional_fragment)
     }
 }
 
@@ -381,12 +385,12 @@ mod tests {
                 .required_fragments_len(vec.fragments(), max_cap)
         };
 
-        assert_eq!(num_fragments(0), 0);
-        assert_eq!(num_fragments(1), 1);
-        assert_eq!(num_fragments(2), 1);
-        assert_eq!(num_fragments(32), 1);
-        assert_eq!(num_fragments(33), 2);
-        assert_eq!(num_fragments(32 * 7), 7);
-        assert_eq!(num_fragments(32 * 7 + 1), 8);
+        assert_eq!(num_fragments(0), Ok(0));
+        assert_eq!(num_fragments(1), Ok(1));
+        assert_eq!(num_fragments(2), Ok(1));
+        assert_eq!(num_fragments(32), Ok(1));
+        assert_eq!(num_fragments(33), Ok(2));
+        assert_eq!(num_fragments(32 * 7), Ok(7));
+        assert_eq!(num_fragments(32 * 7 + 1), Ok(8));
     }
 }

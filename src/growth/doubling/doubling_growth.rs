@@ -104,16 +104,22 @@ impl Growth for Doubling {
     /// # Panics
     ///
     /// Panics if `maximum_capacity` is greater than sum { 2^f | for f in 2..34 }.
-    fn required_fragments_len<T>(&self, _: &[Fragment<T>], maximum_capacity: usize) -> usize {
-        assert!(maximum_capacity <= CUMULATIVE_CAPACITIES[32]);
-
+    fn required_fragments_len<T>(
+        &self,
+        _: &[Fragment<T>],
+        maximum_capacity: usize,
+    ) -> Result<usize, String> {
         for (f, capacity) in CUMULATIVE_CAPACITIES.iter().enumerate() {
             if maximum_capacity <= *capacity {
-                return f;
+                return Ok(f);
             }
         }
 
-        usize::MAX
+        let maximum_possible_capacity = *CUMULATIVE_CAPACITIES.last().expect("is not empty");
+        Err(format!(
+            "Maximum cumulative capacity that can be reached by the Doubling strategy is {}.",
+            maximum_possible_capacity
+        ))
     }
 }
 
@@ -396,14 +402,39 @@ mod tests {
         };
 
         // 4 - 12 - 28 - 60 - 124
-        assert_eq!(num_fragments(0), 0);
-        assert_eq!(num_fragments(1), 1);
-        assert_eq!(num_fragments(4), 1);
-        assert_eq!(num_fragments(5), 2);
-        assert_eq!(num_fragments(12), 2);
-        assert_eq!(num_fragments(13), 3);
-        assert_eq!(num_fragments(36), 4);
-        assert_eq!(num_fragments(67), 5);
-        assert_eq!(num_fragments(136), 6);
+        assert_eq!(num_fragments(0), Ok(0));
+        assert_eq!(num_fragments(1), Ok(1));
+        assert_eq!(num_fragments(4), Ok(1));
+        assert_eq!(num_fragments(5), Ok(2));
+        assert_eq!(num_fragments(12), Ok(2));
+        assert_eq!(num_fragments(13), Ok(3));
+        assert_eq!(num_fragments(36), Ok(4));
+        assert_eq!(num_fragments(67), Ok(5));
+        assert_eq!(num_fragments(136), Ok(6));
+    }
+
+    #[test]
+    fn required_fragments_len_at_max() {
+        let vec: SplitVec<char, Doubling> = SplitVec::with_doubling_growth();
+        let num_fragments = |max_cap| {
+            vec.growth()
+                .required_fragments_len(vec.fragments(), max_cap)
+        };
+
+        let maximum_possible_capacity = *CUMULATIVE_CAPACITIES.last().expect("is not empty");
+        assert_eq!(num_fragments(maximum_possible_capacity), Ok(32));
+    }
+
+    #[test]
+    fn required_fragments_len_more_than_max() {
+        let vec: SplitVec<char, Doubling> = SplitVec::with_doubling_growth();
+        let num_fragments = |max_cap| {
+            vec.growth()
+                .required_fragments_len(vec.fragments(), max_cap)
+        };
+
+        let more_than_max_possible_capacity =
+            *CUMULATIVE_CAPACITIES.last().expect("is not empty") + 1;
+        assert!(num_fragments(more_than_max_possible_capacity).is_err());
     }
 }

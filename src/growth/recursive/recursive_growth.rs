@@ -71,7 +71,14 @@ impl Growth for Recursive {
         &self,
         fragments: &[Fragment<T>],
         maximum_capacity: usize,
-    ) -> usize {
+    ) -> Result<usize, String> {
+        fn overflown_err() -> String {
+            format!(
+                "Maximum cumulative capacity that can be reached by the Recursive strategy is {}.",
+                usize::MAX
+            )
+        }
+
         let current_capacity: usize = fragments.iter().map(|x| x.capacity()).sum();
         let mut last_capacity = fragments.last().map(|x| x.capacity()).unwrap_or(2);
 
@@ -79,12 +86,22 @@ impl Growth for Recursive {
         let mut f = fragments.len();
 
         while total_capacity < maximum_capacity {
-            last_capacity *= 2;
-            total_capacity += last_capacity;
+            let (new_last_capacity, overflown) = last_capacity.overflowing_mul(2);
+            if overflown {
+                return Err(overflown_err());
+            }
+            last_capacity = new_last_capacity;
+
+            let (new_total_capacity, overflown) = total_capacity.overflowing_add(last_capacity);
+            if overflown {
+                return Err(overflown_err());
+            }
+
+            total_capacity = new_total_capacity;
             f += 1;
         }
 
-        f
+        Ok(f)
     }
 }
 
@@ -411,15 +428,15 @@ mod tests {
         };
 
         // 4 - 12 - 28 - 60 - 124
-        assert_eq!(num_fragments(0), 1);
-        assert_eq!(num_fragments(1), 1);
-        assert_eq!(num_fragments(4), 1);
-        assert_eq!(num_fragments(5), 2);
-        assert_eq!(num_fragments(12), 2);
-        assert_eq!(num_fragments(13), 3);
-        assert_eq!(num_fragments(36), 4);
-        assert_eq!(num_fragments(67), 5);
-        assert_eq!(num_fragments(136), 6);
+        assert_eq!(num_fragments(0), Ok(1));
+        assert_eq!(num_fragments(1), Ok(1));
+        assert_eq!(num_fragments(4), Ok(1));
+        assert_eq!(num_fragments(5), Ok(2));
+        assert_eq!(num_fragments(12), Ok(2));
+        assert_eq!(num_fragments(13), Ok(3));
+        assert_eq!(num_fragments(36), Ok(4));
+        assert_eq!(num_fragments(67), Ok(5));
+        assert_eq!(num_fragments(136), Ok(6));
     }
 
     #[test]
@@ -434,16 +451,16 @@ mod tests {
 
         // 4 - 10 - 20 - 40 - 80
         // 4 - 14 - 34 - 74 - 154
-        assert_eq!(num_fragments(0), 2);
-        assert_eq!(num_fragments(1), 2);
-        assert_eq!(num_fragments(14), 2);
-        assert_eq!(num_fragments(15), 3);
-        assert_eq!(num_fragments(21), 3);
-        assert_eq!(num_fragments(34), 3);
-        assert_eq!(num_fragments(35), 4);
-        assert_eq!(num_fragments(74), 4);
-        assert_eq!(num_fragments(75), 5);
-        assert_eq!(num_fragments(154), 5);
-        assert_eq!(num_fragments(155), 6);
+        assert_eq!(num_fragments(0), Ok(2));
+        assert_eq!(num_fragments(1), Ok(2));
+        assert_eq!(num_fragments(14), Ok(2));
+        assert_eq!(num_fragments(15), Ok(3));
+        assert_eq!(num_fragments(21), Ok(3));
+        assert_eq!(num_fragments(34), Ok(3));
+        assert_eq!(num_fragments(35), Ok(4));
+        assert_eq!(num_fragments(74), Ok(4));
+        assert_eq!(num_fragments(75), Ok(5));
+        assert_eq!(num_fragments(154), Ok(5));
+        assert_eq!(num_fragments(155), Ok(6));
     }
 }
