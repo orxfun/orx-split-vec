@@ -115,10 +115,9 @@ impl Growth for Doubling {
             }
         }
 
-        let maximum_possible_capacity = *CUMULATIVE_CAPACITIES.last().expect("is not empty");
         Err(format!(
             "Maximum cumulative capacity that can be reached by the Doubling strategy is {}.",
-            maximum_possible_capacity
+            CUMULATIVE_CAPACITIES[CUMULATIVE_CAPACITIES.len() - 1]
         ))
     }
 }
