@@ -70,3 +70,52 @@ fn clone() {
     }
     test_all_growth_types!(test);
 }
+
+#[test]
+fn all() {
+    fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+        let n = 564;
+        let stdvec: Vec<_> = (0..n).collect();
+        vec.extend(stdvec);
+
+        assert!(vec.iter().all(|x| *x as isize >= -1));
+        assert!(!vec.iter().all(|x| *x < 357));
+    }
+    test_all_growth_types!(test);
+}
+
+#[test]
+fn any() {
+    fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+        let n = 564;
+        let stdvec: Vec<_> = (0..n).collect();
+        vec.extend(stdvec);
+
+        assert!(!vec.iter().any(|x| *x as isize <= -1));
+        assert!(vec.iter().any(|x| *x < 357));
+    }
+    test_all_growth_types!(test);
+}
+
+#[test]
+fn fold() {
+    fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+        let n = 564;
+        let stdvec: Vec<_> = (0..n).collect();
+        vec.extend(stdvec);
+
+        let sum = vec.iter().fold(0isize, |x, b| {
+            if b % 2 == 0 {
+                x + *b as isize
+            } else {
+                x - *b as isize
+            }
+        });
+
+        let expected = (0..n).filter(|x| x % 2 == 0).sum::<usize>() as isize
+            - (0..n).filter(|x| x % 2 == 1).sum::<usize>() as isize;
+
+        assert_eq!(sum, expected);
+    }
+    test_all_growth_types!(test);
+}
