@@ -8,38 +8,32 @@ pub fn all<'a, T, F>(outer: &mut Outer<'a, T>, inner: &mut Inner<'a, T>, mut f: 
 where
     F: FnMut(&'a T) -> bool,
 {
-    for x in inner {
-        if !f(x) {
-            return false;
-        }
-    }
-    for fragment in outer {
-        for x in fragment.iter() {
-            if !f(x) {
+    if !inner.all(&mut f) {
+        false
+    } else {
+        for fragment in outer {
+            if !fragment.iter().all(&mut f) {
                 return false;
             }
         }
+        true
     }
-    true
 }
 
 pub fn any<'a, T, F>(outer: &mut Outer<'a, T>, inner: &mut Inner<'a, T>, mut f: F) -> bool
 where
     F: FnMut(&'a T) -> bool,
 {
-    for x in inner {
-        if f(x) {
-            return true;
-        }
-    }
-    for fragment in outer {
-        for x in fragment.iter() {
-            if f(x) {
+    if inner.any(&mut f) {
+        true
+    } else {
+        for fragment in outer {
+            if fragment.iter().any(&mut f) {
                 return true;
             }
         }
+        false
     }
-    false
 }
 
 pub fn fold<'a, T, B, F>(outer: &mut Outer<'a, T>, inner: &mut Inner<'a, T>, init: B, mut f: F) -> B
