@@ -1,7 +1,6 @@
+use super::reductions;
 use crate::fragment::fragment_struct::Fragment;
 use std::iter::FusedIterator;
-
-use super::reductions;
 
 /// Iterator over the `SplitVec`.
 ///
