@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::{Growth, SplitVec};
+use crate::{algorithms, Growth, SplitVec};
 use orx_pinned_vec::utils::slice;
 use orx_pinned_vec::{CapacityState, PinnedVec, PinnedVecGrowthError};
 
@@ -570,6 +570,13 @@ where
                 remaining -= capacity;
             }
         }
+    }
+
+    fn binary_search_by<F>(&self, f: F) -> Result<usize, usize>
+    where
+        F: FnMut(&T) -> Ordering,
+    {
+        algorithms::binary_search::binary_search_by(&self.fragments, f)
     }
 
     fn try_grow(&mut self) -> Result<usize, PinnedVecGrowthError> {
