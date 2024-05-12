@@ -271,6 +271,7 @@
     clippy::todo
 )]
 
+mod algorithms;
 mod common_traits;
 mod fragment;
 mod growth;
