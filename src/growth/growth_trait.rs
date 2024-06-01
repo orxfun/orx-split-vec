@@ -36,13 +36,35 @@ pub trait Growth: Clone {
     /// This method allows to write to a memory which is greater than the  vector's length.
     /// On the other hand, it will never return a pointer to a memory location that the vector does not own.
     unsafe fn get_ptr_mut<T>(&self, fragments: &mut [Fragment<T>], index: usize) -> Option<*mut T> {
+        self.get_ptr_mut_and_indices(fragments, index).map(|x| x.0)
+    }
+
+    /// ***O(fragments.len())*** Returns a mutable reference to the `index`-th element of the split vector of the `fragments`
+    /// together with the index of the fragment that the element belongs to
+    /// and index of the element withing the respective fragment.
+    ///
+    /// Returns `None` if `index`-th position does not belong to the split vector; i.e., if `index` is out of cumulative capacity of fragments.
+    ///
+    /// # Safety
+    ///
+    /// This method allows to write to a memory which is greater than the  vector's length.
+    /// On the other hand, it will never return a pointer to a memory location that the vector does not own.
+    unsafe fn get_ptr_mut_and_indices<T>(
+        &self,
+        fragments: &mut [Fragment<T>],
+        index: usize,
+    ) -> Option<(*mut T, usize, usize)> {
         let mut prev_cumulative_capacity = 0;
         let mut cumulative_capacity = 0;
-        for fragment in fragments {
+        for (f, fragment) in fragments.iter_mut().enumerate() {
             cumulative_capacity += fragment.capacity();
             if index < cumulative_capacity {
                 let index_in_fragment = index - prev_cumulative_capacity;
-                return Some(fragment.as_mut_ptr().add(index_in_fragment));
+                return Some((
+                    fragment.as_mut_ptr().add(index_in_fragment),
+                    f,
+                    index_in_fragment,
+                ));
             }
             prev_cumulative_capacity = cumulative_capacity;
         }
@@ -150,5 +172,26 @@ pub trait GrowthWithConstantTimeAccess: Growth {
         fragments
             .get_mut(f)
             .map(|fragment| fragment.as_mut_ptr().add(i))
+    }
+
+    /// ***O(1)*** Returns a mutable reference to the `index`-th element of the split vector of the `fragments`
+    /// together with the index of the fragment that the element belongs to
+    /// and index of the element withing the respective fragment.
+    ///
+    /// Returns `None` if `index`-th position does not belong to the split vector; i.e., if `index` is out of cumulative capacity of fragments.
+    ///
+    /// # Safety
+    ///
+    /// This method allows to write to a memory which is greater than the split vector's length.
+    /// On the other hand, it will never return a pointer to a memory location that the vector does not own.
+    unsafe fn get_ptr_mut_and_indices<T>(
+        &self,
+        fragments: &mut [Fragment<T>],
+        index: usize,
+    ) -> Option<(*mut T, usize, usize)> {
+        let (f, i) = self.get_fragment_and_inner_indices_unchecked(index);
+        fragments
+            .get_mut(f)
+            .map(|fragment| (fragment.as_mut_ptr().add(i), f, i))
     }
 }

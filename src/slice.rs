@@ -1,6 +1,9 @@
-use crate::{Growth, SplitVec};
+use crate::{
+    range_helpers::{range_end, range_start},
+    Growth, SplitVec,
+};
 use orx_pinned_vec::PinnedVec;
-use std::ops::RangeBounds;
+use std::{cmp::Ordering, ops::RangeBounds};
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 /// Returns the result of trying to get a slice as a contagious memory from the split vector.
@@ -16,21 +19,6 @@ pub enum SplitVecSlice<'a, T> {
 }
 
 impl<T, G: Growth> SplitVec<T, G> {
-    fn range_start<R: RangeBounds<usize>>(range: &R) -> usize {
-        match range.start_bound() {
-            std::ops::Bound::Excluded(x) => x + 1,
-            std::ops::Bound::Included(x) => *x,
-            std::ops::Bound::Unbounded => 0,
-        }
-    }
-    fn range_end<R: RangeBounds<usize>>(&self, range: &R) -> usize {
-        match range.end_bound() {
-            std::ops::Bound::Excluded(x) => *x,
-            std::ops::Bound::Included(x) => x + 1,
-            std::ops::Bound::Unbounded => self.len(),
-        }
-    }
-
     /// Returns the result of trying to return the required `range` as a contagious slice of data.
     /// It might return Ok of the slice if the range belongs to one fragment.
     ///
@@ -70,117 +58,31 @@ impl<T, G: Growth> SplitVec<T, G> {
     /// assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(10..11));
     /// ```
     pub fn try_get_slice<R: RangeBounds<usize>>(&self, range: R) -> SplitVecSlice<T> {
-        let a = Self::range_start(&range);
-        let b = self.range_end(&range);
+        let a = range_start(&range);
+        let b = range_end(&range, self.len());
 
-        if b == 0 {
-            SplitVecSlice::Ok(&[])
-        } else if let Some((sf, si)) = self.get_fragment_and_inner_indices(a) {
-            if let Some((ef, ei)) = self.get_fragment_and_inner_indices(b - 1) {
-                if sf == ef {
-                    SplitVecSlice::Ok(&self.fragments[sf][si..=ei])
-                } else {
-                    SplitVecSlice::Fragmented(sf, ef)
-                }
-            } else {
-                SplitVecSlice::OutOfBounds
-            }
-        } else {
-            SplitVecSlice::OutOfBounds
-        }
-    }
-
-    /// Returns the view on the required `range` as a vector of slices:
-    ///
-    /// * returns an empty vector if the range is out of bounds;
-    /// * returns a vector with one slice if the range completely belongs to one fragment (in this case `try_get_slice` would return Ok),
-    /// * returns an ordered vector of slices when chained forms the required range.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use orx_split_vec::*;
-    ///
-    /// let mut vec = SplitVec::with_linear_growth(2);
-    ///
-    /// vec.extend_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    ///
-    /// assert_eq!(4, vec.fragments()[0].capacity());
-    /// assert_eq!(4, vec.fragments()[1].capacity());
-    /// assert_eq!(4, vec.fragments()[2].capacity());
-    ///
-    /// assert_eq!(4, vec.fragments()[0].len()); // [0, 1, 2, 3]
-    /// assert_eq!(4, vec.fragments()[1].len()); // [4, 5, 6, 7]
-    /// assert_eq!(2, vec.fragments()[2].len()); // [8, 9]
-    ///
-    /// // single fragment
-    /// assert_eq!(vec![&[0, 1, 2, 3]], vec.slice(0..4));
-    /// assert_eq!(vec![&[5, 6]], vec.slice(5..7));
-    /// assert_eq!(vec![&[8, 9]], vec.slice(8..10));
-    ///
-    /// // Fragmented
-    /// assert_eq!(vec![&vec![3], &vec![4, 5]], vec.slice(3..6));
-    /// assert_eq!(vec![&vec![3], &vec![4, 5, 6, 7], &vec![8]], vec.slice(3..9));
-    /// assert_eq!(vec![&vec![7], &vec![8]], vec.slice(7..9));
-    ///
-    /// // OutOfBounds
-    /// assert!(vec.slice(5..12).is_empty());
-    /// assert!(vec.slice(10..11).is_empty());
-    /// ```
-    pub fn slice<R: RangeBounds<usize>>(&self, range: R) -> Vec<&[T]> {
-        let a = Self::range_start(&range);
-        let b = self.range_end(&range);
-
-        if b == 0 {
-            vec![]
-        } else if let Some((sf, si)) = self.get_fragment_and_inner_indices(a) {
-            if let Some((ef, ei)) = self.get_fragment_and_inner_indices(b - 1) {
-                if sf == ef {
-                    vec![&self.fragments[sf][si..=ei]]
-                } else {
-                    let mut vec = Vec::with_capacity(ef - sf + 1);
-                    vec.push(&self.fragments[sf][si..]);
-                    for f in sf + 1..ef {
-                        vec.push(&self.fragments[f]);
-                    }
-                    vec.push(&self.fragments[ef][..=ei]);
-                    vec
-                }
-            } else {
-                vec![]
-            }
-        } else {
-            vec![]
+        match b.saturating_sub(a) {
+            0 => SplitVecSlice::Ok(&[]),
+            _ => match self.get_fragment_and_inner_indices(a) {
+                None => SplitVecSlice::OutOfBounds,
+                Some((sf, si)) => match self.get_fragment_and_inner_indices(b - 1) {
+                    None => SplitVecSlice::OutOfBounds,
+                    Some((ef, ei)) => match sf.cmp(&ef) {
+                        Ordering::Equal => SplitVecSlice::Ok(&self.fragments[sf][si..=ei]),
+                        _ => SplitVecSlice::Fragmented(sf, ef),
+                    },
+                },
+            },
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use crate::test_all_growth_types;
     use crate::*;
-
-    #[test]
-    fn range_start_end() {
-        fn test<G: Growth>(vec: SplitVec<usize, G>) {
-            type S<G> = SplitVec<usize, G>;
-
-            assert_eq!(10, S::<G>::range_start(&(10..20)));
-            assert_eq!(10, S::<G>::range_start(&(10..=20)));
-            assert_eq!(0, S::<G>::range_start(&(..20)));
-            assert_eq!(10, S::<G>::range_start(&(10..)));
-            assert_eq!(0, S::<G>::range_start(&(..)));
-
-            assert_eq!(20, vec.range_end(&(10..20)));
-            assert_eq!(21, vec.range_end(&(10..=20)));
-            assert_eq!(20, vec.range_end(&(..20)));
-            assert_eq!(vec.len(), vec.range_end(&(10..)));
-            assert_eq!(vec.len(), vec.range_end(&(..)));
-        }
-
-        test_all_growth_types!(test);
-    }
 
     #[test]
     fn try_get_slice() {
@@ -229,40 +131,6 @@ mod tests {
                         assert_eq!(slice, SplitVecSlice::Fragmented(f - 1, f + 1));
                     }
                 }
-            }
-        }
-        test_all_growth_types!(test);
-    }
-
-    #[test]
-    fn slice() {
-        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            for i in 0..184 {
-                assert!(vec.slice(i..i + 1).is_empty());
-                assert!(vec.slice(0..i + 1).is_empty());
-                vec.push(i);
-            }
-
-            let slice = vec.slice(0..vec.len());
-            let mut combined = vec![];
-            for s in slice {
-                combined.extend_from_slice(s);
-            }
-            for i in 0..184 {
-                assert_eq!(i, vec[i]);
-                assert_eq!(i, combined[i]);
-            }
-
-            let begin = vec.len() / 4;
-            let end = 3 * vec.len() / 4;
-            let slice = vec.slice(begin..end);
-            let mut combined = vec![];
-            for s in slice {
-                combined.extend_from_slice(s);
-            }
-            for i in begin..end {
-                assert_eq!(i, vec[i]);
-                assert_eq!(i, combined[i - begin]);
             }
         }
         test_all_growth_types!(test);
