@@ -1,8 +1,9 @@
-use std::cmp::Ordering;
-
+use crate::range_helpers::{range_end, range_start};
 use crate::{algorithms, Growth, SplitVec};
 use orx_pinned_vec::utils::slice;
 use orx_pinned_vec::{CapacityState, PinnedVec, PinnedVecGrowthError};
+use std::cmp::Ordering;
+use std::ops::RangeBounds;
 
 impl<T, G> PinnedVec<T> for SplitVec<T, G>
 where
@@ -12,6 +13,8 @@ where
     type IterMut<'a> = crate::common_traits::iterator::iter_mut::IterMut<'a, T> where T: 'a, Self: 'a;
     type IterRev<'a> = crate::common_traits::iterator::iter_rev::IterRev<'a, T> where T: 'a, Self: 'a;
     type IterMutRev<'a> = crate::common_traits::iterator::iter_mut_rev::IterMutRev<'a, T> where T: 'a, Self: 'a;
+    type SliceIter<'a> = Vec<&'a [T]> where T: 'a, Self: 'a;
+    type SliceMutIter<'a> = Vec<&'a mut [T]> where T: 'a, Self: 'a;
 
     /// Returns the index of the `element` with the given reference.
     /// This method has *O(f)* time complexity where `f << vec.len()` is the number of fragments.
@@ -534,6 +537,151 @@ where
         Self::IterMutRev::new(&mut self.fragments)
     }
 
+    /// Returns the view on the required `range` as a vector of slices:
+    ///
+    /// * returns an empty vector if the range is out of bounds;
+    /// * returns a vector with one slice if the range completely belongs to one fragment (in this case `try_get_slice` would return Ok),
+    /// * returns an ordered vector of slices when chained forms the required range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_split_vec::prelude::*;
+    ///
+    /// let mut vec = SplitVec::with_linear_growth(2);
+    ///
+    /// vec.extend_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    ///
+    /// assert_eq!(vec.fragments()[0], &[0, 1, 2, 3]);
+    /// assert_eq!(vec.fragments()[1], &[4, 5, 6, 7]);
+    /// assert_eq!(vec.fragments()[2], &[8, 9]);
+    ///
+    /// // single fragment
+    /// assert_eq!(vec![&[0, 1, 2, 3]], vec.slices(0..4));
+    /// assert_eq!(vec![&[5, 6]], vec.slices(5..7));
+    /// assert_eq!(vec![&[8, 9]], vec.slices(8..10));
+    ///
+    /// // Fragmented
+    /// assert_eq!(vec![&vec![3], &vec![4, 5]], vec.slices(3..6));
+    /// assert_eq!(vec![&vec![3], &vec![4, 5, 6, 7], &vec![8]], vec.slices(3..9));
+    /// assert_eq!(vec![&vec![7], &vec![8]], vec.slices(7..9));
+    ///
+    /// // OutOfBounds
+    /// assert!(vec.slices(5..12).is_empty());
+    /// assert!(vec.slices(10..11).is_empty());
+    /// ```
+    fn slices<R: RangeBounds<usize>>(&self, range: R) -> Self::SliceIter<'_> {
+        let a = range_start(&range);
+        let b = range_end(&range, self.len());
+
+        match b.saturating_sub(a) {
+            0 => vec![],
+            _ => match self.get_fragment_and_inner_indices(a) {
+                None => vec![],
+                Some((sf, si)) => match self.get_fragment_and_inner_indices(b - 1) {
+                    None => vec![],
+                    Some((ef, ei)) => match sf.cmp(&ef) {
+                        Ordering::Equal => vec![&self.fragments[sf][si..=ei]],
+                        _ => {
+                            let mut vec = Vec::with_capacity(ef - sf + 1);
+                            vec.push(&self.fragments[sf][si..]);
+                            for f in sf + 1..ef {
+                                vec.push(&self.fragments[f]);
+                            }
+                            vec.push(&self.fragments[ef][..=ei]);
+                            vec
+                        }
+                    },
+                },
+            },
+        }
+    }
+
+    /// Returns a mutable view on the required `range` as a vector of slices:
+    ///
+    /// * returns an empty vector if the range is out of bounds;
+    /// * returns a vector with one slice if the range completely belongs to one fragment (in this case `try_get_slice` would return Ok),
+    /// * returns an ordered vector of slices when chained forms the required range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_split_vec::prelude::*;
+    ///
+    /// let mut vec = SplitVec::with_linear_growth(2);
+    /// vec.extend_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    ///
+    /// assert_eq!(vec.fragments()[0], &[0, 1, 2, 3]);
+    /// assert_eq!(vec.fragments()[1], &[4, 5, 6, 7]);
+    /// assert_eq!(vec.fragments()[2], &[8, 9]);
+    ///
+    /// // single fragment
+    /// let mut slices = vec.slices_mut(0..4);
+    /// assert_eq!(slices.len(), 1);
+    /// assert_eq!(slices[0], &[0, 1, 2, 3]);
+    /// slices[0][1] *= 10;
+    /// assert_eq!(vec.fragments()[0], &[0, 10, 2, 3]);
+    ///
+    /// // single fragment - partially
+    /// let mut slices = vec.slices_mut(5..7);
+    /// assert_eq!(slices.len(), 1);
+    /// assert_eq!(slices[0], &[5, 6]);
+    /// slices[0][1] *= 10;
+    /// assert_eq!(vec.fragments()[1], &[4, 5, 60, 7]);
+    ///
+    /// // multiple fragments
+    /// let slices = vec.slices_mut(2..6);
+    /// assert_eq!(slices.len(), 2);
+    /// assert_eq!(slices[0], &[2, 3]);
+    /// assert_eq!(slices[1], &[4, 5]);
+    /// for s in slices {
+    ///     for x in s {
+    ///         *x *= 10;
+    ///     }
+    /// }
+    ///
+    /// assert_eq!(vec.fragments()[0], &[0, 10, 20, 30]);
+    /// assert_eq!(vec.fragments()[1], &[40, 50, 60, 7]);
+    /// assert_eq!(vec.fragments()[2], &[8, 9]);
+    ///
+    /// // out of bounds
+    /// assert!(vec.slices_mut(5..12).is_empty());
+    /// assert!(vec.slices_mut(10..11).is_empty());
+    /// ```
+    fn slices_mut<R: RangeBounds<usize>>(&mut self, range: R) -> Self::SliceMutIter<'_> {
+        use std::slice::from_raw_parts_mut;
+
+        let a = range_start(&range);
+        let b = range_end(&range, self.len());
+
+        match b.saturating_sub(a) {
+            0 => vec![],
+            _ => match self.get_fragment_and_inner_indices(a) {
+                None => vec![],
+                Some((sf, si)) => match self.get_fragment_and_inner_indices(b - 1) {
+                    None => vec![],
+                    Some((ef, ei)) => match sf.cmp(&ef) {
+                        Ordering::Equal => vec![&mut self.fragments[sf][si..=ei]],
+                        _ => {
+                            let mut vec = Vec::with_capacity(ef - sf + 1);
+
+                            let ptr_s = unsafe { self.fragments[sf].as_mut_ptr().add(si) };
+                            let slice_len = self.fragments[sf].capacity() - si;
+                            vec.push(unsafe { from_raw_parts_mut(ptr_s, slice_len) });
+                            for f in sf + 1..ef {
+                                let ptr_s = self.fragments[f].as_mut_ptr();
+                                let slice_len = self.fragments[f].capacity();
+                                vec.push(unsafe { from_raw_parts_mut(ptr_s, slice_len) });
+                            }
+                            vec.push(&mut self.fragments[ef][..=ei]);
+                            vec
+                        }
+                    },
+                },
+            },
+        }
+    }
+
     /// Returns a mutable reference to the `index`-th element of the vector.
     ///
     /// Returns `None` if `index`-th position does not belong to the vector; i.e., if `index` is out of `capacity`.
@@ -595,22 +743,54 @@ where
         zero_memory: bool,
     ) -> Result<usize, PinnedVecGrowthError> {
         let capacity = self.capacity();
-        if new_capacity <= capacity {
-            Ok(capacity)
-        } else {
-            let mut current_capacity = capacity;
-            while new_capacity > current_capacity {
-                let new_fragment_capacity = if zero_memory {
-                    self.add_zeroed_fragment()
-                } else {
-                    self.add_fragment()
-                };
-                current_capacity += new_fragment_capacity;
+        match new_capacity.cmp(&capacity) {
+            Ordering::Less | Ordering::Equal => Ok(capacity),
+            Ordering::Greater => {
+                let mut current_capacity = capacity;
+                while new_capacity > current_capacity {
+                    let new_fragment_capacity = match zero_memory {
+                        true => self.add_zeroed_fragment(),
+                        false => self.add_fragment(),
+                    };
+                    current_capacity += new_fragment_capacity;
+                }
+
+                debug_assert_eq!(current_capacity, self.capacity());
+                Ok(current_capacity)
+            }
+        }
+    }
+
+    fn grow_and_initialize<F>(
+        &mut self,
+        new_min_len: usize,
+        f: F,
+    ) -> Result<usize, PinnedVecGrowthError>
+    where
+        F: Fn() -> T,
+        Self: Sized,
+    {
+        let (prior_len, capacity) = (self.len(), self.capacity());
+        if prior_len < capacity {
+            let lf = self.fragments.len() - 1;
+            let last_fragment = &mut self.fragments[lf];
+            debug_assert_eq!(
+                capacity - prior_len,
+                last_fragment.capacity() - last_fragment.len()
+            );
+            for _ in prior_len..capacity {
+                last_fragment.push(f());
             }
 
-            debug_assert_eq!(current_capacity, self.capacity());
-            Ok(current_capacity)
+            unsafe { self.set_len(capacity) };
         }
+
+        let mut capacity = self.capacity();
+        while capacity < new_min_len {
+            capacity += self.add_filled_fragment(&f);
+        }
+
+        Ok(capacity)
     }
 
     unsafe fn concurrently_grow_to(
@@ -626,11 +806,12 @@ where
                 if !self.can_concurrently_add_fragment() {
                     return Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned);
                 }
-                let new_fragment_capacity = if zero_memory {
-                    self.add_zeroed_fragment()
-                } else {
-                    self.add_fragment()
+
+                let new_fragment_capacity = match zero_memory {
+                    true => self.add_zeroed_fragment(),
+                    false => self.add_fragment(),
                 };
+
                 current_capacity += new_fragment_capacity;
             }
             debug_assert_eq!(current_capacity, self.capacity());
@@ -996,6 +1177,104 @@ mod tests {
 
             let clone = vec.clone();
             assert_eq!(vec, clone);
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn slices() {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+            for i in 0..184 {
+                assert!(vec.slices(i..i + 1).is_empty());
+                assert!(vec.slices(0..i + 1).is_empty());
+                vec.push(i);
+            }
+
+            let slice = vec.slices(0..vec.len());
+            let mut combined = vec![];
+            for s in slice {
+                combined.extend_from_slice(s);
+            }
+            for i in 0..184 {
+                assert_eq!(i, vec[i]);
+                assert_eq!(i, combined[i]);
+            }
+
+            let begin = vec.len() / 4;
+            let end = 3 * vec.len() / 4;
+            let slice = vec.slices(begin..end);
+            let mut combined = vec![];
+            for s in slice {
+                combined.extend_from_slice(s);
+            }
+            for i in begin..end {
+                assert_eq!(i, vec[i]);
+                assert_eq!(i, combined[i - begin]);
+            }
+        }
+        test_all_growth_types!(test);
+    }
+
+    #[test]
+    fn slices_mut() {
+        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+            for i in 0..184 {
+                assert!(vec.slices_mut(i..i + 1).is_empty());
+                assert!(vec.slices_mut(0..i + 1).is_empty());
+                vec.push(i);
+            }
+
+            let slice = vec.slices_mut(0..vec.len());
+            let mut combined = vec![];
+            for s in slice {
+                combined.extend_from_slice(s);
+            }
+            for i in 0..184 {
+                assert_eq!(i, vec[i]);
+                assert_eq!(i, combined[i]);
+            }
+
+            let begin = vec.len() / 4;
+            let end = 3 * vec.len() / 4;
+            let slice = vec.slices_mut(begin..end);
+            let mut combined = vec![];
+            for s in slice {
+                combined.extend_from_slice(s);
+            }
+            for i in begin..end {
+                assert_eq!(i, vec[i]);
+                assert_eq!(i, combined[i - begin]);
+            }
+
+            vec.clear();
+
+            for _ in 0..184 {
+                vec.push(0);
+            }
+
+            fn update(slice: Vec<&mut [usize]>, begin: usize) {
+                let mut val = begin;
+                for s in slice {
+                    for x in s {
+                        *x = val;
+                        val += 1;
+                    }
+                }
+            }
+            let mut fill = |begin: usize, end: usize| {
+                let range = begin..end;
+                update(vec.slices_mut(range), begin);
+            };
+
+            fill(0, 14);
+            fill(14, 56);
+            fill(56, 77);
+            fill(77, 149);
+            fill(149, 182);
+            fill(182, 184);
+            for i in 0..184 {
+                assert_eq!(vec.get(i), Some(&i));
+            }
         }
         test_all_growth_types!(test);
     }

@@ -24,6 +24,15 @@ impl<T> Fragment<T> {
         }
     }
 
+    /// Creates a new fragment with length and capacity equal to the given `capacity`, where each entry is filled with `f()`.
+    pub fn new_filled<F: Fn() -> T>(capacity: usize, f: F) -> Self {
+        let mut data = Vec::with_capacity(capacity);
+        for _ in 0..capacity {
+            data.push(f());
+        }
+        Self { data }
+    }
+
     /// Returns whether the fragment has room to push a new item or not.
     pub fn has_capacity_for_one(&self) -> bool {
         self.data.len() < self.data.capacity()

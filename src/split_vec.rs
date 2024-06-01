@@ -1,3 +1,5 @@
+use orx_pinned_vec::PinnedVec;
+
 use crate::{fragment::fragment_struct::Fragment, Doubling, Growth};
 
 /// A split vector; i.e., a vector of fragments, with the following features:
@@ -190,6 +192,21 @@ where
     #[inline(always)]
     pub(crate) fn add_zeroed_fragment(&mut self) -> usize {
         self.add_fragment_get_fragment_capacity(true)
+    }
+
+    pub(crate) fn add_filled_fragment<F: Fn() -> T>(&mut self, f: F) -> usize {
+        assert_eq!(self.len(), self.capacity());
+
+        let new_fragment_capacity = self.growth.new_fragment_capacity(&self.fragments);
+        let new_len = self.len() + new_fragment_capacity;
+        self.fragments
+            .push(Fragment::new_filled(new_fragment_capacity, f));
+        unsafe { self.set_len(new_len) };
+
+        debug_assert_eq!(self.len(), new_len);
+        debug_assert_eq!(self.capacity(), new_len);
+
+        new_fragment_capacity
     }
 
     /// Adds a new fragment and return the capacity of the added (now last) fragment.

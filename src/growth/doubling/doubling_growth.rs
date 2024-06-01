@@ -87,6 +87,24 @@ impl Growth for Doubling {
         <Self as GrowthWithConstantTimeAccess>::get_ptr_mut(self, fragments, index)
     }
 
+    /// ***O(1)*** Returns a mutable reference to the `index`-th element of the split vector of the `fragments`
+    /// together with the index of the fragment that the element belongs to
+    /// and index of the element withing the respective fragment.
+    ///
+    /// Returns `None` if `index`-th position does not belong to the split vector; i.e., if `index` is out of cumulative capacity of fragments.
+    ///
+    /// # Safety
+    ///
+    /// This method allows to write to a memory which is greater than the split vector's length.
+    /// On the other hand, it will never return a pointer to a memory location that the vector does not own.
+    unsafe fn get_ptr_mut_and_indices<T>(
+        &self,
+        fragments: &mut [Fragment<T>],
+        index: usize,
+    ) -> Option<(*mut T, usize, usize)> {
+        <Self as GrowthWithConstantTimeAccess>::get_ptr_mut_and_indices(self, fragments, index)
+    }
+
     fn maximum_concurrent_capacity<T>(
         &self,
         fragments: &[Fragment<T>],
