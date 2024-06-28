@@ -5,8 +5,8 @@ use orx_pinned_vec::PinnedVec;
 fn iter() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
         let n = 564;
-        let stdvec: Vec<_> = (0..n).collect();
-        vec.extend(stdvec);
+        let std_vec: Vec<_> = (0..n).collect();
+        vec.extend(std_vec);
 
         for (i, x) in vec.into_iter().enumerate() {
             assert_eq!(i, x);
@@ -57,8 +57,8 @@ fn iter_one_fragment() {
 fn clone() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
         let n = 564;
-        let stdvec: Vec<_> = (0..n).collect();
-        vec.extend(stdvec);
+        let std_vec: Vec<_> = (0..n).collect();
+        vec.extend(std_vec);
 
         let iter1 = vec.into_iter();
         let iter2 = iter1.clone();
