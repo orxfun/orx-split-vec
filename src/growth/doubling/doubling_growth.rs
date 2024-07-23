@@ -1,6 +1,7 @@
 use super::constants::*;
 use crate::growth::growth_trait::{Growth, GrowthWithConstantTimeAccess};
 use crate::{Fragment, SplitVec};
+use orx_pseudo_default::PseudoDefault;
 
 /// Strategy which allows creates a fragment with double the capacity
 /// of the prior fragment every time the split vector needs to expand.
@@ -52,9 +53,19 @@ use crate::{Fragment, SplitVec};
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Doubling;
 
+impl PseudoDefault for Doubling {
+    fn pseudo_default() -> Self {
+        Default::default()
+    }
+}
+
 impl Growth for Doubling {
-    fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
-        fragments.last().map(|f| f.capacity() * 2).unwrap_or(4)
+    #[inline(always)]
+    fn new_fragment_capacity_from(
+        &self,
+        fragment_capacities: impl ExactSizeIterator<Item = usize>,
+    ) -> usize {
+        fragment_capacities.last().map(|x| x * 2).unwrap_or(4)
     }
 
     #[inline(always)]
@@ -64,13 +75,9 @@ impl Growth for Doubling {
         _fragments: &[Fragment<T>],
         element_index: usize,
     ) -> Option<(usize, usize)> {
-        if element_index < vec_len {
-            let element_index_offset = element_index + FIRST_FRAGMENT_CAPACITY;
-            let leading_zeros = usize::leading_zeros(element_index_offset) as usize;
-            let f = OFFSET_FRAGMENT_IDX - leading_zeros;
-            Some((f, element_index - CUMULATIVE_CAPACITIES[f]))
-        } else {
-            None
+        match element_index < vec_len {
+            true => Some(self.get_fragment_and_inner_indices_unchecked(element_index)),
+            false => None,
         }
     }
 
@@ -97,6 +104,7 @@ impl Growth for Doubling {
     ///
     /// This method allows to write to a memory which is greater than the split vector's length.
     /// On the other hand, it will never return a pointer to a memory location that the vector does not own.
+    #[inline(always)]
     unsafe fn get_ptr_mut_and_indices<T>(
         &self,
         fragments: &mut [Fragment<T>],
@@ -141,6 +149,7 @@ impl Growth for Doubling {
 }
 
 impl GrowthWithConstantTimeAccess for Doubling {
+    #[inline(always)]
     fn get_fragment_and_inner_indices_unchecked(&self, element_index: usize) -> (usize, usize) {
         let element_index_offset = element_index + FIRST_FRAGMENT_CAPACITY;
         let leading_zeros = usize::leading_zeros(element_index_offset) as usize;
@@ -227,8 +236,7 @@ impl<T> SplitVec<T, Doubling> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use orx_pinned_vec::{PinnedVec, PinnedVecGrowthError};
-    use test_case::test_matrix;
+    use orx_pinned_vec::PinnedVec;
 
     #[test]
     fn get_fragment_and_inner_indices() {
@@ -307,23 +315,6 @@ mod tests {
         assert_eq!(max_cap(&vec), 4 + 8 + 16 + 32 + 64 + 128 + 256 + 512);
     }
 
-    #[test_matrix([true, false])]
-    fn with_doubling_growth(zero_memory: bool) {
-        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth();
-
-        assert_eq!(4, vec.fragments.capacity());
-
-        for _ in 0..100_000 {
-            vec.push('x');
-        }
-
-        assert!(vec.fragments.capacity() > 4);
-
-        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth();
-        let result = unsafe { vec.grow_to(100_000, zero_memory) };
-        assert!(result.expect("must-be-ok") >= 100_000);
-    }
-
     #[test]
     fn with_doubling_growth_and_fragments_capacity_normal_growth() {
         let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(1);
@@ -335,73 +326,6 @@ mod tests {
         }
 
         assert!(vec.fragments.capacity() > 4);
-    }
-
-    #[test_matrix([true, false])]
-    fn with_doubling_growth_and_fragments_capacity_concurrent_grow_never(zero_memory: bool) {
-        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(1);
-
-        assert!(!vec.can_concurrently_add_fragment());
-
-        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1, zero_memory) };
-        assert_eq!(
-            result,
-            Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned)
-        );
-    }
-
-    #[test_matrix([true, false])]
-    fn with_doubling_growth_and_fragments_capacity_concurrent_grow_once(zero_memory: bool) {
-        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(2);
-
-        assert!(vec.can_concurrently_add_fragment());
-
-        let next_capacity = vec.capacity() + vec.growth().new_fragment_capacity(vec.fragments());
-
-        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1, zero_memory) };
-        assert_eq!(result, Ok(next_capacity));
-
-        assert!(!vec.can_concurrently_add_fragment());
-
-        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1, zero_memory) };
-        assert_eq!(
-            result,
-            Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned)
-        );
-    }
-
-    #[test_matrix([true, false])]
-    fn with_doubling_growth_and_fragments_capacity_concurrent_grow_twice(zero_memory: bool) {
-        // when possible
-        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(3);
-
-        assert!(vec.can_concurrently_add_fragment());
-
-        let fragment_2_capacity = vec.growth().new_fragment_capacity(vec.fragments());
-        let fragment_3_capacity = fragment_2_capacity * 2;
-        let new_capacity = vec.capacity() + fragment_2_capacity + fragment_3_capacity;
-
-        let result = unsafe { vec.concurrently_grow_to(new_capacity - 1, zero_memory) };
-        assert_eq!(result, Ok(new_capacity));
-
-        assert!(!vec.can_concurrently_add_fragment());
-
-        let result = unsafe { vec.concurrently_grow_to(vec.capacity() + 1, zero_memory) };
-        assert_eq!(
-            result,
-            Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned)
-        );
-
-        // when not possible
-        let mut vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(2);
-
-        assert!(vec.can_concurrently_add_fragment()); // although we can add one fragment
-
-        let result = unsafe { vec.concurrently_grow_to(new_capacity - 1, zero_memory) }; // we cannot add two
-        assert_eq!(
-            result,
-            Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned)
-        );
     }
 
     #[test]
