@@ -17,7 +17,7 @@ pub struct IterCon<'a, T> {
 
 impl<'a, T> IterCon<'a, T> {
     pub(crate) fn new(fragments: &'a [Fragment<T>], last_fragment_len: usize) -> Self {
-        assert!(fragments.len() > 0);
+        assert!(!fragments.is_empty());
 
         let num_fragments = fragments.len();
 

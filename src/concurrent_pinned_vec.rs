@@ -54,12 +54,12 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentSplitVec<T, G> {
     fn fragment_element_ptr_mut(&self, f: usize, i: usize) -> *mut T {
         let p = unsafe { self.ptr_fragments_pointers.add(f).read() };
         let p = unsafe { p.add(i) };
-        return p as *mut T;
+        p as *mut T
     }
 
     fn fragment_element_ptr(&self, f: usize, i: usize) -> *const T {
         let p = unsafe { self.ptr_fragments_pointers.add(f).read() };
-        return unsafe { p.add(i) };
+        unsafe { p.add(i) }
     }
 }
 
@@ -184,8 +184,8 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
                         let ptr_s = self.fragment_element_ptr_mut(sf, si);
                         vec.push(from_raw_parts_mut(ptr_s, slice_len));
 
-                        for f in sf + 1..ef {
-                            let slice_len = fragments[f].capacity();
+                        for (f, fragment) in fragments.iter().enumerate().take(ef).skip(sf + 1) {
+                            let slice_len = fragment.capacity();
                             let ptr_s = self.fragment_element_ptr_mut(f, 0);
                             vec.push(from_raw_parts_mut(ptr_s, slice_len));
                         }
@@ -210,18 +210,22 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         match len {
             0 => IterCon::new(&fragments[0..1], 0),
             _ => {
-                let mut num_fragments = 0;
+                // let mut num_fragments = 0;
                 let mut count = 0;
 
-                for fragment in fragments.iter() {
-                    num_fragments += 1;
+                for (num_fragments, fragment) in fragments.iter().enumerate() {
+                    // for fragment in fragments.iter() {
+                    // num_fragments += 1;
                     let capacity = fragment.capacity();
                     let new_count = count + capacity;
 
                     match new_count >= len {
                         true => {
                             let last_fragment_len = capacity - (new_count - len);
-                            return IterCon::new(&fragments[0..num_fragments], last_fragment_len);
+                            return IterCon::new(
+                                &fragments[0..(num_fragments + 1)],
+                                last_fragment_len,
+                            );
                         }
                         false => count = new_count,
                     }
@@ -331,12 +335,11 @@ fn data<G: Growth, T>(fragments: &mut Vec<Fragment<T>>, growth: &G) -> Data<T> {
 
     let capacity = fragments.iter().map(|x| x.capacity()).sum::<usize>();
 
-    let maximum_capacity = maximum_concurrent_capacity(&fragments, fragments.capacity(), growth);
+    let maximum_capacity = maximum_concurrent_capacity(fragments, fragments.capacity(), growth);
 
     let ptr_fragments = fragments.as_mut_ptr();
 
-    let (fragment_pointers, ptr_fragments_pointers) =
-        get_pointers(&fragments, fragments.capacity());
+    let (fragment_pointers, ptr_fragments_pointers) = get_pointers(fragments, fragments.capacity());
 
     unsafe { fragments.set_len(fragments.capacity()) };
 
