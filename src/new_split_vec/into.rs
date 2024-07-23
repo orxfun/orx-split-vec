@@ -36,14 +36,12 @@ where
     /// ```
     fn from(mut value: SplitVec<T, G>) -> Self {
         if value.fragments().len() == 1 {
-            let mut fragments = value.fragments;
-            let fragment = &mut fragments[0].data;
-            let vec = unsafe {
-                Vec::from_raw_parts(fragment.as_mut_ptr(), fragment.len(), fragment.capacity())
-            };
-
-            std::mem::forget(fragments);
-            vec
+            value
+                .fragments
+                .into_iter()
+                .map(|x| x.data)
+                .next()
+                .expect("There exists exactly one fragment")
         } else {
             let mut vec = Vec::with_capacity(value.len());
             vec.reserve(value.len());

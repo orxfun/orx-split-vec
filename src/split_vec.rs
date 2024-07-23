@@ -1,5 +1,3 @@
-use orx_pinned_vec::PinnedVec;
-
 use crate::{fragment::fragment_struct::Fragment, Doubling, Growth};
 
 /// A split vector; i.e., a vector of fragments, with the following features:
@@ -14,7 +12,7 @@ where
 {
     pub(crate) len: usize,
     pub(crate) fragments: Vec<Fragment<T>>,
-    growth: G,
+    pub(crate) growth: G,
 }
 
 impl<T, G> SplitVec<T, G>
@@ -117,10 +115,9 @@ where
             .growth
             .required_fragments_len(&self.fragments, maximum_capacity)?;
 
-        let additional_fragments = if required_num_fragments > self.fragments.capacity() {
-            required_num_fragments - self.fragments.capacity()
-        } else {
-            0
+        let additional_fragments = match required_num_fragments > self.fragments.capacity() {
+            true => required_num_fragments - self.fragments.capacity(),
+            false => 0,
         };
 
         if additional_fragments > 0 {
@@ -188,27 +185,6 @@ where
         self.add_fragment_get_fragment_capacity(false)
     }
 
-    /// Adds a new zeroed-fragment to fragments of the split vector; returns the capacity of the new fragment.
-    #[inline(always)]
-    pub(crate) fn add_zeroed_fragment(&mut self) -> usize {
-        self.add_fragment_get_fragment_capacity(true)
-    }
-
-    pub(crate) fn add_filled_fragment<F: Fn() -> T>(&mut self, f: F) -> usize {
-        assert_eq!(self.len(), self.capacity());
-
-        let new_fragment_capacity = self.growth.new_fragment_capacity(&self.fragments);
-        let new_len = self.len() + new_fragment_capacity;
-        self.fragments
-            .push(Fragment::new_filled(new_fragment_capacity, f));
-        unsafe { self.set_len(new_len) };
-
-        debug_assert_eq!(self.len(), new_len);
-        debug_assert_eq!(self.capacity(), new_len);
-
-        new_fragment_capacity
-    }
-
     /// Adds a new fragment and return the capacity of the added (now last) fragment.
     fn add_fragment_get_fragment_capacity(&mut self, zeroed: bool) -> usize {
         let new_fragment_capacity = self.growth.new_fragment_capacity(&self.fragments);
@@ -242,12 +218,23 @@ where
         self.growth.get_ptr_mut(&mut self.fragments, index)
     }
 
-    /// Returns `true` only if it is concurrently safe to add a new fragment to the split vector.
+    /// Makes sure that the split vector can safely reach the given `maximum_capacity` in a concurrent program.
     ///
-    /// It is only concurrently safe if the internal `fragments` collection does not move already pushed fragments in memory.
-    /// Note that if the fragments are stored as a vector, an increase in capacity might lead to this concurrency problem.
-    pub(crate) fn can_concurrently_add_fragment(&self) -> bool {
-        self.fragments.capacity() > self.fragments.len()
+    /// Returns new maximum capacity.
+    ///
+    /// Note that this method does not allocate the `maximum_capacity`, it only ensures that the concurrent growth to this capacity is safe.
+    /// In order to achieve this, it might need to extend allocation of the fragments collection.
+    /// However, note that by definition number of fragments is insignificant in a split vector.
+    pub fn reserve_maximum_concurrent_capacity(&mut self, new_maximum_capacity: usize) -> usize {
+        let current_max = self.maximum_concurrent_capacity();
+        match current_max < new_maximum_capacity {
+            true => {
+                self.concurrent_reserve(new_maximum_capacity)
+                    .expect("Failed to reserve maximum capacity");
+                self.maximum_concurrent_capacity()
+            }
+            false => self.maximum_concurrent_capacity(),
+        }
     }
 }
 
@@ -334,14 +321,6 @@ mod tests {
 
             vec.clear();
 
-            for _ in 0..10 {
-                let expected_new_fragment_cap = vec.growth.new_fragment_capacity(&vec.fragments);
-                let new_fragment_cap = vec.add_zeroed_fragment();
-                assert_eq!(expected_new_fragment_cap, new_fragment_cap);
-            }
-
-            vec.clear();
-
             let mut expected_capacity = vec.capacity();
             for _ in 0..2 {
                 let expected_new_fragment_cap = vec.growth.new_fragment_capacity(&vec.fragments);
@@ -350,30 +329,6 @@ mod tests {
             }
 
             assert_eq!(expected_capacity, vec.capacity());
-        }
-
-        test_all_growth_types!(test);
-    }
-
-    #[test]
-    fn concurrent_reserve() {
-        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            for zero_memory in [false, true] {
-                vec.clear();
-
-                let current_max = vec.capacity_state().maximum_concurrent_capacity();
-                let target_max = current_max * 2 + 1;
-
-                let result = vec.concurrent_reserve(target_max);
-                assert_eq!(result, Ok(vec.maximum_concurrent_capacity()));
-                assert!(vec.maximum_concurrent_capacity() >= current_max);
-
-                match unsafe { vec.concurrently_grow_to(target_max, zero_memory) } {
-                    #[allow(clippy::panic)]
-                    Err(_) => panic!("failed to reserve"),
-                    Ok(new_capacity) => assert!(new_capacity >= target_max),
-                }
-            }
         }
 
         test_all_growth_types!(test);

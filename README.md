@@ -103,10 +103,17 @@ use orx_split_vec::*;
 
 #[derive(Clone)]
 struct MyCustomGrowth;
+
 impl Growth for MyCustomGrowth {
-    fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
-        fragments.last().map(|f| f.capacity() + 1).unwrap_or(4)
+    fn new_fragment_capacity_from(&self, fragment_capacities: impl ExactSizeIterator<Item = usize>) -> usize {
+        fragment_capacities.last().map(|f| f + 1).unwrap_or(4)
     }
+}
+
+impl PseudoDefault for MyCustomGrowth {
+  fn pseudo_default() -> Self {
+    MyCustomGrowth
+  }
 }
 
 // set the growth explicitly

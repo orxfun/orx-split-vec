@@ -103,10 +103,17 @@
 //!
 //! #[derive(Clone)]
 //! struct MyCustomGrowth;
+//!
 //! impl Growth for MyCustomGrowth {
-//!     fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
-//!         fragments.last().map(|f| f.capacity() + 1).unwrap_or(4)
+//!     fn new_fragment_capacity_from(&self, fragment_capacities: impl ExactSizeIterator<Item = usize>) -> usize {
+//!         fragment_capacities.last().map(|f| f + 1).unwrap_or(4)
 //!     }
+//! }
+//!
+//! impl PseudoDefault for MyCustomGrowth {
+//!    fn pseudo_default() -> Self {
+//!        MyCustomGrowth
+//!    }
 //! }
 //!
 //! // set the growth explicitly
@@ -273,8 +280,10 @@
 
 mod algorithms;
 mod common_traits;
+mod concurrent_pinned_vec;
 mod fragment;
 mod growth;
+mod into_concurrent_pinned_vec;
 mod new_split_vec;
 mod pinned_vec;
 mod range_helpers;
@@ -290,6 +299,7 @@ pub mod prelude;
 pub use common_traits::iterator::{
     into_iter::IntoIter, iter::Iter, iter_mut::IterMut, iter_mut_rev::IterMutRev, iter_rev::IterRev,
 };
+pub use concurrent_pinned_vec::ConcurrentSplitVec;
 pub use fragment::fragment_struct::Fragment;
 pub use fragment::into_fragments::IntoFragments;
 pub use growth::{
@@ -298,6 +308,9 @@ pub use growth::{
     linear::Linear,
     recursive::Recursive,
 };
-pub use orx_pinned_vec::PinnedVec;
+pub use orx_pinned_vec::{
+    ConcurrentPinnedVec, IntoConcurrentPinnedVec, PinnedVec, PinnedVecGrowthError,
+};
+pub use orx_pseudo_default::PseudoDefault;
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;

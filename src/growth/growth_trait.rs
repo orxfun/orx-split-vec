@@ -1,10 +1,27 @@
 use crate::Fragment;
+use orx_pseudo_default::PseudoDefault;
 
 /// Growth strategy of a split vector.
-pub trait Growth: Clone {
+pub trait Growth: Clone + PseudoDefault {
+    /// Given that the split vector has no fragments yet,
+    /// returns the capacity of the first fragment.
+    fn first_fragment_capacity(&self) -> usize {
+        self.new_fragment_capacity_from([].into_iter())
+    }
+
     /// Given that the split vector contains the given `fragments`,
     /// returns the capacity of the next fragment.
-    fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize;
+    #[inline(always)]
+    fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
+        self.new_fragment_capacity_from(fragments.iter().map(|x| x.capacity()))
+    }
+
+    /// Given that the split vector contains fragments with the given `fragment_capacities`,
+    /// returns the capacity of the next fragment.
+    fn new_fragment_capacity_from(
+        &self,
+        fragment_capacities: impl ExactSizeIterator<Item = usize>,
+    ) -> usize;
 
     /// ***O(fragments.len())*** Returns the location of the element with the given `element_index` on the split vector as a tuple of (fragment-index, index-within-fragment).
     ///

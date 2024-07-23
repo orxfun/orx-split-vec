@@ -1,14 +1,22 @@
+use crate::fragment::fragment_struct::set_fragments_len;
 use crate::range_helpers::{range_end, range_start};
-use crate::{algorithms, Growth, SplitVec};
+use crate::{algorithms, Fragment, Growth, SplitVec};
 use orx_pinned_vec::utils::slice;
-use orx_pinned_vec::{CapacityState, PinnedVec, PinnedVecGrowthError};
+use orx_pinned_vec::{CapacityState, PinnedVec};
+use orx_pseudo_default::PseudoDefault;
 use std::cmp::Ordering;
 use std::ops::RangeBounds;
 
-impl<T, G> PinnedVec<T> for SplitVec<T, G>
-where
-    G: Growth,
-{
+impl<T, G: Growth> PseudoDefault for SplitVec<T, G> {
+    fn pseudo_default() -> Self {
+        let growth = G::pseudo_default();
+        let capacity = growth.first_fragment_capacity();
+        let fragments = vec![Fragment::new(capacity)];
+        Self::from_raw_parts(0, fragments, growth)
+    }
+}
+
+impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     type Iter<'a> = crate::common_traits::iterator::iter::Iter<'a, T> where T: 'a, Self: 'a;
     type IterMut<'a> = crate::common_traits::iterator::iter_mut::IterMut<'a, T> where T: 'a, Self: 'a;
     type IterRev<'a> = crate::common_traits::iterator::iter_rev::IterRev<'a, T> where T: 'a, Self: 'a;
@@ -701,23 +709,8 @@ where
     }
 
     unsafe fn set_len(&mut self, new_len: usize) {
+        set_fragments_len(&mut self.fragments, new_len);
         self.len = new_len;
-
-        let mut remaining = new_len;
-
-        for fragment in &mut self.fragments {
-            let capacity = fragment.capacity();
-            if remaining <= capacity {
-                if fragment.len() != remaining {
-                    unsafe { fragment.set_len(remaining) };
-                }
-            } else {
-                if fragment.len() != capacity {
-                    unsafe { fragment.set_len(capacity) };
-                }
-                remaining -= capacity;
-            }
-        }
     }
 
     fn binary_search_by<F>(&self, f: F) -> Result<usize, usize>
@@ -725,112 +718,6 @@ where
         F: FnMut(&T) -> Ordering,
     {
         algorithms::binary_search::binary_search_by(&self.fragments, f)
-    }
-
-    fn try_grow(&mut self) -> Result<usize, PinnedVecGrowthError> {
-        if self.len() < self.capacity() {
-            Err(PinnedVecGrowthError::CanOnlyGrowWhenVecIsAtCapacity)
-        } else {
-            self.add_fragment();
-            Ok(self.capacity())
-        }
-    }
-
-    #[allow(clippy::unwrap_in_result)]
-    unsafe fn grow_to(
-        &mut self,
-        new_capacity: usize,
-        zero_memory: bool,
-    ) -> Result<usize, PinnedVecGrowthError> {
-        let capacity = self.capacity();
-        match new_capacity.cmp(&capacity) {
-            Ordering::Less | Ordering::Equal => Ok(capacity),
-            Ordering::Greater => {
-                let mut current_capacity = capacity;
-                while new_capacity > current_capacity {
-                    let new_fragment_capacity = match zero_memory {
-                        true => self.add_zeroed_fragment(),
-                        false => self.add_fragment(),
-                    };
-                    current_capacity += new_fragment_capacity;
-                }
-
-                debug_assert_eq!(current_capacity, self.capacity());
-                Ok(current_capacity)
-            }
-        }
-    }
-
-    fn grow_and_initialize<F>(
-        &mut self,
-        new_min_len: usize,
-        f: F,
-    ) -> Result<usize, PinnedVecGrowthError>
-    where
-        F: Fn() -> T,
-        Self: Sized,
-    {
-        let (prior_len, capacity) = (self.len(), self.capacity());
-        if prior_len < capacity {
-            let lf = self.fragments.len() - 1;
-            let last_fragment = &mut self.fragments[lf];
-            debug_assert_eq!(
-                capacity - prior_len,
-                last_fragment.capacity() - last_fragment.len()
-            );
-            for _ in prior_len..capacity {
-                last_fragment.push(f());
-            }
-
-            unsafe { self.set_len(capacity) };
-        }
-
-        let mut capacity = self.capacity();
-        while capacity < new_min_len {
-            capacity += self.add_filled_fragment(&f);
-        }
-
-        Ok(capacity)
-    }
-
-    unsafe fn concurrently_grow_to(
-        &mut self,
-        new_capacity: usize,
-        zero_memory: bool,
-    ) -> Result<usize, PinnedVecGrowthError> {
-        if new_capacity <= self.capacity() {
-            Ok(self.capacity())
-        } else {
-            let mut current_capacity = self.capacity();
-            while new_capacity > current_capacity {
-                if !self.can_concurrently_add_fragment() {
-                    return Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned);
-                }
-
-                let new_fragment_capacity = match zero_memory {
-                    true => self.add_zeroed_fragment(),
-                    false => self.add_fragment(),
-                };
-
-                current_capacity += new_fragment_capacity;
-            }
-            debug_assert_eq!(current_capacity, self.capacity());
-            Ok(current_capacity)
-        }
-    }
-
-    fn try_reserve_maximum_concurrent_capacity(
-        &mut self,
-        new_maximum_capacity: usize,
-    ) -> Result<usize, String> {
-        let current_max = self.maximum_concurrent_capacity();
-        match current_max.cmp(&new_maximum_capacity) {
-            Ordering::Less => {
-                self.concurrent_reserve(new_maximum_capacity)?;
-                Ok(self.maximum_concurrent_capacity())
-            }
-            _ => Ok(self.maximum_concurrent_capacity()),
-        }
     }
 }
 
@@ -840,6 +727,7 @@ mod tests {
     use crate::test_all_growth_types;
     use crate::*;
     use orx_pinned_vec::*;
+    use orx_pseudo_default::PseudoDefault;
 
     #[test]
     fn pinned_vec_tests() {
@@ -1303,169 +1191,14 @@ mod tests {
     }
 
     #[test]
-    fn try_grow() {
-        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            fn grow_one_fragment<G: Growth>(vec: &mut SplitVec<usize, G>) {
-                let old_len = vec.len();
-                let old_capacity = vec.capacity();
-                assert!(old_len < old_capacity);
+    fn pseudo_default() {
+        let vec = SplitVec::<String, Doubling>::pseudo_default();
+        assert_eq!(vec.len(), 0);
 
-                for i in old_len..old_capacity {
-                    assert_eq!(
-                        Err(PinnedVecGrowthError::CanOnlyGrowWhenVecIsAtCapacity),
-                        vec.try_grow()
-                    );
-                    vec.push(i);
-                }
-                assert_eq!(vec.capacity(), old_capacity);
+        let vec = SplitVec::<String, Recursive>::pseudo_default();
+        assert_eq!(vec.len(), 0);
 
-                let result = vec.try_grow();
-                assert!(result.is_ok());
-                let new_capacity = result.expect("is-ok");
-                assert!(new_capacity > old_capacity);
-            }
-
-            for _ in 0..5 {
-                grow_one_fragment(&mut vec);
-            }
-
-            assert_eq!(5 + 1, vec.fragments().len());
-        }
-        test_all_growth_types!(test);
-    }
-
-    #[test]
-    fn grow_to_under_capacity() {
-        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            for _ in 0..10 {
-                assert_eq!(Ok(vec.capacity()), unsafe { vec.grow_to(0, false) });
-                assert_eq!(Ok(vec.capacity()), unsafe {
-                    vec.grow_to(vec.capacity() - 1, true)
-                });
-                assert_eq!(Ok(vec.capacity()), unsafe {
-                    vec.grow_to(vec.capacity(), false)
-                });
-            }
-        }
-        test_all_growth_types!(test);
-    }
-
-    #[test]
-    fn grow_to() {
-        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            for _ in 0..10 {
-                let expected_capacity =
-                    vec.capacity() + vec.growth().new_fragment_capacity(vec.fragments());
-                let expected_num_fragments = vec.fragments().len() + 1;
-
-                assert_eq!(Ok(expected_capacity), unsafe {
-                    vec.grow_to(vec.capacity() + 1, true)
-                });
-
-                assert_eq!(vec.fragments().len(), expected_num_fragments);
-                assert_eq!(vec.capacity(), expected_capacity);
-            }
-
-            vec.clear();
-
-            for _ in 0..10 {
-                let prev_num_fragments = vec.fragments().len();
-
-                let new_capacity =
-                    unsafe { vec.grow_to(vec.capacity() + 1000, false) }.expect("is-okay");
-
-                assert!(vec.fragments().len() >= prev_num_fragments);
-                assert_eq!(vec.capacity(), new_capacity);
-            }
-        }
-
-        test_all_growth_types!(test);
-    }
-
-    #[test]
-    fn grow_to_zeroed() {
-        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            let zero_memory = true;
-
-            for i in 0..(64 * 1025) {
-                vec.push(i);
-            }
-
-            let initial_capacity = vec.capacity();
-            let new_capacity =
-                unsafe { vec.grow_to(initial_capacity + 1, zero_memory) }.expect("must be okay");
-            assert!(new_capacity > initial_capacity);
-
-            for i in initial_capacity..new_capacity {
-                let ptr = unsafe { vec.get_ptr_mut(i) }.expect("must be in bounds");
-                let value = unsafe { *ptr };
-                assert_eq!(value, unsafe { std::mem::zeroed() });
-            }
-        }
-
-        test_all_growth_types!(test);
-    }
-
-    #[test]
-    fn concurrently_grow_to() {
-        fn test_succeed<G: Growth>(mut vec: SplitVec<usize, G>) {
-            let max_con_cap = vec.capacity_state().maximum_concurrent_capacity();
-
-            assert_eq!(Ok(max_con_cap), unsafe {
-                vec.concurrently_grow_to(max_con_cap, true)
-            });
-        }
-
-        fn test_fail<G: Growth>(mut vec: SplitVec<usize, G>) {
-            let max_con_cap = vec.capacity_state().maximum_concurrent_capacity();
-
-            assert_eq!(
-                Err(PinnedVecGrowthError::FailedToGrowWhileKeepingElementsPinned),
-                unsafe { vec.concurrently_grow_to(max_con_cap + 1, false) }
-            );
-        }
-
-        test_all_growth_types!(test_succeed);
-        test_all_growth_types!(test_fail);
-    }
-
-    #[test]
-    fn concurrently_grow_to_zeroed() {
-        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            let zero_memory = true;
-
-            for i in 0..1025 {
-                vec.push(i);
-            }
-
-            let initial_capacity = vec.capacity();
-            let new_capacity =
-                unsafe { vec.concurrently_grow_to(initial_capacity + 1, zero_memory) }
-                    .expect("must be okay");
-            assert!(new_capacity > initial_capacity);
-
-            for i in initial_capacity..new_capacity {
-                let ptr = unsafe { vec.get_ptr_mut(i) }.expect("must be in bounds");
-                let value = unsafe { *ptr };
-                assert_eq!(value, unsafe { std::mem::zeroed() });
-            }
-        }
-
-        test_all_growth_types!(test);
-    }
-
-    #[test]
-    fn try_reserve_maximum_concurrent_capacity() {
-        fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            let current_max = vec.maximum_concurrent_capacity();
-            let target_max = current_max * 2;
-
-            let result = vec.try_reserve_maximum_concurrent_capacity(target_max);
-
-            assert_eq!(result, Ok(vec.maximum_concurrent_capacity()));
-            assert!(vec.maximum_concurrent_capacity() >= target_max);
-        }
-
-        test_all_growth_types!(test);
+        let vec = SplitVec::<String, Linear>::pseudo_default();
+        assert_eq!(vec.len(), 0);
     }
 }

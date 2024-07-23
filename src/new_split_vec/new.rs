@@ -35,16 +35,24 @@ where
     ///
     /// #[derive(Clone)]
     /// pub struct DoubleEverySecondFragment(usize); // any custom growth strategy
+    ///
+    /// impl PseudoDefault for DoubleEverySecondFragment {
+    ///     fn pseudo_default() -> Self {
+    ///         DoubleEverySecondFragment(1)
+    ///     }
+    /// }
+    ///
     /// impl Growth for DoubleEverySecondFragment {
-    ///     fn new_fragment_capacity<T>(&self, fragments: &[Fragment<T>]) -> usize {
-    ///         fragments
+    ///     fn new_fragment_capacity_from(&self, fragment_capacities: impl ExactSizeIterator<Item = usize>) -> usize {
+    ///         let num_fragments = fragment_capacities.len();
+    ///         fragment_capacities
     ///             .last()
     ///             .map(|f| {
-    ///                 let do_double = fragments.len() % 2 == 0;
+    ///                 let do_double = num_fragments % 2 == 0;
     ///                 if do_double {
-    ///                     f.capacity() * 2
+    ///                     f * 2
     ///                 } else {
-    ///                     f.capacity()
+    ///                     f
     ///                 }
     ///             })
     ///             .unwrap_or(self.0)
