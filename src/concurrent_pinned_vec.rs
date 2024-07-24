@@ -8,6 +8,7 @@ use crate::{
 };
 use orx_pinned_vec::{ConcurrentPinnedVec, PinnedVec};
 use std::{
+    fmt::Debug,
     ops::RangeBounds,
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -22,6 +23,17 @@ pub struct ConcurrentSplitVec<T, G: GrowthWithConstantTimeAccess = Doubling> {
     ptr_fragments: *mut Fragment<T>,
     fragment_pointers: Vec<*const T>,
     ptr_fragments_pointers: *const *const T,
+}
+
+impl<T, G: GrowthWithConstantTimeAccess + Debug> Debug for ConcurrentSplitVec<T, G> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ConcurrentSplitVec")
+            .field("capacity", &self.capacity)
+            .field("maximum_capacity", &self.maximum_capacity)
+            .field("num_fragments", &self.num_fragments)
+            .field("growth", &self.growth)
+            .finish()
+    }
 }
 
 impl<T, G: GrowthWithConstantTimeAccess> Drop for ConcurrentSplitVec<T, G> {
