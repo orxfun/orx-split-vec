@@ -39,7 +39,16 @@ pub(super) const CUMULATIVE_CAPACITIES: [usize; 33] = [
     cumulative_capacity(26),
     cumulative_capacity(27),
     cumulative_capacity(28),
+    #[cfg(target_pointer_width = "64")]
     cumulative_capacity(29),
+    #[cfg(target_pointer_width = "64")]
     cumulative_capacity(30),
+    #[cfg(target_pointer_width = "64")]
     cumulative_capacity(31),
+    #[cfg(target_pointer_width = "32")]
+    0,
+    #[cfg(target_pointer_width = "32")]
+    0,
+    #[cfg(target_pointer_width = "32")]
+    0,
 ];
