@@ -363,6 +363,9 @@ mod tests {
         };
 
         let maximum_possible_capacity = *CUMULATIVE_CAPACITIES.last().expect("is not empty");
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(num_fragments(maximum_possible_capacity), Ok(29));
+        #[cfg(target_pointer_width = "64")]
         assert_eq!(num_fragments(maximum_possible_capacity), Ok(32));
     }
 
