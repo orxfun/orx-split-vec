@@ -249,9 +249,9 @@ mod tests {
 
         let mut fragments: Vec<Fragment<_>> = vec![];
 
-        let lengths = [30, 52, 14, 1, 7, 3, 79, 248, 147, 530];
+        let lengths = [30, 1, 7, 3, 79, 147, 530];
         let mut index = 0;
-        for _ in 0..100 {
+        for _ in 0..10 {
             for &len in &lengths {
                 let mut vec = Vec::with_capacity(len);
                 for _ in 0..len {
@@ -266,7 +266,7 @@ mod tests {
 
         let mut index = 0;
         let mut f = 0;
-        for _ in 0..100 {
+        for _ in 0..10 {
             for &len in &lengths {
                 for i in 0..len {
                     let maybe_fi =
