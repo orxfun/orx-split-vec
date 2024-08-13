@@ -2,7 +2,15 @@ const fn fixed_capacity(const_size_power: usize) -> usize {
     usize::pow(2, const_size_power as u32)
 }
 
-pub(super) const FIXED_CAPACITIES: [usize; 32] = [
+const fn capacities_len() -> usize {
+    #[cfg(target_pointer_width = "32")]
+    return 29;
+
+    #[cfg(target_pointer_width = "64")]
+    return 32;
+}
+
+pub(super) const FIXED_CAPACITIES: [usize; capacities_len()] = [
     fixed_capacity(0),
     fixed_capacity(1),
     fixed_capacity(2),
@@ -32,7 +40,10 @@ pub(super) const FIXED_CAPACITIES: [usize; 32] = [
     fixed_capacity(26),
     fixed_capacity(27),
     fixed_capacity(28),
+    #[cfg(target_pointer_width = "64")]
     fixed_capacity(29),
+    #[cfg(target_pointer_width = "64")]
     fixed_capacity(30),
+    #[cfg(target_pointer_width = "64")]
     fixed_capacity(31),
 ];
