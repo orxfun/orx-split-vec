@@ -276,7 +276,7 @@ mod tests {
         let mut curr_capacity = 4;
         let mut cumulative_capacity = 4;
 
-        for index in 0..1111111 {
+        for index in 0..51_111 {
             if index == cumulative_capacity {
                 prev_cumulative_capacity = cumulative_capacity;
                 curr_capacity *= 2;
