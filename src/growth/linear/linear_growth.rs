@@ -152,7 +152,9 @@ impl<T> SplitVec<T, Linear> {
     ///
     /// # Panics
     ///
-    /// Panics if `constant_fragment_capacity_exponent` is zero.
+    /// Panics if `constant_fragment_capacity_exponent` is not within:
+    /// * 1..32 for 64-bit platforms, or
+    /// * 1..29 for 32-bit platforms.
     ///
     /// # Examples
     ///
@@ -184,7 +186,8 @@ impl<T> SplitVec<T, Linear> {
     /// assert_eq!(Some(1), vec.fragments().last().map(|f| f.len()));
     /// ```
     pub fn with_linear_growth(constant_fragment_capacity_exponent: usize) -> Self {
-        assert!(constant_fragment_capacity_exponent > 0);
+        assert!(constant_fragment_capacity_exponent > 0 && constant_fragment_capacity_exponent < FIXED_CAPACITIES.len(),
+            "constant_fragment_capacity_exponent must be within 1..32 (1..29) for 64-bit (32-bit) platforms.");
 
         let constant_fragment_capacity = FIXED_CAPACITIES[constant_fragment_capacity_exponent];
         let fragments = Fragment::new(constant_fragment_capacity).into_fragments();
