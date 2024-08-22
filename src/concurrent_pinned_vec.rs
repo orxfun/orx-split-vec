@@ -184,11 +184,9 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
                     let new_fragment_capacity = self
                         .growth
                         .new_fragment_capacity(self.fragments_for(num_fragments));
-                    let mut new_fragment = Fragment::<T>::new(new_fragment_capacity);
-                    for _ in 0..new_fragment_capacity {
-                        new_fragment.push(fill_with());
-                    }
 
+                    let new_vec: Vec<_> = (0..new_fragment_capacity).map(|_| fill_with()).collect();
+                    let new_fragment = Fragment::from(new_vec);
                     self.push_fragment(new_fragment, num_fragments);
 
                     num_fragments += 1;
