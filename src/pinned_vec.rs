@@ -719,6 +719,29 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     {
         algorithms::binary_search::binary_search_by(&self.fragments, f)
     }
+
+    fn sort(&mut self)
+    where
+        T: Ord,
+    {
+        algorithms::in_place_sort::in_place_sort_by(&mut self.fragments, T::cmp)
+    }
+
+    fn sort_by<F>(&mut self, compare: F)
+    where
+        F: FnMut(&T, &T) -> Ordering,
+    {
+        algorithms::in_place_sort::in_place_sort_by(&mut self.fragments, compare)
+    }
+
+    fn sort_by_key<K, F>(&mut self, mut f: F)
+    where
+        F: FnMut(&T) -> K,
+        K: Ord,
+    {
+        let compare = |a: &T, b: &T| f(a).cmp(&f(b));
+        algorithms::in_place_sort::in_place_sort_by(&mut self.fragments, compare)
+    }
 }
 
 #[cfg(test)]
