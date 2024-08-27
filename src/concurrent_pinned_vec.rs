@@ -1,108 +1,169 @@
 use crate::{
-    fragment::fragment_struct::{
-        maximum_concurrent_capacity, num_fragments_for_capacity, set_fragments_len,
-    },
+    fragment::transformations::{fragment_from_raw, fragment_into_raw},
     range_helpers::{range_end, range_start},
-    Doubling, Fragment, Growth, GrowthWithConstantTimeAccess, SplitVec,
+    Doubling, Fragment, GrowthWithConstantTimeAccess, SplitVec,
 };
 use orx_pinned_vec::{ConcurrentPinnedVec, PinnedVec};
 use std::{
-    fmt::Debug,
+    cell::UnsafeCell,
     ops::RangeBounds,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-/// Concurrent wrapper ([`orx_pinned_vec::ConcurrentPinnedVec`]) for the `SplitVec`.
-pub struct ConcurrentSplitVec<T, G: GrowthWithConstantTimeAccess = Doubling> {
-    capacity: AtomicUsize,
-    maximum_capacity: usize,
-    num_fragments: AtomicUsize,
-    growth: G,
-    fragments: Vec<Fragment<T>>,
-    ptr_fragments: *mut Fragment<T>,
-    fragment_pointers: Vec<*const T>,
-    ptr_fragments_pointers: *const *const T,
+struct FragmentData {
+    f: usize,
+    len: usize,
+    capacity: usize,
 }
 
-impl<T, G: GrowthWithConstantTimeAccess + Debug> Debug for ConcurrentSplitVec<T, G> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ConcurrentSplitVec")
-            .field("capacity", &self.capacity)
-            .field("maximum_capacity", &self.maximum_capacity)
-            .field("num_fragments", &self.num_fragments)
-            .field("growth", &self.growth)
-            .finish()
-    }
+/// Concurrent wrapper ([`orx_pinned_vec::ConcurrentPinnedVec`]) for the `SplitVec`.
+pub struct ConcurrentSplitVec<T, G: GrowthWithConstantTimeAccess = Doubling> {
+    growth: G,
+    data: Vec<UnsafeCell<*mut T>>,
+    num_fragments: AtomicUsize,
+    capacity: AtomicUsize,
+    maximum_capacity: usize,
+    max_num_fragments: usize,
+    pinned_vec_len: usize,
 }
 
 impl<T, G: GrowthWithConstantTimeAccess> Drop for ConcurrentSplitVec<T, G> {
     fn drop(&mut self) {
-        unsafe { self.fragments.set_len(self.num_fragments()) };
+        let mut take_fragment = |_fragment: Fragment<T>| {};
+        unsafe { self.into_fragments(self.pinned_vec_len, &mut take_fragment) };
+        self.zero();
     }
 }
 
 impl<T, G: GrowthWithConstantTimeAccess> ConcurrentSplitVec<T, G> {
-    fn num_fragments(&self) -> usize {
-        self.num_fragments.load(Ordering::SeqCst)
+    unsafe fn get_raw_mut_unchecked_fi(&self, f: usize, i: usize) -> *mut T {
+        let p = *self.data[f].get();
+        p.add(i)
     }
 
-    fn fragments(&self) -> &[Fragment<T>] {
-        let len = self.num_fragments();
-        self.fragments_for(len)
+    unsafe fn get_raw_mut_unchecked_idx(&self, idx: usize) -> *mut T {
+        let (f, i) = self.growth.get_fragment_and_inner_indices_unchecked(idx);
+        self.get_raw_mut_unchecked_fi(f, i)
     }
 
-    fn fragments_for(&self, num_fragments: usize) -> &[Fragment<T>] {
-        unsafe { std::slice::from_raw_parts(self.ptr_fragments, num_fragments) }
+    fn capacity_of(&self, f: usize) -> usize {
+        self.growth.fragment_capacity_of(f)
     }
 
-    fn push_fragment(&self, fragment: Fragment<T>, fragment_index: usize) {
-        let p = unsafe { self.fragment_pointers.as_ptr().add(fragment_index) };
-        let p = p as *mut *const T;
-        unsafe { p.write(fragment.as_ptr()) };
-        unsafe { self.ptr_fragments.add(fragment_index).write(fragment) };
+    fn layout(len: usize) -> std::alloc::Layout {
+        std::alloc::Layout::array::<T>(len).unwrap()
     }
 
-    fn fragment_element_ptr_mut(&self, f: usize, i: usize) -> *mut T {
-        let p = unsafe { self.ptr_fragments_pointers.add(f).read() };
-        let p = unsafe { p.add(i) };
-        p as *mut T
+    unsafe fn to_fragment(&self, data: FragmentData) -> Fragment<T> {
+        let ptr = *self.data[data.f].get();
+        fragment_from_raw(ptr, data.len, data.capacity)
     }
 
-    fn fragment_element_ptr(&self, f: usize, i: usize) -> *const T {
-        let p = unsafe { self.ptr_fragments_pointers.add(f).read() };
-        unsafe { p.add(i) }
-    }
-}
+    unsafe fn into_fragments<F>(&mut self, len: usize, take_fragment: &mut F)
+    where
+        F: FnMut(Fragment<T>),
+    {
+        let mut process_in_cap = |x: FragmentData| {
+            let _fragment_to_drop = self.to_fragment(x);
+        };
+        let mut process_in_len = |x: FragmentData| {
+            let fragment = self.to_fragment(x);
+            take_fragment(fragment);
+        };
 
-fn get_pointers<T>(
-    fragments: &[Fragment<T>],
-    fragments_capacity: usize,
-) -> (Vec<*const T>, *const *const T) {
-    let first = fragments[0].as_ptr();
-    let mut fragment_pointers = vec![first; fragments_capacity];
-    for (f, fragment) in fragments.iter().enumerate() {
-        fragment_pointers[f] = fragment.as_ptr();
+        self.process_fragments(len, &mut process_in_len, &mut process_in_cap);
     }
-    let ptr_fragments_pointers = fragment_pointers.as_ptr();
 
-    (fragment_pointers, ptr_fragments_pointers)
+    unsafe fn process_fragments<P, Q>(
+        &self,
+        len: usize,
+        process_in_len: &mut P,
+        process_in_cap: &mut Q,
+    ) where
+        P: FnMut(FragmentData),
+        Q: FnMut(FragmentData),
+    {
+        let capacity = self.capacity();
+        assert!(capacity >= len);
+
+        let mut remaining_len = len;
+        let mut f = 0;
+        let mut taken_out_capacity = 0;
+
+        while remaining_len > 0 {
+            let capacity = self.capacity_of(f);
+            taken_out_capacity += capacity;
+
+            let len = match remaining_len <= capacity {
+                true => remaining_len,
+                false => capacity,
+            };
+
+            let fragment = FragmentData { f, len, capacity };
+            process_in_len(fragment);
+            remaining_len -= len;
+            f += 1;
+        }
+
+        while capacity > taken_out_capacity {
+            let capacity = self.capacity_of(f);
+            taken_out_capacity += capacity;
+            let len = 0;
+            let fragment = FragmentData { f, len, capacity };
+            process_in_cap(fragment);
+            f += 1;
+        }
+    }
+
+    fn zero(&mut self) {
+        self.num_fragments = 0.into();
+        self.capacity = 0.into();
+        self.maximum_capacity = 0;
+        self.max_num_fragments = 0;
+        self.pinned_vec_len = 0;
+    }
 }
 
 impl<T, G: GrowthWithConstantTimeAccess> From<SplitVec<T, G>> for ConcurrentSplitVec<T, G> {
     fn from(value: SplitVec<T, G>) -> Self {
-        let (mut fragments, growth) = (value.fragments, value.growth);
+        let (fragments, growth, pinned_vec_len) = (value.fragments, value.growth, value.len);
 
-        let data = data(&mut fragments, &growth);
+        let num_fragments = fragments.len();
+        let max_num_fragments = fragments.capacity();
+
+        let mut data = Vec::with_capacity(max_num_fragments);
+        let mut total_len = 0;
+        let mut maximum_capacity = 0;
+
+        for (f, fragment) in fragments.into_iter().enumerate() {
+            let (p, len, cap) = fragment_into_raw(fragment);
+
+            let expected_cap = growth.fragment_capacity_of(f);
+            assert_eq!(cap, expected_cap);
+
+            total_len += len;
+            maximum_capacity += cap;
+
+            data.push(UnsafeCell::new(p as *mut T));
+        }
+        assert_eq!(total_len, pinned_vec_len);
+        let capacity = maximum_capacity;
+
+        for f in num_fragments..data.capacity() {
+            let expected_cap = growth.fragment_capacity_of(f);
+            maximum_capacity += expected_cap;
+
+            data.push(UnsafeCell::new(std::ptr::null_mut()));
+        }
 
         Self {
-            capacity: data.capacity.into(),
-            maximum_capacity: data.maximum_capacity,
-            num_fragments: data.num_fragments.into(),
             growth,
-            fragments,
-            ptr_fragments: data.ptr_fragments,
-            fragment_pointers: data.fragment_pointers,
-            ptr_fragments_pointers: data.ptr_fragments_pointers,
+            data,
+            num_fragments: num_fragments.into(),
+            capacity: capacity.into(),
+            maximum_capacity,
+            max_num_fragments,
+            pinned_vec_len,
         }
     }
 }
@@ -111,53 +172,205 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     type P = SplitVec<T, G>;
 
     unsafe fn into_inner(mut self, len: usize) -> Self::P {
-        self.fragments.set_len(self.num_fragments());
+        let mut fragments = Vec::with_capacity(self.max_num_fragments);
+        let mut take_fragment = |fragment| fragments.push(fragment);
+        self.into_fragments(len, &mut take_fragment);
 
-        let mut fragments = vec![];
-        std::mem::swap(&mut fragments, &mut self.fragments);
-        set_fragments_len(&mut fragments, len);
-
-        self.num_fragments.store(0, Ordering::Relaxed);
-        self.capacity.store(0, Ordering::Relaxed);
-
-        let growth = self.growth.clone();
-
-        // let (mut fragments, growth) = (self.fragments, self.growth.clone());
-
-        SplitVec::from_raw_parts(len, fragments, growth)
+        self.zero();
+        SplitVec::from_raw_parts(len, fragments, self.growth.clone())
     }
 
-    fn capacity(&self) -> usize {
-        self.capacity.load(Ordering::SeqCst)
+    unsafe fn clone_with_len(&self, len: usize) -> Self
+    where
+        T: Clone,
+    {
+        let mut fragments = Vec::with_capacity(self.max_num_fragments);
+        let mut clone_fragment = |x: FragmentData| {
+            let mut fragment = Fragment::new(x.capacity);
+            let dst: *mut T = fragment.data.as_mut_ptr();
+            let src = *self.data[x.f].get();
+            for i in 0..x.len {
+                let value = src.add(i).as_ref().expect("must be some");
+                dst.add(i).write(value.clone());
+            }
+            fragment.set_len(x.len);
+            fragments.push(fragment);
+        };
+
+        self.process_fragments(len, &mut clone_fragment, &mut |_| {});
+
+        let split_vec = SplitVec::from_raw_parts(len, fragments, self.growth.clone());
+        split_vec.into()
+    }
+
+    fn slices<R: RangeBounds<usize>>(&self, range: R) -> <Self::P as PinnedVec<T>>::SliceIter<'_> {
+        use std::slice::from_raw_parts;
+
+        let fragment_and_inner_indices =
+            |i| self.growth.get_fragment_and_inner_indices_unchecked(i);
+
+        let a = range_start(&range);
+        let b = range_end(&range, self.capacity());
+
+        match b.saturating_sub(a) {
+            0 => vec![],
+            _ => {
+                let (sf, si) = fragment_and_inner_indices(a);
+                let (ef, ei) = fragment_and_inner_indices(b - 1);
+
+                match sf == ef {
+                    true => {
+                        let p = unsafe { self.get_raw_mut_unchecked_fi(sf, si) };
+                        let slice = unsafe { from_raw_parts(p, ei - si + 1) };
+                        vec![slice]
+                    }
+                    false => {
+                        let mut vec = Vec::with_capacity(ef - sf + 1);
+
+                        let slice_len = self.capacity_of(sf) - si;
+                        let p = unsafe { self.get_raw_mut_unchecked_fi(sf, si) };
+                        let slice = unsafe { from_raw_parts(p, slice_len) };
+                        vec.push(slice);
+
+                        for f in (sf + 1)..ef {
+                            let slice_len = self.capacity_of(f);
+                            let p = unsafe { self.get_raw_mut_unchecked_fi(f, 0) };
+                            let slice = unsafe { from_raw_parts(p, slice_len) };
+                            vec.push(slice);
+                        }
+
+                        let slice_len = ei + 1;
+                        let p = unsafe { self.get_raw_mut_unchecked_fi(ef, 0) };
+                        let slice = unsafe { from_raw_parts(p, slice_len) };
+                        vec.push(slice);
+
+                        vec
+                    }
+                }
+            }
+        }
+    }
+
+    unsafe fn iter<'a>(&'a self, len: usize) -> impl Iterator<Item = &'a T> + 'a
+    where
+        T: 'a,
+    {
+        self.slices(0..len).into_iter().flat_map(|x| x.iter())
+    }
+
+    unsafe fn slices_mut<R: RangeBounds<usize>>(
+        &self,
+        range: R,
+    ) -> <Self::P as PinnedVec<T>>::SliceMutIter<'_> {
+        use std::slice::from_raw_parts_mut;
+
+        let fragment_and_inner_indices =
+            |i| self.growth.get_fragment_and_inner_indices_unchecked(i);
+
+        let a = range_start(&range);
+        let b = range_end(&range, self.capacity());
+
+        match b.saturating_sub(a) {
+            0 => vec![],
+            _ => {
+                let (sf, si) = fragment_and_inner_indices(a);
+                let (ef, ei) = fragment_and_inner_indices(b - 1);
+
+                match sf == ef {
+                    true => {
+                        let p = unsafe { self.get_raw_mut_unchecked_fi(sf, si) };
+                        let slice = unsafe { from_raw_parts_mut(p, ei - si + 1) };
+                        vec![slice]
+                    }
+                    false => {
+                        let mut vec = Vec::with_capacity(ef - sf + 1);
+
+                        let slice_len = self.capacity_of(sf) - si;
+                        let p = unsafe { self.get_raw_mut_unchecked_fi(sf, si) };
+                        let slice = unsafe { from_raw_parts_mut(p, slice_len) };
+                        vec.push(slice);
+
+                        for f in (sf + 1)..ef {
+                            let slice_len = self.capacity_of(f);
+                            let p = unsafe { self.get_raw_mut_unchecked_fi(f, 0) };
+                            let slice = unsafe { from_raw_parts_mut(p, slice_len) };
+                            vec.push(slice);
+                        }
+
+                        let slice_len = ei + 1;
+                        let p = unsafe { self.get_raw_mut_unchecked_fi(ef, 0) };
+                        let slice = unsafe { from_raw_parts_mut(p, slice_len) };
+                        vec.push(slice);
+
+                        vec
+                    }
+                }
+            }
+        }
+    }
+
+    unsafe fn iter_mut<'a>(&'a mut self, len: usize) -> impl Iterator<Item = &'a mut T> + 'a
+    where
+        T: 'a,
+    {
+        self.slices_mut(0..len)
+            .into_iter()
+            .flat_map(|x| x.iter_mut())
+    }
+
+    unsafe fn get(&self, index: usize) -> Option<&T> {
+        match index < self.capacity() {
+            true => {
+                let p = self.get_raw_mut_unchecked_idx(index);
+                Some(&*p)
+            }
+            false => None,
+        }
+    }
+
+    unsafe fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+        match index < self.capacity() {
+            true => {
+                let p = self.get_raw_mut_unchecked_idx(index);
+                Some(&mut *p)
+            }
+            false => None,
+        }
+    }
+
+    unsafe fn get_ptr_mut(&self, index: usize) -> *mut T {
+        self.get_raw_mut_unchecked_idx(index)
     }
 
     fn max_capacity(&self) -> usize {
         self.maximum_capacity
     }
 
+    fn capacity(&self) -> usize {
+        self.capacity.load(Ordering::Acquire)
+    }
+
     fn grow_to(&self, new_capacity: usize) -> Result<usize, orx_pinned_vec::PinnedVecGrowthError> {
-        let capacity = self.capacity();
+        let capacity = self.capacity.load(Ordering::Acquire);
         match new_capacity <= capacity {
             true => Ok(capacity),
             false => {
-                let mut num_fragments = self.num_fragments();
+                let mut f = self.num_fragments.load(Ordering::Relaxed);
 
                 let mut current_capacity = capacity;
 
                 while new_capacity > current_capacity {
-                    let new_fragment_capacity = self
-                        .growth
-                        .new_fragment_capacity(self.fragments_for(num_fragments));
-                    let new_fragment = Fragment::new(new_fragment_capacity);
+                    let new_fragment_capacity = self.capacity_of(f);
+                    let layout = Self::layout(new_fragment_capacity);
+                    let ptr = unsafe { std::alloc::alloc(layout) } as *mut T;
+                    unsafe { *self.data[f].get() = ptr };
 
-                    self.push_fragment(new_fragment, num_fragments);
-
-                    num_fragments += 1;
+                    f += 1;
                     current_capacity += new_fragment_capacity;
                 }
 
-                self.num_fragments.store(num_fragments, Ordering::SeqCst);
-                self.capacity.store(current_capacity, Ordering::SeqCst);
+                self.num_fragments.store(f, Ordering::SeqCst);
+                self.capacity.store(current_capacity, Ordering::Release);
 
                 Ok(current_capacity)
             }
@@ -172,316 +385,106 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     where
         F: Fn() -> T,
     {
-        let capacity = self.capacity();
+        let capacity = self.capacity.load(Ordering::Acquire);
         match new_capacity <= capacity {
             true => Ok(capacity),
             false => {
-                let mut num_fragments = self.num_fragments();
+                let mut f = self.num_fragments.load(Ordering::Relaxed);
 
                 let mut current_capacity = capacity;
 
                 while new_capacity > current_capacity {
-                    let new_fragment_capacity = self
-                        .growth
-                        .new_fragment_capacity(self.fragments_for(num_fragments));
+                    let new_fragment_capacity = self.capacity_of(f);
+                    let layout = Self::layout(new_fragment_capacity);
+                    let ptr = unsafe { std::alloc::alloc(layout) } as *mut T;
 
-                    let new_vec: Vec<_> = (0..new_fragment_capacity).map(|_| fill_with()).collect();
-                    let new_fragment = Fragment::from(new_vec);
-                    self.push_fragment(new_fragment, num_fragments);
+                    for i in 0..new_fragment_capacity {
+                        unsafe { ptr.add(i).write(fill_with()) };
+                    }
 
-                    num_fragments += 1;
+                    unsafe { *self.data[f].get() = ptr };
+
+                    f += 1;
                     current_capacity += new_fragment_capacity;
                 }
 
-                self.num_fragments.store(num_fragments, Ordering::SeqCst);
-                self.capacity.store(current_capacity, Ordering::SeqCst);
+                self.num_fragments.store(f, Ordering::SeqCst);
+                self.capacity.store(current_capacity, Ordering::Release);
 
                 Ok(current_capacity)
             }
         }
     }
 
-    fn slices<R: RangeBounds<usize>>(&self, range: R) -> <Self::P as PinnedVec<T>>::SliceIter<'_> {
-        use std::slice::from_raw_parts;
-
-        let fragments = self.fragments();
-        let fragment_and_inner_indices =
-            |i| self.growth.get_fragment_and_inner_indices_unchecked(i);
-
-        let a = range_start(&range);
-        let b = range_end(&range, self.capacity());
-
-        match b.saturating_sub(a) {
-            0 => vec![],
-            _ => {
-                let (sf, si) = fragment_and_inner_indices(a);
-                let (ef, ei) = fragment_and_inner_indices(b - 1);
-
-                match sf == ef {
-                    true => {
-                        let p = self.fragment_element_ptr_mut(sf, si);
-                        let slice = unsafe { from_raw_parts(p, ei - si + 1) };
-                        vec![slice]
-                    }
-                    false => {
-                        let mut vec = Vec::with_capacity(ef - sf + 1);
-
-                        let slice_len = fragments[sf].capacity() - si;
-                        let ptr_s = self.fragment_element_ptr_mut(sf, si);
-                        let slice = unsafe { from_raw_parts(ptr_s, slice_len) };
-                        vec.push(slice);
-
-                        for (f, fragment) in fragments.iter().enumerate().take(ef).skip(sf + 1) {
-                            let slice_len = fragment.capacity();
-                            let ptr_s = self.fragment_element_ptr_mut(f, 0);
-                            let slice = unsafe { from_raw_parts(ptr_s, slice_len) };
-                            vec.push(slice);
-                        }
-
-                        let slice_len = ei + 1;
-                        let ptr_s = self.fragment_element_ptr_mut(ef, 0);
-                        let slice = unsafe { from_raw_parts(ptr_s, slice_len) };
-                        vec.push(slice);
-
-                        vec
-                    }
-                }
-            }
-        }
-    }
-
-    unsafe fn slices_mut<R: RangeBounds<usize>>(
-        &self,
-        range: R,
-    ) -> <Self::P as PinnedVec<T>>::SliceMutIter<'_> {
-        use std::slice::from_raw_parts_mut;
-
-        let fragments = self.fragments();
-        let fragment_and_inner_indices =
-            |i| self.growth.get_fragment_and_inner_indices_unchecked(i);
-
-        let a = range_start(&range);
-        let b = range_end(&range, self.capacity());
-
-        match b.saturating_sub(a) {
-            0 => vec![],
-            _ => {
-                let (sf, si) = fragment_and_inner_indices(a);
-                let (ef, ei) = fragment_and_inner_indices(b - 1);
-
-                match sf == ef {
-                    true => {
-                        let p = self.fragment_element_ptr_mut(sf, si);
-                        let slice = from_raw_parts_mut(p, ei - si + 1);
-                        vec![slice]
-                    }
-                    false => {
-                        let mut vec = Vec::with_capacity(ef - sf + 1);
-
-                        let slice_len = fragments[sf].capacity() - si;
-                        let ptr_s = self.fragment_element_ptr_mut(sf, si);
-                        vec.push(from_raw_parts_mut(ptr_s, slice_len));
-
-                        for (f, fragment) in fragments.iter().enumerate().take(ef).skip(sf + 1) {
-                            let slice_len = fragment.capacity();
-                            let ptr_s = self.fragment_element_ptr_mut(f, 0);
-                            vec.push(from_raw_parts_mut(ptr_s, slice_len));
-                        }
-
-                        let slice_len = ei + 1;
-                        let ptr_s = self.fragment_element_ptr_mut(ef, 0);
-                        vec.push(from_raw_parts_mut(ptr_s, slice_len));
-
-                        vec
-                    }
-                }
-            }
-        }
-    }
-
-    unsafe fn iter<'a>(&'a self, len: usize) -> impl Iterator<Item = &'a T> + 'a
+    fn fill_with<F>(&self, range: std::ops::Range<usize>, fill_with: F)
     where
-        T: 'a,
+        F: Fn() -> T,
     {
-        use std::slice::from_raw_parts;
-
-        let fragments = self.fragments();
-
-        let fragment_and_inner_indices =
-            |i| self.growth.get_fragment_and_inner_indices_unchecked(i);
-
-        let range = 0..len;
-
-        let a = range_start(&range);
-        let b = range_end(&range, self.capacity());
-
-        let x = match b.saturating_sub(a) {
-            0 => vec![],
-            _ => {
-                let (sf, si) = fragment_and_inner_indices(a);
-                let (ef, ei) = fragment_and_inner_indices(b - 1);
-
-                match sf == ef {
-                    true => {
-                        let p = fragments[sf].as_ptr().add(si);
-                        let slice = from_raw_parts(p, ei - si + 1);
-                        vec![slice]
-                    }
-                    false => {
-                        let mut vec = Vec::with_capacity(ef - sf + 1);
-
-                        if let Some(first) = fragments.get(sf) {
-                            let slice_len = first.capacity() - si;
-
-                            let p = first.as_ptr().add(si);
-                            let slice = from_raw_parts(p, slice_len);
-                            vec.push(slice);
-                        }
-
-                        for fragment in fragments.iter().take(ef).skip(sf + 1) {
-                            let slice_len = fragment.capacity();
-                            let p = fragment.as_ptr();
-                            let slice = from_raw_parts(p, slice_len);
-                            vec.push(slice);
-                        }
-
-                        if let Some(last) = fragments.get(ef) {
-                            let slice_len = ei + 1;
-                            let p = last.as_ptr();
-                            let slice = from_raw_parts(p, slice_len);
-                            vec.push(slice);
-                        }
-
-                        vec
-                    }
-                }
-            }
-        };
-
-        x.into_iter().flat_map(|x| x.iter())
-    }
-
-    unsafe fn iter_mut<'a>(&'a mut self, len: usize) -> impl Iterator<Item = &'a mut T> + 'a
-    where
-        T: 'a,
-    {
-        self.fragments.set_len(self.num_fragments());
-        set_fragments_len(&mut self.fragments, len);
-        let iter = crate::IterMut::new(&mut self.fragments);
-        iter.take(len)
-    }
-
-    unsafe fn set_pinned_vec_len(&mut self, len: usize) {
-        self.fragments.set_len(self.num_fragments());
-        set_fragments_len(&mut self.fragments, len);
-    }
-
-    unsafe fn get(&self, index: usize) -> Option<&T> {
-        match index < self.capacity() {
-            true => {
-                let (f, i) = self.growth.get_fragment_and_inner_indices_unchecked(index);
-                Some(&*self.fragment_element_ptr(f, i))
-            }
-            false => None,
+        for i in range {
+            unsafe { self.get_ptr_mut(i).write(fill_with()) };
         }
-    }
-
-    unsafe fn get_mut(&mut self, index: usize) -> Option<&mut T> {
-        match index < self.capacity() {
-            true => {
-                let (f, i) = self.growth.get_fragment_and_inner_indices_unchecked(index);
-                Some(&mut *self.fragment_element_ptr_mut(f, i))
-            }
-            false => None,
-        }
-    }
-
-    unsafe fn get_ptr_mut(&self, index: usize) -> *mut T {
-        assert!(index < self.capacity());
-        let (f, i) = self.growth.get_fragment_and_inner_indices_unchecked(index);
-        self.fragment_element_ptr(f, i) as *mut T
     }
 
     unsafe fn reserve_maximum_concurrent_capacity(
         &mut self,
-        current_len: usize,
+        _current_len: usize,
         new_maximum_capacity: usize,
     ) -> usize {
-        self.fragments.set_len(self.num_fragments());
-        set_fragments_len(&mut self.fragments, current_len);
+        assert_eq!(self.max_num_fragments, self.data.len());
+        assert_eq!(self.max_num_fragments, self.data.capacity());
 
-        if self.maximum_capacity < new_maximum_capacity {
-            let (num_required_fragments, target_capacity) =
-                num_fragments_for_capacity(&self.fragments, &self.growth, new_maximum_capacity);
+        let mut num_required_fragments = 0;
+        let mut max_cap = self.maximum_capacity;
+        let f = self.data.len();
 
-            assert!(target_capacity >= new_maximum_capacity);
-
-            let num_additional_fragments =
-                num_required_fragments.saturating_sub(self.fragments.len());
-            self.fragments.reserve(num_additional_fragments);
-
-            self.maximum_capacity = target_capacity;
-            self.ptr_fragments = self.fragments.as_mut_ptr();
-
-            let (fragment_pointers, ptr_fragments_pointers) =
-                get_pointers(&self.fragments, self.fragments.capacity());
-            self.fragment_pointers = fragment_pointers;
-            self.ptr_fragments_pointers = ptr_fragments_pointers;
-
-            self.fragments.set_len(self.fragments.capacity());
+        while max_cap < new_maximum_capacity {
+            max_cap += self.capacity_of(f);
+            num_required_fragments += 1;
         }
+
+        if num_required_fragments > 0 {
+            self.data.reserve_exact(num_required_fragments);
+        }
+
+        for _ in self.max_num_fragments..self.data.capacity() {
+            self.data.push(UnsafeCell::new(std::ptr::null_mut()));
+        }
+
+        self.maximum_capacity = (0..self.data.len()).map(|f| self.capacity_of(f)).sum();
+        self.max_num_fragments = self.data.len();
+
+        while self.maximum_capacity < new_maximum_capacity {
+            let f = self.data.len();
+            self.data.push(UnsafeCell::new(std::ptr::null_mut()));
+
+            let capacity = self.capacity_of(f);
+            self.maximum_capacity += capacity;
+            self.max_num_fragments += 1;
+        }
+
+        assert_eq!(self.max_num_fragments, self.data.len());
+        assert_eq!(self.max_num_fragments, self.data.capacity());
 
         self.maximum_capacity
     }
 
-    unsafe fn clear(&mut self, prior_len: usize) {
-        self.fragments.set_len(self.num_fragments());
-        self.set_pinned_vec_len(prior_len);
+    unsafe fn set_pinned_vec_len(&mut self, len: usize) {
+        self.pinned_vec_len = len;
+    }
 
-        if !self.fragments.is_empty() {
-            self.fragments.truncate(1);
-            self.fragments[0].clear();
+    unsafe fn clear(&mut self, len: usize) {
+        let mut take_fragment = |_fragment: Fragment<T>| {};
+        unsafe { self.into_fragments(len, &mut take_fragment) };
+        self.zero();
+
+        let max_num_fragments = self.data.len();
+        self.data.clear();
+
+        for _ in 0..max_num_fragments {
+            self.data.push(UnsafeCell::new(std::ptr::null_mut()));
         }
 
-        let data = data(&mut self.fragments, &self.growth);
-
-        self.capacity = data.capacity.into();
-        self.maximum_capacity = data.maximum_capacity;
-        self.num_fragments = data.num_fragments.into();
-        self.ptr_fragments = data.ptr_fragments;
-        self.fragment_pointers = data.fragment_pointers;
-        self.ptr_fragments_pointers = data.ptr_fragments_pointers;
+        self.maximum_capacity = (0..self.data.len()).map(|f| self.capacity_of(f)).sum();
+        self.pinned_vec_len = 0;
     }
-}
-
-fn data<G: Growth, T>(fragments: &mut Vec<Fragment<T>>, growth: &G) -> Data<T> {
-    let num_fragments = fragments.len();
-
-    let capacity = fragments.iter().map(|x| x.capacity()).sum::<usize>();
-
-    let maximum_capacity = maximum_concurrent_capacity(fragments, fragments.capacity(), growth);
-
-    let ptr_fragments = fragments.as_mut_ptr();
-
-    let (fragment_pointers, ptr_fragments_pointers) = get_pointers(fragments, fragments.capacity());
-
-    unsafe { fragments.set_len(fragments.capacity()) };
-
-    Data {
-        capacity,
-        maximum_capacity,
-        num_fragments,
-        ptr_fragments,
-        fragment_pointers,
-        ptr_fragments_pointers,
-    }
-}
-
-struct Data<T> {
-    capacity: usize,
-    maximum_capacity: usize,
-    num_fragments: usize,
-    ptr_fragments: *mut Fragment<T>,
-    fragment_pointers: Vec<*const T>,
-    ptr_fragments_pointers: *const *const T,
 }

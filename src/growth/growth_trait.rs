@@ -211,4 +211,7 @@ pub trait GrowthWithConstantTimeAccess: Growth {
             .get_mut(f)
             .map(|fragment| (fragment.as_mut_ptr().add(i), f, i))
     }
+
+    /// ***O(1)*** Returns the capacity of the fragment with the given `fragment_index`.
+    fn fragment_capacity_of(&self, fragment_index: usize) -> usize;
 }

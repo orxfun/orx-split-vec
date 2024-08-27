@@ -1,6 +1,5 @@
-use crate::Growth;
-
-#[derive(Default, Clone)]
+#[derive(Default)]
+#[allow(clippy::include)]
 /// A contagious fragment of the split vector.
 ///
 /// Suppose a split vector contains 10 integers from 0 to 9.
@@ -92,50 +91,6 @@ pub(crate) unsafe fn set_fragments_len<T>(fragments: &mut [Fragment<T>], len: us
                 fragment.set_len(capacity);
                 remaining -= capacity;
             }
-        }
-    }
-}
-
-pub(crate) fn maximum_concurrent_capacity<G: Growth, T>(
-    fragments: &[Fragment<T>],
-    fragments_capacity: usize,
-    growth: &G,
-) -> usize {
-    assert!(fragments_capacity >= fragments.len());
-
-    match fragments_capacity == fragments.len() {
-        true => fragments.iter().map(|x| x.capacity()).sum(),
-        false => {
-            let mut capacities: Vec<_> = fragments.iter().map(|x| x.capacity()).collect();
-            for _ in fragments.len()..fragments_capacity {
-                let new_capacity = growth.new_fragment_capacity_from(capacities.iter().copied());
-                capacities.push(new_capacity);
-            }
-            capacities.iter().sum()
-        }
-    }
-}
-
-pub(crate) fn num_fragments_for_capacity<G: Growth, T>(
-    fragments: &[Fragment<T>],
-    growth: &G,
-    required_capacity: usize,
-) -> (usize, usize) {
-    let current_capacity: usize = fragments.iter().map(|x| x.capacity()).sum();
-
-    match current_capacity >= required_capacity {
-        true => (fragments.len(), current_capacity),
-        false => {
-            let mut num_fragments = fragments.len();
-            let mut capacities: Vec<_> = fragments.iter().map(|x| x.capacity()).collect();
-            let mut capacity = current_capacity;
-            while capacity < required_capacity {
-                let new_capacity = growth.new_fragment_capacity_from(capacities.iter().copied());
-                capacities.push(new_capacity);
-                capacity += new_capacity;
-                num_fragments += 1;
-            }
-            (num_fragments, capacity)
         }
     }
 }

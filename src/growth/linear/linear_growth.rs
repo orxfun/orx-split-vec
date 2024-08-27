@@ -44,7 +44,8 @@ pub struct Linear {
 }
 
 impl Linear {
-    pub(crate) fn new(constant_fragment_capacity_exponent: usize) -> Self {
+    /// Creates a linear growth where each fragment will have a capacity of `2 ^ constant_fragment_capacity_exponent`.
+    pub fn new(constant_fragment_capacity_exponent: usize) -> Self {
         let constant_fragment_capacity = FIXED_CAPACITIES[constant_fragment_capacity_exponent];
         Self {
             constant_fragment_capacity_exponent,
@@ -141,6 +142,10 @@ impl GrowthWithConstantTimeAccess for Linear {
         let f = element_index >> self.constant_fragment_capacity_exponent;
         let i = element_index % self.constant_fragment_capacity;
         (f, i)
+    }
+
+    fn fragment_capacity_of(&self, _: usize) -> usize {
+        self.constant_fragment_capacity
     }
 }
 
