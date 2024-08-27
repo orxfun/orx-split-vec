@@ -156,6 +156,10 @@ impl GrowthWithConstantTimeAccess for Doubling {
         let f = OFFSET_FRAGMENT_IDX - leading_zeros;
         (f, element_index - CUMULATIVE_CAPACITIES[f])
     }
+
+    fn fragment_capacity_of(&self, fragment_index: usize) -> usize {
+        CAPACITIES[fragment_index]
+    }
 }
 
 impl<T> SplitVec<T, Doubling> {

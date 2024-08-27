@@ -14,9 +14,14 @@ impl<T, G: GrowthWithConstantTimeAccess> IntoConcurrentPinnedVec<T> for SplitVec
     {
         if let Some(fragment) = self.fragments.last_mut() {
             let (len, capacity) = (fragment.len(), fragment.capacity());
-            for _ in len..capacity {
+            let num_additional = capacity - len;
+            for _ in 0..num_additional {
                 fragment.push(fill_with());
             }
+
+            self.len += num_additional;
+
+            debug_assert_eq!(self.len, self.fragments.iter().map(|x| x.len()).sum());
         }
 
         self.into()
