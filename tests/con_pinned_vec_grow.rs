@@ -102,3 +102,99 @@ fn con_pin_vec_grow_filled() {
     test(SplitVec::with_doubling_growth_and_fragments_capacity(32));
     test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
 }
+
+#[test]
+fn reserve() {
+    fn test<G: GrowthWithConstantTimeAccess>(vec: SplitVec<String, G>) {
+        let initial_capacity = vec.capacity();
+
+        let mut con_vec = vec.into_concurrent();
+        let max_cap = con_vec.max_capacity();
+
+        unsafe { con_vec.get_ptr_mut(0).write("first".to_string()) };
+
+        assert_eq!(con_vec.capacity(), initial_capacity);
+
+        unsafe { con_vec.reserve_maximum_concurrent_capacity(0, max_cap + 1) };
+        let new_capacity = con_vec.capacity();
+        assert_eq!(new_capacity, initial_capacity);
+        assert!(con_vec.max_capacity() >= max_cap + 1);
+
+        let vec = unsafe { con_vec.into_inner(1) };
+
+        assert_eq!(vec.len(), 1);
+        assert_eq!(vec.capacity(), initial_capacity);
+        assert_eq!(&vec[0], &"first".to_string());
+    }
+
+    test(SplitVec::with_doubling_growth_and_fragments_capacity(16));
+    test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
+}
+
+#[test]
+fn into_concurrent_fill_with() {
+    fn test<G: GrowthWithConstantTimeAccess>(vec: SplitVec<String, G>) {
+        let initial_capacity = vec.capacity();
+        let vec2 = vec.clone();
+
+        let con_vec = vec.into_concurrent_filled_with(|| "x".to_string());
+        let vec = unsafe { con_vec.into_inner(initial_capacity) };
+        assert_eq!(
+            vec,
+            (0..initial_capacity)
+                .map(|_| "x".to_string())
+                .collect::<Vec<_>>()
+        );
+
+        let mut vec = vec2;
+        vec.push("y".to_string());
+        let con_vec = vec.into_concurrent_filled_with(|| "x".to_string());
+        let vec = unsafe { con_vec.into_inner(initial_capacity) };
+        assert_eq!(&vec[0], &"y".to_string());
+        assert_eq!(
+            vec.iter().skip(1).cloned().collect::<Vec<_>>(),
+            (1..initial_capacity)
+                .map(|_| "x".to_string())
+                .collect::<Vec<_>>()
+        );
+    }
+    test(SplitVec::with_doubling_growth_and_fragments_capacity(32));
+    test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
+}
+
+#[test]
+fn reserve_fill_with() {
+    fn test<G: GrowthWithConstantTimeAccess>(vec: SplitVec<String, G>) {
+        let initial_capacity = vec.capacity();
+
+        let mut con_vec = vec.into_concurrent_filled_with(|| "x".to_string());
+        let max_cap = con_vec.max_capacity();
+
+        assert_eq!(con_vec.capacity(), initial_capacity);
+
+        unsafe {
+            con_vec.reserve_maximum_concurrent_capacity_fill_with(
+                initial_capacity,
+                max_cap + 1,
+                || "y".to_string(),
+            )
+        };
+        let new_capacity = con_vec.capacity();
+        assert_eq!(new_capacity, initial_capacity);
+        assert!(con_vec.max_capacity() >= max_cap + 1);
+
+        let vec = unsafe { con_vec.into_inner(initial_capacity) };
+
+        assert_eq!(vec.len(), initial_capacity);
+        assert_eq!(vec.capacity(), initial_capacity);
+        assert_eq!(
+            vec,
+            (0..initial_capacity)
+                .map(|_| "x".to_string())
+                .collect::<Vec<_>>()
+        );
+    }
+
+    test(SplitVec::with_doubling_growth_and_fragments_capacity(16));
+    test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
+}
