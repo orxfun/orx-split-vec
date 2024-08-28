@@ -20,7 +20,6 @@ struct FragmentData {
 pub struct ConcurrentSplitVec<T, G: GrowthWithConstantTimeAccess = Doubling> {
     growth: G,
     data: Vec<UnsafeCell<*mut T>>,
-    num_fragments: AtomicUsize,
     capacity: AtomicUsize,
     maximum_capacity: usize,
     max_num_fragments: usize,
@@ -30,7 +29,7 @@ pub struct ConcurrentSplitVec<T, G: GrowthWithConstantTimeAccess = Doubling> {
 impl<T, G: GrowthWithConstantTimeAccess> Drop for ConcurrentSplitVec<T, G> {
     fn drop(&mut self) {
         let mut take_fragment = |_fragment: Fragment<T>| {};
-        unsafe { self.into_fragments(self.pinned_vec_len, &mut take_fragment) };
+        unsafe { self.process_into_fragments(self.pinned_vec_len, &mut take_fragment) };
         self.zero();
     }
 }
@@ -51,7 +50,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentSplitVec<T, G> {
     }
 
     fn layout(len: usize) -> std::alloc::Layout {
-        std::alloc::Layout::array::<T>(len).unwrap()
+        std::alloc::Layout::array::<T>(len).expect("len must not overflow")
     }
 
     unsafe fn to_fragment(&self, data: FragmentData) -> Fragment<T> {
@@ -59,7 +58,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentSplitVec<T, G> {
         fragment_from_raw(ptr, data.len, data.capacity)
     }
 
-    unsafe fn into_fragments<F>(&mut self, len: usize, take_fragment: &mut F)
+    unsafe fn process_into_fragments<F>(&mut self, len: usize, take_fragment: &mut F)
     where
         F: FnMut(Fragment<T>),
     {
@@ -116,11 +115,22 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentSplitVec<T, G> {
     }
 
     fn zero(&mut self) {
-        self.num_fragments = 0.into();
         self.capacity = 0.into();
         self.maximum_capacity = 0;
         self.max_num_fragments = 0;
         self.pinned_vec_len = 0;
+    }
+
+    fn num_fragments_for_capacity(&self, capacity: usize) -> usize {
+        match capacity {
+            0 => 0,
+            _ => {
+                self.growth
+                    .get_fragment_and_inner_indices_unchecked(capacity - 1)
+                    .0
+                    + 1
+            }
+        }
     }
 }
 
@@ -144,7 +154,7 @@ impl<T, G: GrowthWithConstantTimeAccess> From<SplitVec<T, G>> for ConcurrentSpli
             total_len += len;
             maximum_capacity += cap;
 
-            data.push(UnsafeCell::new(p as *mut T));
+            data.push(UnsafeCell::new(p));
         }
         assert_eq!(total_len, pinned_vec_len);
         let capacity = maximum_capacity;
@@ -159,7 +169,6 @@ impl<T, G: GrowthWithConstantTimeAccess> From<SplitVec<T, G>> for ConcurrentSpli
         Self {
             growth,
             data,
-            num_fragments: num_fragments.into(),
             capacity: capacity.into(),
             maximum_capacity,
             max_num_fragments,
@@ -174,7 +183,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     unsafe fn into_inner(mut self, len: usize) -> Self::P {
         let mut fragments = Vec::with_capacity(self.max_num_fragments);
         let mut take_fragment = |fragment| fragments.push(fragment);
-        self.into_fragments(len, &mut take_fragment);
+        self.process_into_fragments(len, &mut take_fragment);
 
         self.zero();
         SplitVec::from_raw_parts(len, fragments, self.growth.clone())
@@ -355,8 +364,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         match new_capacity <= capacity {
             true => Ok(capacity),
             false => {
-                let mut f = self.num_fragments.load(Ordering::Relaxed);
-
+                let mut f = self.num_fragments_for_capacity(capacity);
                 let mut current_capacity = capacity;
 
                 while new_capacity > current_capacity {
@@ -369,7 +377,6 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
                     current_capacity += new_fragment_capacity;
                 }
 
-                self.num_fragments.store(f, Ordering::SeqCst);
                 self.capacity.store(current_capacity, Ordering::Release);
 
                 Ok(current_capacity)
@@ -389,7 +396,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         match new_capacity <= capacity {
             true => Ok(capacity),
             false => {
-                let mut f = self.num_fragments.load(Ordering::Relaxed);
+                let mut f = self.num_fragments_for_capacity(capacity);
 
                 let mut current_capacity = capacity;
 
@@ -408,7 +415,6 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
                     current_capacity += new_fragment_capacity;
                 }
 
-                self.num_fragments.store(f, Ordering::SeqCst);
                 self.capacity.store(current_capacity, Ordering::Release);
 
                 Ok(current_capacity)
@@ -468,13 +474,25 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         self.maximum_capacity
     }
 
+    unsafe fn reserve_maximum_concurrent_capacity_fill_with<F>(
+        &mut self,
+        current_len: usize,
+        new_maximum_capacity: usize,
+        _fill_with: F,
+    ) -> usize
+    where
+        F: Fn() -> T,
+    {
+        self.reserve_maximum_concurrent_capacity(current_len, new_maximum_capacity)
+    }
+
     unsafe fn set_pinned_vec_len(&mut self, len: usize) {
         self.pinned_vec_len = len;
     }
 
     unsafe fn clear(&mut self, len: usize) {
         let mut take_fragment = |_fragment: Fragment<T>| {};
-        unsafe { self.into_fragments(len, &mut take_fragment) };
+        unsafe { self.process_into_fragments(len, &mut take_fragment) };
         self.zero();
 
         let max_num_fragments = self.data.len();

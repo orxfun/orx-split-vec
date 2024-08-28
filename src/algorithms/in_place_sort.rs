@@ -5,7 +5,7 @@ pub fn in_place_sort_by<T, F>(fragments: &mut [Fragment<T>], mut compare: F)
 where
     F: FnMut(&T, &T) -> Ordering,
 {
-    if fragments.len() == 0 {
+    if fragments.is_empty() {
         return;
     }
 
@@ -60,9 +60,9 @@ where
         true => None,
         false => {
             let mut best = &fragments[r_best][0];
-            for q in (r_best + 1)..fragments.len() {
-                if let Less = compare(&fragments[q][0], best) {
-                    (best, r_best) = (&fragments[q][0], q);
+            for (q, fragment) in fragments.iter().enumerate().skip(r_best + 1) {
+                if let Less = compare(&fragment[0], best) {
+                    (best, r_best) = (&fragment[0], q);
                 }
             }
 

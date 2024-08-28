@@ -1,5 +1,4 @@
 #[derive(Default)]
-#[allow(clippy::include)]
 /// A contagious fragment of the split vector.
 ///
 /// Suppose a split vector contains 10 integers from 0 to 9.
