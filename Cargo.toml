@@ -11,7 +11,7 @@ categories = ["data-structures", "rust-patterns"]
 
 [dependencies]
 orx-pseudo-default = "1.4"
-orx-pinned-vec = { path = "../orx-pinned-vec" }
+orx-pinned-vec = "3.7"
 
 [[bench]]
 name = "serial_access"
