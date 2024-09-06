@@ -1,12 +1,13 @@
 use crate::{test_all_growth_types, Growth, SplitVec};
+use alloc::vec::Vec;
 use orx_pinned_vec::PinnedVec;
 
 #[test]
 fn iter_mut() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
         let n = 564;
-        let stdvec: Vec<_> = (0..n).collect();
-        vec.extend(stdvec);
+        let std_vec: Vec<_> = (0..n).collect();
+        vec.extend(std_vec);
 
         let mut iter = vec.iter_mut();
         #[allow(clippy::while_let_on_iterator)]

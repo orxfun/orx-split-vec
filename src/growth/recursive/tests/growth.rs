@@ -1,4 +1,5 @@
 use crate::{Fragment, Growth, Recursive};
+use alloc::vec::Vec;
 
 #[test]
 fn new_cap() {

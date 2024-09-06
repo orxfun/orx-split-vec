@@ -1,17 +1,18 @@
 use crate::fragment::fragment_struct::set_fragments_len;
 use crate::range_helpers::{range_end, range_start};
 use crate::{algorithms, Fragment, Growth, SplitVec};
+use alloc::vec::Vec;
+use core::cmp::Ordering;
+use core::ops::RangeBounds;
 use orx_pinned_vec::utils::slice;
 use orx_pinned_vec::{CapacityState, PinnedVec};
 use orx_pseudo_default::PseudoDefault;
-use std::cmp::Ordering;
-use std::ops::RangeBounds;
 
 impl<T, G: Growth> PseudoDefault for SplitVec<T, G> {
     fn pseudo_default() -> Self {
         let growth = G::pseudo_default();
         let capacity = growth.first_fragment_capacity();
-        let fragments = vec![Fragment::new(capacity)];
+        let fragments = alloc::vec![Fragment::new(capacity)];
         Self::from_raw_parts(0, fragments, growth)
     }
 }
@@ -515,7 +516,7 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
             let ptr_a = unsafe { self.fragments[af].as_mut_ptr().add(ai) };
             let ref_a = unsafe { &mut *ptr_a };
             let ref_b = &mut self.fragments[bf][bi];
-            std::mem::swap(ref_a, ref_b);
+            core::mem::swap(ref_a, ref_b);
         }
     }
 
@@ -583,13 +584,13 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
         let b = range_end(&range, self.len());
 
         match b.saturating_sub(a) {
-            0 => vec![],
+            0 => Vec::new(),
             _ => match self.get_fragment_and_inner_indices(a) {
-                None => vec![],
+                None => Vec::new(),
                 Some((sf, si)) => match self.get_fragment_and_inner_indices(b - 1) {
-                    None => vec![],
+                    None => Vec::new(),
                     Some((ef, ei)) => match sf.cmp(&ef) {
-                        Ordering::Equal => vec![&self.fragments[sf][si..=ei]],
+                        Ordering::Equal => alloc::vec![&self.fragments[sf][si..=ei]],
                         _ => {
                             let mut vec = Vec::with_capacity(ef - sf + 1);
                             vec.push(&self.fragments[sf][si..]);
@@ -657,17 +658,18 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     /// assert!(vec.slices_mut(10..11).is_empty());
     /// ```
     fn slices_mut<R: RangeBounds<usize>>(&mut self, range: R) -> Self::SliceMutIter<'_> {
-        use std::slice::from_raw_parts_mut;
+        use alloc::vec;
+        use core::slice::from_raw_parts_mut;
 
         let a = range_start(&range);
         let b = range_end(&range, self.len());
 
         match b.saturating_sub(a) {
-            0 => vec![],
+            0 => Vec::new(),
             _ => match self.get_fragment_and_inner_indices(a) {
-                None => vec![],
+                None => Vec::new(),
                 Some((sf, si)) => match self.get_fragment_and_inner_indices(b - 1) {
-                    None => vec![],
+                    None => Vec::new(),
                     Some((ef, ei)) => match sf.cmp(&ef) {
                         Ordering::Equal => vec![&mut self.fragments[sf][si..=ei]],
                         _ => {
@@ -749,6 +751,8 @@ mod tests {
     use crate::test::macros::Num;
     use crate::test_all_growth_types;
     use crate::*;
+    use alloc::string::String;
+    use alloc::vec::Vec;
     use orx_pinned_vec::*;
     use orx_pseudo_default::PseudoDefault;
 
@@ -765,7 +769,7 @@ mod tests {
     #[test]
     fn index_of_and_contains() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            let mut another_vec = vec![];
+            let mut another_vec = Vec::new();
             for i in 0..157 {
                 vec.push(i);
                 another_vec.push(i);
@@ -1102,7 +1106,7 @@ mod tests {
             }
 
             let slice = vec.slices(0..vec.len());
-            let mut combined = vec![];
+            let mut combined = Vec::new();
             for s in slice {
                 combined.extend_from_slice(s);
             }
@@ -1114,7 +1118,7 @@ mod tests {
             let begin = vec.len() / 4;
             let end = 3 * vec.len() / 4;
             let slice = vec.slices(begin..end);
-            let mut combined = vec![];
+            let mut combined = Vec::new();
             for s in slice {
                 combined.extend_from_slice(s);
             }
@@ -1136,7 +1140,7 @@ mod tests {
             }
 
             let slice = vec.slices_mut(0..vec.len());
-            let mut combined = vec![];
+            let mut combined = Vec::new();
             for s in slice {
                 combined.extend_from_slice(s);
             }
@@ -1148,7 +1152,7 @@ mod tests {
             let begin = vec.len() / 4;
             let end = 3 * vec.len() / 4;
             let slice = vec.slices_mut(begin..end);
-            let mut combined = vec![];
+            let mut combined = Vec::new();
             for s in slice {
                 combined.extend_from_slice(s);
             }

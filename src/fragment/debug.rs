@@ -1,11 +1,11 @@
 use crate::Fragment;
-use std::fmt::Debug;
+use core::fmt::Debug;
 
 impl<T> Debug for Fragment<T>
 where
     T: Debug,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         self.data.fmt(f)
     }
 }

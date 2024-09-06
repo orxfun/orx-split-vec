@@ -1,4 +1,5 @@
 use crate::Fragment;
+use alloc::vec::Vec;
 
 impl<T: Clone> Clone for Fragment<T> {
     fn clone(&self) -> Self {

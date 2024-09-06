@@ -1,10 +1,11 @@
 use crate::*;
+use alloc::vec::Vec;
 
 #[test]
 fn append_when_empty() {
     let mut rec = SplitVec::with_recursive_growth();
 
-    rec.append(vec!['b', 'c']);
+    rec.append(alloc::vec!['b', 'c']);
     assert_eq!(rec, &['b', 'c']);
 
     _ = rec.pop();
@@ -21,7 +22,7 @@ fn append_when_empty() {
     rec.push('f');
     assert_eq!(rec, &['a', 'b', 'c', 'd', 'e', 'f']);
 
-    rec.append(vec!['h']);
+    rec.append(alloc::vec!['h']);
     assert_eq!(rec, &['a', 'b', 'c', 'd', 'e', 'f', 'h']);
 }
 

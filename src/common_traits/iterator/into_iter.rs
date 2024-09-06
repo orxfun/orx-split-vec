@@ -1,5 +1,6 @@
 use crate::{Fragment, Growth, SplitVec};
-use std::iter::FusedIterator;
+use alloc::vec::Vec;
+use core::iter::FusedIterator;
 
 impl<T, G: Growth> IntoIterator for SplitVec<T, G> {
     type Item = T;
@@ -14,8 +15,8 @@ impl<T, G: Growth> IntoIterator for SplitVec<T, G> {
 ///
 /// This struct is created by the `into_iter` method on `SplitVec` (provided by the `IntoIterator` trait).
 pub struct IntoIter<T> {
-    outer: std::vec::IntoIter<Fragment<T>>,
-    inner: std::vec::IntoIter<T>,
+    outer: alloc::vec::IntoIter<Fragment<T>>,
+    inner: alloc::vec::IntoIter<T>,
 }
 
 impl<T> IntoIter<T> {
@@ -24,7 +25,7 @@ impl<T> IntoIter<T> {
         let inner = outer
             .next()
             .map(|f| f.data.into_iter())
-            .unwrap_or(vec![].into_iter());
+            .unwrap_or(Vec::new().into_iter());
 
         Self { outer, inner }
     }

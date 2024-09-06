@@ -1,6 +1,7 @@
 use crate::growth::growth_trait::{Growth, GrowthWithConstantTimeAccess};
 use crate::growth::linear::constants::FIXED_CAPACITIES;
 use crate::{Fragment, SplitVec};
+use alloc::string::String;
 use orx_pseudo_default::PseudoDefault;
 
 /// Strategy which allows the split vector to grow linearly.

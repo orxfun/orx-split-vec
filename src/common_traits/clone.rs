@@ -1,4 +1,5 @@
 use crate::{Growth, SplitVec};
+use alloc::vec::Vec;
 use orx_pinned_vec::PinnedVec;
 
 impl<T, G> Clone for SplitVec<T, G>

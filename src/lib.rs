@@ -277,6 +277,9 @@
     clippy::missing_panics_doc,
     clippy::todo
 )]
+#![no_std]
+
+extern crate alloc;
 
 mod algorithms;
 mod common_traits;
@@ -290,6 +293,7 @@ mod range_helpers;
 mod resize_multiple;
 mod slice;
 mod split_vec;
+
 #[cfg(test)]
 pub(crate) mod test;
 

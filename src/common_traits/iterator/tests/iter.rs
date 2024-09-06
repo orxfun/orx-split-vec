@@ -1,12 +1,13 @@
 use crate::{test_all_growth_types, Growth, SplitVec};
+use alloc::vec::Vec;
 use orx_pinned_vec::PinnedVec;
 
 #[test]
 fn iter() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
         let n = 564;
-        let stdvec: Vec<_> = (0..n).collect();
-        vec.extend(stdvec);
+        let std_vec: Vec<_> = (0..n).collect();
+        vec.extend(std_vec);
 
         for (i, x) in vec.iter().enumerate() {
             assert_eq!(i, *x);
@@ -48,7 +49,7 @@ fn iter_one_fragment() {
         vec.push(0);
         vec.push(1);
 
-        assert_eq!(vec![0, 1], vec.iter().copied().collect::<Vec<_>>());
+        assert_eq!(alloc::vec![0, 1], vec.iter().copied().collect::<Vec<_>>());
     }
     test_all_growth_types!(test);
 }
@@ -57,8 +58,8 @@ fn iter_one_fragment() {
 fn clone() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
         let n = 564;
-        let stdvec: Vec<_> = (0..n).collect();
-        vec.extend(stdvec);
+        let std_vec: Vec<_> = (0..n).collect();
+        vec.extend(std_vec);
 
         let iter1 = vec.iter();
         let iter2 = iter1.clone();
@@ -75,8 +76,8 @@ fn clone() {
 fn all() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
         let n = 564;
-        let stdvec: Vec<_> = (0..n).collect();
-        vec.extend(stdvec);
+        let std_vec: Vec<_> = (0..n).collect();
+        vec.extend(std_vec);
 
         assert!(vec.iter().all(|x| *x as isize >= -1));
         assert!(!vec.iter().all(|x| *x < 357));
@@ -88,8 +89,8 @@ fn all() {
 fn any() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
         let n = 564;
-        let stdvec: Vec<_> = (0..n).collect();
-        vec.extend(stdvec);
+        let std_vec: Vec<_> = (0..n).collect();
+        vec.extend(std_vec);
 
         assert!(!vec.iter().any(|x| *x as isize <= -1));
         assert!(vec.iter().any(|x| *x < 357));
@@ -101,8 +102,8 @@ fn any() {
 fn fold() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
         let n = 564;
-        let stdvec: Vec<_> = (0..n).collect();
-        vec.extend(stdvec);
+        let std_vec: Vec<_> = (0..n).collect();
+        vec.extend(std_vec);
 
         let sum = vec.iter().fold(0isize, |x, b| {
             if b % 2 == 0 {

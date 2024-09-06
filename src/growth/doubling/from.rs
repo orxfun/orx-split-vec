@@ -1,5 +1,6 @@
 use super::constants::CUMULATIVE_CAPACITIES;
 use crate::{Doubling, Fragment, SplitVec};
+use alloc::vec::Vec;
 
 impl<T: Clone> From<Vec<T>> for SplitVec<T, Doubling> {
     /// Converts a `Vec` into a `SplitVec`.

@@ -77,7 +77,7 @@ where
     pub fn with_growth(growth: G) -> Self {
         let capacity = Growth::new_fragment_capacity::<T>(&growth, &[]);
         let fragment = Fragment::new(capacity);
-        let fragments = vec![fragment];
+        let fragments = alloc::vec![fragment];
         SplitVec::from_raw_parts(0, fragments, growth)
     }
 }

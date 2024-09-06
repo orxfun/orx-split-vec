@@ -1,12 +1,13 @@
 use crate::{test_all_growth_types, Growth, SplitVec};
+use alloc::vec::Vec;
 use orx_pinned_vec::PinnedVec;
 
 #[test]
 fn iter() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
         let n = 564;
-        let stdvec: Vec<_> = (0..n).collect();
-        vec.extend(stdvec);
+        let std_vec: Vec<_> = (0..n).collect();
+        vec.extend(std_vec);
 
         for (i, x) in vec.iter_rev().enumerate() {
             assert_eq!(n - i - 1, *x);
@@ -48,7 +49,10 @@ fn iter_one_fragment() {
         vec.push(0);
         vec.push(1);
 
-        assert_eq!(vec![1, 0], vec.iter_rev().copied().collect::<Vec<_>>());
+        assert_eq!(
+            alloc::vec![1, 0],
+            vec.iter_rev().copied().collect::<Vec<_>>()
+        );
     }
     test_all_growth_types!(test);
 }
@@ -57,8 +61,8 @@ fn iter_one_fragment() {
 fn clone() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
         let n = 564;
-        let stdvec: Vec<_> = (0..n).collect();
-        vec.extend(stdvec);
+        let std_vec: Vec<_> = (0..n).collect();
+        vec.extend(std_vec);
 
         let iter1 = vec.iter_rev();
         let iter2 = iter1.clone();

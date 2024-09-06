@@ -2,8 +2,8 @@ use crate::{
     range_helpers::{range_end, range_start},
     Growth, SplitVec,
 };
+use core::{cmp::Ordering, ops::RangeBounds};
 use orx_pinned_vec::PinnedVec;
-use std::{cmp::Ordering, ops::RangeBounds};
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 /// Returns the result of trying to get a slice as a contagious memory from the split vector.

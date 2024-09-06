@@ -69,6 +69,7 @@ where
 mod tests {
     use crate::test_all_growth_types;
     use crate::*;
+    use alloc::vec::Vec;
 
     #[test]
     fn extend() {

@@ -3,12 +3,11 @@ use crate::{
     range_helpers::{range_end, range_start},
     Doubling, Fragment, GrowthWithConstantTimeAccess, SplitVec,
 };
+use alloc::vec::Vec;
+use core::cell::UnsafeCell;
+use core::ops::RangeBounds;
+use core::sync::atomic::{AtomicUsize, Ordering};
 use orx_pinned_vec::{ConcurrentPinnedVec, PinnedVec};
-use std::{
-    cell::UnsafeCell,
-    ops::RangeBounds,
-    sync::atomic::{AtomicUsize, Ordering},
-};
 
 struct FragmentData {
     f: usize,
@@ -49,8 +48,8 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentSplitVec<T, G> {
         self.growth.fragment_capacity_of(f)
     }
 
-    fn layout(len: usize) -> std::alloc::Layout {
-        std::alloc::Layout::array::<T>(len).expect("len must not overflow")
+    fn layout(len: usize) -> alloc::alloc::Layout {
+        alloc::alloc::Layout::array::<T>(len).expect("len must not overflow")
     }
 
     unsafe fn to_fragment(&self, data: FragmentData) -> Fragment<T> {
@@ -163,7 +162,7 @@ impl<T, G: GrowthWithConstantTimeAccess> From<SplitVec<T, G>> for ConcurrentSpli
             let expected_cap = growth.fragment_capacity_of(f);
             maximum_capacity += expected_cap;
 
-            data.push(UnsafeCell::new(std::ptr::null_mut()));
+            data.push(UnsafeCell::new(core::ptr::null_mut()));
         }
 
         Self {
@@ -213,7 +212,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     }
 
     fn slices<R: RangeBounds<usize>>(&self, range: R) -> <Self::P as PinnedVec<T>>::SliceIter<'_> {
-        use std::slice::from_raw_parts;
+        use core::slice::from_raw_parts;
 
         let fragment_and_inner_indices =
             |i| self.growth.get_fragment_and_inner_indices_unchecked(i);
@@ -222,7 +221,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         let b = range_end(&range, self.capacity());
 
         match b.saturating_sub(a) {
-            0 => vec![],
+            0 => alloc::vec![],
             _ => {
                 let (sf, si) = fragment_and_inner_indices(a);
                 let (ef, ei) = fragment_and_inner_indices(b - 1);
@@ -231,7 +230,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
                     true => {
                         let p = unsafe { self.get_raw_mut_unchecked_fi(sf, si) };
                         let slice = unsafe { from_raw_parts(p, ei - si + 1) };
-                        vec![slice]
+                        alloc::vec![slice]
                     }
                     false => {
                         let mut vec = Vec::with_capacity(ef - sf + 1);
@@ -271,7 +270,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         &self,
         range: R,
     ) -> <Self::P as PinnedVec<T>>::SliceMutIter<'_> {
-        use std::slice::from_raw_parts_mut;
+        use core::slice::from_raw_parts_mut;
 
         let fragment_and_inner_indices =
             |i| self.growth.get_fragment_and_inner_indices_unchecked(i);
@@ -280,7 +279,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         let b = range_end(&range, self.capacity());
 
         match b.saturating_sub(a) {
-            0 => vec![],
+            0 => alloc::vec![],
             _ => {
                 let (sf, si) = fragment_and_inner_indices(a);
                 let (ef, ei) = fragment_and_inner_indices(b - 1);
@@ -289,7 +288,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
                     true => {
                         let p = unsafe { self.get_raw_mut_unchecked_fi(sf, si) };
                         let slice = unsafe { from_raw_parts_mut(p, ei - si + 1) };
-                        vec![slice]
+                        alloc::vec![slice]
                     }
                     false => {
                         let mut vec = Vec::with_capacity(ef - sf + 1);
@@ -370,7 +369,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
                 while new_capacity > current_capacity {
                     let new_fragment_capacity = self.capacity_of(f);
                     let layout = Self::layout(new_fragment_capacity);
-                    let ptr = unsafe { std::alloc::alloc(layout) } as *mut T;
+                    let ptr = unsafe { alloc::alloc::alloc(layout) } as *mut T;
                     unsafe { *self.data[f].get() = ptr };
 
                     f += 1;
@@ -403,7 +402,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
                 while new_capacity > current_capacity {
                     let new_fragment_capacity = self.capacity_of(f);
                     let layout = Self::layout(new_fragment_capacity);
-                    let ptr = unsafe { std::alloc::alloc(layout) } as *mut T;
+                    let ptr = unsafe { alloc::alloc::alloc(layout) } as *mut T;
 
                     for i in 0..new_fragment_capacity {
                         unsafe { ptr.add(i).write(fill_with()) };
@@ -422,7 +421,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         }
     }
 
-    fn fill_with<F>(&self, range: std::ops::Range<usize>, fill_with: F)
+    fn fill_with<F>(&self, range: core::ops::Range<usize>, fill_with: F)
     where
         F: Fn() -> T,
     {
@@ -453,7 +452,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         }
 
         for _ in self.max_num_fragments..self.data.capacity() {
-            self.data.push(UnsafeCell::new(std::ptr::null_mut()));
+            self.data.push(UnsafeCell::new(core::ptr::null_mut()));
         }
 
         self.maximum_capacity = (0..self.data.len()).map(|f| self.capacity_of(f)).sum();
@@ -461,7 +460,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
 
         while self.maximum_capacity < new_maximum_capacity {
             let f = self.data.len();
-            self.data.push(UnsafeCell::new(std::ptr::null_mut()));
+            self.data.push(UnsafeCell::new(core::ptr::null_mut()));
 
             let capacity = self.capacity_of(f);
             self.maximum_capacity += capacity;
@@ -499,7 +498,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         self.data.clear();
 
         for _ in 0..max_num_fragments {
-            self.data.push(UnsafeCell::new(std::ptr::null_mut()));
+            self.data.push(UnsafeCell::new(core::ptr::null_mut()));
         }
 
         self.maximum_capacity = (0..self.data.len()).map(|f| self.capacity_of(f)).sum();

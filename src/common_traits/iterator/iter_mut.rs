@@ -1,5 +1,5 @@
 use crate::fragment::fragment_struct::Fragment;
-use std::iter::FusedIterator;
+use core::iter::FusedIterator;
 
 /// Mutable iterator over the `SplitVec`.
 ///
@@ -7,8 +7,8 @@ use std::iter::FusedIterator;
 #[derive(Debug)]
 #[must_use = "iterators are lazy and do nothing unless consumed"]
 pub struct IterMut<'a, T> {
-    iter_outer: std::slice::IterMut<'a, Fragment<T>>,
-    iter_inner: std::slice::IterMut<'a, T>,
+    iter_outer: core::slice::IterMut<'a, Fragment<T>>,
+    iter_inner: core::slice::IterMut<'a, T>,
 }
 
 impl<'a, T> IterMut<'a, T> {

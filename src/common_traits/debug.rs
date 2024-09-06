@@ -1,14 +1,13 @@
-use orx_pinned_vec::PinnedVec;
-
 use crate::{Growth, SplitVec};
-use std::fmt::Debug;
+use core::fmt::Debug;
+use orx_pinned_vec::PinnedVec;
 
 impl<T, G> Debug for SplitVec<T, G>
 where
     T: Debug,
     G: Growth,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         writeln!(
             f,
             "SplitVec {{ len: {}, capacity:{}, data: [",
@@ -25,6 +24,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::*;
+    use alloc::format;
 
     #[test]
     fn debug() {

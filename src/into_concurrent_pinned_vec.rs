@@ -21,7 +21,10 @@ impl<T, G: GrowthWithConstantTimeAccess> IntoConcurrentPinnedVec<T> for SplitVec
 
             self.len += num_additional;
 
-            debug_assert_eq!(self.len, self.fragments.iter().map(|x| x.len()).sum());
+            debug_assert_eq!(
+                self.len,
+                self.fragments.iter().map(|x| x.len()).sum::<usize>()
+            );
         }
 
         self.into()
