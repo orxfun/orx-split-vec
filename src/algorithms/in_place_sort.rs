@@ -1,5 +1,5 @@
 use crate::Fragment;
-use std::cmp::Ordering::{self, *};
+use core::cmp::Ordering::{self, *};
 
 pub fn in_place_sort_by<T, F>(fragments: &mut [Fragment<T>], mut compare: F)
 where
@@ -21,13 +21,13 @@ where
     while r < num_fragments - 1 {
         let row_to_swap = get_row_to_swap(fragments, &mut compare, r, c);
         if let Some(target_row) = row_to_swap {
-            let pa = std::ptr::addr_of_mut!(fragments[r][c]);
-            let pb = std::ptr::addr_of_mut!(fragments[target_row][0]);
+            let pa = core::ptr::addr_of_mut!(fragments[r][c]);
+            let pb = core::ptr::addr_of_mut!(fragments[target_row][0]);
             // SAFETY: `pa` and `pb` have been created from safe mutable references and refer
             // to elements in the slice and therefore are guaranteed to be valid and aligned.
             // Note that accessing the elements behind `a` and `b` is checked and will
             // panic when out of bounds.
-            unsafe { std::ptr::swap(pa, pb) };
+            unsafe { core::ptr::swap(pa, pb) };
 
             let fragment_right = &fragments[target_row][1..];
             let value = &fragments[target_row][0];
@@ -114,11 +114,12 @@ where
 mod tests {
     use super::*;
     use crate::{Doubling, Growth, Linear, Recursive};
+    use alloc::vec::Vec;
     use test_case::test_case;
 
     #[test]
     fn insertion_position() {
-        let fragment: Fragment<u32> = vec![4, 7, 9, 13, 16, 17, 23].into();
+        let fragment: Fragment<u32> = alloc::vec![4, 7, 9, 13, 16, 17, 23].into();
 
         let mut c = |a: &u32, b: &u32| a.cmp(b);
         let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
@@ -162,15 +163,15 @@ mod tests {
     fn insertion_position_with_ties() {
         let mut c = |a: &u32, b: &u32| a.cmp(b);
 
-        let fragment: Fragment<u32> = vec![4, 7, 13, 13, 13, 17, 23].into();
+        let fragment: Fragment<u32> = alloc::vec![4, 7, 13, 13, 13, 17, 23].into();
         let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
         assert_eq!(pos(&13), Some(2));
 
-        let fragment: Fragment<u32> = vec![4, 7, 13, 13, 23, 23, 23].into();
+        let fragment: Fragment<u32> = alloc::vec![4, 7, 13, 13, 23, 23, 23].into();
         let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
         assert_eq!(pos(&23), Some(4));
 
-        let fragment: Fragment<u32> = vec![4, 4, 13, 13, 23, 23, 23].into();
+        let fragment: Fragment<u32> = alloc::vec![4, 4, 13, 13, 23, 23, 23].into();
         let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
         assert_eq!(pos(&4), None);
     }
@@ -179,8 +180,11 @@ mod tests {
     fn sort_simple() {
         let mut c = |a: &u32, b: &u32| a.cmp(b);
 
-        let mut fragments: Vec<Fragment<u32>> =
-            vec![vec![2, 4].into(), vec![0, 5, 6].into(), vec![1, 3].into()];
+        let mut fragments: Vec<Fragment<u32>> = alloc::vec![
+            alloc::vec![2, 4].into(),
+            alloc::vec![0, 5, 6].into(),
+            alloc::vec![1, 3].into()
+        ];
 
         in_place_sort_by(&mut fragments, &mut c);
 
@@ -194,7 +198,7 @@ mod tests {
         let mut c = |a: &i32, b: &i32| a.cmp(b);
 
         let num_fragments = 10;
-        let mut fragments: Vec<Fragment<_>> = vec![];
+        let mut fragments: Vec<Fragment<_>> = alloc::vec![];
 
         let mut len = 0;
         for _ in 0..num_fragments {

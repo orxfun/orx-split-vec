@@ -1,4 +1,5 @@
 use crate::{Doubling, Fragment, Growth, SplitVec};
+use alloc::string::String;
 use orx_pseudo_default::PseudoDefault;
 
 /// Equivalent to [`Doubling`] strategy except for the following:
@@ -83,7 +84,7 @@ impl Growth for Recursive {
         maximum_capacity: usize,
     ) -> Result<usize, String> {
         fn overflown_err() -> String {
-            format!(
+            alloc::format!(
                 "Maximum cumulative capacity that can be reached by the Recursive strategy is {}.",
                 usize::MAX
             )
@@ -210,18 +211,19 @@ impl<T> SplitVec<T, Recursive> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec::Vec;
     use orx_pinned_vec::PinnedVec;
 
     #[test]
     fn get_fragment_and_inner_indices() {
         let growth = Recursive;
 
-        let vecs = vec![
-            vec![0, 1, 2, 3],
-            vec![4, 5],
-            vec![6, 7, 8],
-            vec![9],
-            vec![10, 11, 12, 13, 14],
+        let vecs = alloc::vec![
+            alloc::vec![0, 1, 2, 3],
+            alloc::vec![4, 5],
+            alloc::vec![6, 7, 8],
+            alloc::vec![9],
+            alloc::vec![10, 11, 12, 13, 14],
         ];
         let mut fragments: Vec<Fragment<_>> = vecs.clone().into_iter().map(|x| x.into()).collect();
         let len = fragments.iter().map(|x| x.len()).sum();
@@ -247,7 +249,7 @@ mod tests {
     fn get_fragment_and_inner_indices_exhaustive() {
         let growth = Recursive;
 
-        let mut fragments: Vec<Fragment<_>> = vec![];
+        let mut fragments: Vec<Fragment<_>> = alloc::vec![];
 
         let lengths = [30, 1, 7, 3, 79, 147, 530];
         let mut index = 0;
@@ -319,7 +321,7 @@ mod tests {
         let mut vec: SplitVec<char, Recursive> = SplitVec::with_recursive_growth();
         assert_eq!(max_cap(&vec), 4 + 8 + 16 + 32);
 
-        vec.append(vec!['x'; 10]);
+        vec.append(alloc::vec!['x'; 10]);
 
         assert_eq!(max_cap(&vec), 4 + 10 + 20 + 40);
     }
@@ -366,7 +368,7 @@ mod tests {
     #[test]
     fn required_fragments_len_when_appended() {
         let mut vec: SplitVec<char, Recursive> = SplitVec::with_recursive_growth();
-        vec.append(vec!['x'; 10]);
+        vec.append(alloc::vec!['x'; 10]);
 
         let num_fragments = |max_cap| {
             vec.growth()

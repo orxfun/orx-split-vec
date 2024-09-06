@@ -1,4 +1,5 @@
 use crate::{Doubling, Linear, Recursive, SplitVec};
+use alloc::vec::Vec;
 
 impl<T> From<SplitVec<T, Doubling>> for SplitVec<T, Recursive> {
     /// Converts a `SplitVec<T, Doubling>` into a `SplitVec<T, Recursive>` with no cost.
@@ -72,7 +73,7 @@ impl<T: Clone> From<Vec<T>> for SplitVec<T, Recursive> {
     /// assert!(vec_capacity <= split_vec.capacity());
     /// ```
     fn from(value: Vec<T>) -> Self {
-        SplitVec::from_raw_parts(value.len(), vec![value.into()], Recursive)
+        SplitVec::from_raw_parts(value.len(), alloc::vec![value.into()], Recursive)
     }
 }
 
@@ -94,7 +95,7 @@ mod tests {
 
     #[test]
     fn into_recursive() {
-        let mut vec = vec![];
+        let mut vec = alloc::vec![];
         let mut linear = SplitVec::with_linear_growth(4);
         let mut doubling = SplitVec::with_doubling_growth();
 

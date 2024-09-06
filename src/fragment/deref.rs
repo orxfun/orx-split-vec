@@ -1,5 +1,6 @@
 use crate::Fragment;
-use std::ops::{Deref, DerefMut};
+use alloc::vec::Vec;
+use core::ops::{Deref, DerefMut};
 
 impl<T> Deref for Fragment<T> {
     type Target = Vec<T>;

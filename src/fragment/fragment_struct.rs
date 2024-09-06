@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 #[derive(Default)]
 /// A contagious fragment of the split vector.
 ///
@@ -70,8 +72,8 @@ impl<T> Fragment<T> {
     /// Zeroes out all memory; i.e., positions in `0..fragment.capacity()`, of the fragment.
     #[inline(always)]
     pub(crate) unsafe fn zero(&mut self) {
-        let slice = std::slice::from_raw_parts_mut(self.data.as_mut_ptr(), self.capacity());
-        slice.iter_mut().for_each(|m| *m = std::mem::zeroed());
+        let slice = core::slice::from_raw_parts_mut(self.data.as_mut_ptr(), self.capacity());
+        slice.iter_mut().for_each(|m| *m = core::mem::zeroed());
     }
 }
 
@@ -103,7 +105,7 @@ mod tests {
         let mut fragment: Fragment<i32> = Fragment::new(4);
         unsafe { fragment.zero() };
         unsafe { fragment.set_len(4) };
-        let zero: i32 = unsafe { std::mem::zeroed() };
+        let zero: i32 = unsafe { core::mem::zeroed() };
         for i in 0..4 {
             assert_eq!(fragment.get(i), Some(&zero));
         }

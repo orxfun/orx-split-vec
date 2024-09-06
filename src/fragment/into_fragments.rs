@@ -1,4 +1,5 @@
 use crate::{Fragment, Growth, SplitVec};
+use alloc::vec::Vec;
 
 /// Converts self into a collection of [`Fragment`]s.
 pub trait IntoFragments<T> {

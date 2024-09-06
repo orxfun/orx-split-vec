@@ -1,4 +1,6 @@
 use crate::{fragment::fragment_struct::Fragment, Doubling, Growth};
+use alloc::string::String;
+use alloc::vec::Vec;
 
 /// A split vector; i.e., a vector of fragments, with the following features:
 ///
@@ -243,6 +245,7 @@ mod tests {
     use crate::growth::growth_trait::GrowthWithConstantTimeAccess;
     use crate::test_all_growth_types;
     use crate::*;
+    use alloc::vec;
 
     #[test]
     fn fragments() {

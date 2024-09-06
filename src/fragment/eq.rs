@@ -1,4 +1,5 @@
 use crate::Fragment;
+use alloc::vec::Vec;
 
 impl<T: PartialEq, U> PartialEq<U> for Fragment<T>
 where

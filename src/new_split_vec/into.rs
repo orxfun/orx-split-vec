@@ -1,4 +1,5 @@
 use crate::{Growth, SplitVec};
+use alloc::vec::Vec;
 use orx_pinned_vec::PinnedVec;
 
 // std::vec::vec
@@ -91,6 +92,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::*;
+    use alloc::vec::Vec;
 
     #[test]
     fn single_fragment() {

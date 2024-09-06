@@ -1,4 +1,5 @@
 use crate::Fragment;
+use alloc::{string::String, vec::Vec};
 use orx_pseudo_default::PseudoDefault;
 
 /// Growth strategy of a split vector.
@@ -134,7 +135,7 @@ pub trait Growth: Clone + PseudoDefault {
         maximum_capacity: usize,
     ) -> Result<usize, String> {
         fn overflown_err() -> String {
-            format!(
+            alloc::format!(
                 "Maximum cumulative capacity that can be reached is {}.",
                 usize::MAX
             )

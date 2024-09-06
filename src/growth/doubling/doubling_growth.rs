@@ -1,6 +1,7 @@
 use super::constants::*;
 use crate::growth::growth_trait::{Growth, GrowthWithConstantTimeAccess};
 use crate::{Fragment, SplitVec};
+use alloc::string::String;
 use orx_pseudo_default::PseudoDefault;
 
 /// Strategy which allows creates a fragment with double the capacity
@@ -141,7 +142,7 @@ impl Growth for Doubling {
             }
         }
 
-        Err(format!(
+        Err(alloc::format!(
             "Maximum cumulative capacity that can be reached by the Doubling strategy is {}.",
             CUMULATIVE_CAPACITIES[CUMULATIVE_CAPACITIES.len() - 1]
         ))

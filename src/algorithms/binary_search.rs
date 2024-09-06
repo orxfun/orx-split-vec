@@ -1,5 +1,5 @@
 use crate::Fragment;
-use std::cmp::Ordering;
+use core::cmp::Ordering;
 
 pub fn binary_search_by<T, F>(fragments: &[Fragment<T>], mut compare: F) -> Result<usize, usize>
 where
@@ -46,7 +46,7 @@ mod tests {
     fn bin_search_empty() {
         let cmp = get_compare(42);
 
-        let fragments = vec![];
+        let fragments = alloc::vec![];
         let result = binary_search_by(&fragments, cmp);
         assert_eq!(result, Err(0));
     }
@@ -55,14 +55,14 @@ mod tests {
     fn bin_search_empty_first_fragment() {
         let cmp = get_compare(42);
 
-        let fragments = vec![vec![].into()];
+        let fragments = alloc::vec![alloc::vec![].into()];
         let result = binary_search_by(&fragments, cmp);
         assert_eq!(result, Err(0));
     }
 
     #[test]
     fn bin_search_empty_second_fragment() {
-        let fragments = vec![vec![1, 4, 5].into(), vec![].into()];
+        let fragments = alloc::vec![alloc::vec![1, 4, 5].into(), alloc::vec![].into()];
 
         let result = binary_search_by(&fragments, get_compare(0));
         assert_eq!(result, Err(0));
@@ -85,7 +85,11 @@ mod tests {
 
     #[test]
     fn bin_search_three_fragments() {
-        let fragments = vec![vec![1, 4, 5].into(), vec![7].into(), vec![9, 10].into()];
+        let fragments = alloc::vec![
+            alloc::vec![1, 4, 5].into(),
+            alloc::vec![7].into(),
+            alloc::vec![9, 10].into()
+        ];
 
         let search = |x| binary_search_by(&fragments, get_compare(x));
 
@@ -110,7 +114,7 @@ mod tests {
 
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             let mut rng = ChaCha8Rng::seed_from_u64(8654);
-            let mut ref_vec = vec![];
+            let mut ref_vec = alloc::vec![];
             let mut idx = 0;
             while ref_vec.len() < 1033 {
                 if rng.gen::<f32>() < 0.85 {

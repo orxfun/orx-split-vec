@@ -1,5 +1,5 @@
 use crate::Fragment;
-use std::slice::Iter;
+use core::slice::Iter;
 
 type Outer<'a, T> = Iter<'a, Fragment<T>>;
 type Inner<'a, T> = Iter<'a, T>;

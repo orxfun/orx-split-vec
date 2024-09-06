@@ -1,4 +1,5 @@
 use crate::{Doubling, Fragment, Growth};
+use alloc::vec::Vec;
 
 #[test]
 fn new_cap() {

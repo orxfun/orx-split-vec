@@ -1,6 +1,6 @@
 use super::reductions;
 use crate::fragment::fragment_struct::Fragment;
-use std::iter::FusedIterator;
+use core::iter::FusedIterator;
 
 /// Iterator over the `SplitVec`.
 ///
@@ -8,8 +8,8 @@ use std::iter::FusedIterator;
 #[derive(Debug)]
 #[must_use = "iterators are lazy and do nothing unless consumed"]
 pub struct Iter<'a, T> {
-    outer: std::slice::Iter<'a, Fragment<T>>,
-    inner: std::slice::Iter<'a, T>,
+    outer: core::slice::Iter<'a, Fragment<T>>,
+    inner: core::slice::Iter<'a, T>,
 }
 
 impl<'a, T> Iter<'a, T> {

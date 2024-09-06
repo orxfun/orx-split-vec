@@ -1,5 +1,5 @@
 use crate::{Growth, SplitVec};
-use std::ops::{Index, IndexMut};
+use core::ops::{Index, IndexMut};
 
 impl<T, G> Index<usize> for SplitVec<T, G>
 where
@@ -191,6 +191,7 @@ where
 mod tests {
     use crate::test_all_growth_types;
     use crate::*;
+    use alloc::vec::Vec;
 
     #[test]
     fn index() {

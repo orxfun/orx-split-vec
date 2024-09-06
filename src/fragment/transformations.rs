@@ -1,5 +1,6 @@
 use crate::Fragment;
-use std::mem::ManuallyDrop;
+use alloc::vec::Vec;
+use core::mem::ManuallyDrop;
 
 pub fn fragment_into_raw<T>(mut fragment: Fragment<T>) -> (*mut T, usize, usize) {
     let (len, capacity) = (fragment.len(), fragment.capacity());

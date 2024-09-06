@@ -1,4 +1,5 @@
 use crate::*;
+use alloc::vec::Vec;
 
 impl<T, G, U> PartialEq<U> for SplitVec<T, G>
 where
@@ -81,6 +82,7 @@ pub(crate) fn are_fragments_eq_to_slice<T: PartialEq>(
 mod tests {
     use crate::test_all_growth_types;
     use crate::*;
+    use alloc::vec::Vec;
 
     #[test]
     fn eq() {

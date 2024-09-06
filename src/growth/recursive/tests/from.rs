@@ -1,4 +1,5 @@
 use crate::*;
+use alloc::vec::Vec;
 
 fn validate_clone(original: Vec<usize>, split_vec: SplitVec<usize, Recursive>) {
     assert_eq!(split_vec, &original);
