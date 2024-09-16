@@ -279,6 +279,9 @@
 )]
 #![no_std]
 
+#[cfg(test)]
+extern crate std;
+
 extern crate alloc;
 
 mod algorithms;
@@ -289,6 +292,7 @@ mod growth;
 mod into_concurrent_pinned_vec;
 mod new_split_vec;
 mod pinned_vec;
+mod pointers;
 mod range_helpers;
 mod resize_multiple;
 mod slice;

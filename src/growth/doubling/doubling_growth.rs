@@ -82,6 +82,19 @@ impl Growth for Doubling {
         }
     }
 
+    /// ***O(1)*** Returns a pointer to the `index`-th element of the split vector of the `fragments`.
+    ///
+    /// Returns `None` if `index`-th position does not belong to the split vector; i.e., if `index` is out of cumulative capacity of fragments.
+    ///
+    /// # Safety
+    ///
+    /// This method allows to write to a memory which is greater than the split vector's length.
+    /// On the other hand, it will never return a pointer to a memory location that the vector does not own.
+    #[inline(always)]
+    fn get_ptr<T>(&self, fragments: &[Fragment<T>], index: usize) -> Option<*const T> {
+        <Self as GrowthWithConstantTimeAccess>::get_ptr(self, fragments, index)
+    }
+
     /// ***O(1)*** Returns a mutable reference to the `index`-th element of the split vector of the `fragments`.
     ///
     /// Returns `None` if `index`-th position does not belong to the split vector; i.e., if `index` is out of cumulative capacity of fragments.
@@ -91,7 +104,7 @@ impl Growth for Doubling {
     /// This method allows to write to a memory which is greater than the split vector's length.
     /// On the other hand, it will never return a pointer to a memory location that the vector does not own.
     #[inline(always)]
-    unsafe fn get_ptr_mut<T>(&self, fragments: &mut [Fragment<T>], index: usize) -> Option<*mut T> {
+    fn get_ptr_mut<T>(&self, fragments: &mut [Fragment<T>], index: usize) -> Option<*mut T> {
         <Self as GrowthWithConstantTimeAccess>::get_ptr_mut(self, fragments, index)
     }
 
@@ -106,7 +119,7 @@ impl Growth for Doubling {
     /// This method allows to write to a memory which is greater than the split vector's length.
     /// On the other hand, it will never return a pointer to a memory location that the vector does not own.
     #[inline(always)]
-    unsafe fn get_ptr_mut_and_indices<T>(
+    fn get_ptr_mut_and_indices<T>(
         &self,
         fragments: &mut [Fragment<T>],
         index: usize,
@@ -225,7 +238,7 @@ impl<T> SplitVec<T, Doubling> {
     /// Note that this (only) important for concurrent programs:
     /// * SplitVec already keeps all elements pinned to their locations;
     /// * Creating a buffer for storing the meta information is important for keeping the meta information pinned as well.
-    /// This is relevant and important for concurrent programs.
+    ///   This is relevant and important for concurrent programs.
     ///
     /// # Panics
     ///

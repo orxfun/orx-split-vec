@@ -174,7 +174,11 @@ where
 
     // helpers
 
+    #[inline(always)]
     pub(crate) fn has_capacity_for_one(&self) -> bool {
+        // TODO: below line should not fail but it does when clear or truncate is called
+        // self.fragments[self.fragments.len() - 1].has_capacity_for_one()
+
         self.fragments
             .last()
             .map(|f| f.has_capacity_for_one())
@@ -216,7 +220,12 @@ where
     }
 
     #[inline(always)]
-    pub(crate) unsafe fn growth_get_ptr_mut(&mut self, index: usize) -> Option<*mut T> {
+    pub(crate) fn growth_get_ptr(&self, index: usize) -> Option<*const T> {
+        self.growth.get_ptr(&self.fragments, index)
+    }
+
+    #[inline(always)]
+    pub(crate) fn growth_get_ptr_mut(&mut self, index: usize) -> Option<*mut T> {
         self.growth.get_ptr_mut(&mut self.fragments, index)
     }
 
@@ -295,16 +304,16 @@ mod tests {
                 vec.push(i);
             }
             for i in 0..64 {
-                let p = unsafe { vec.get_ptr_mut(i) }.expect("is-some");
+                let p = vec.get_ptr_mut(i).expect("is-some");
                 assert_eq!(i, unsafe { *p });
             }
             for i in 64..vec.capacity() {
-                let p = unsafe { vec.get_ptr_mut(i) };
+                let p = vec.get_ptr_mut(i);
                 assert!(p.is_some());
             }
 
             for i in vec.capacity()..(vec.capacity() * 2) {
-                let p = unsafe { vec.get_ptr_mut(i) };
+                let p = vec.get_ptr_mut(i);
                 assert!(p.is_none());
             }
         }
