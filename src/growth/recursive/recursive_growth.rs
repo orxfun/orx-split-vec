@@ -132,8 +132,8 @@ impl<T> SplitVec<T, Recursive> {
     ///
     /// * `Doubling` strategy provides a constant time access by random indices.
     /// * `Recursive` strategy provides a random access time complexity that is linear in the number of fragments.
-    /// Note that this is significantly faster than the linear-in-number-of-elements complexity of linked lists;
-    /// however, significantly slower than the `Doubling` strategy's constant time.
+    ///   Note that this is significantly faster than the linear-in-number-of-elements complexity of linked lists;
+    ///   however, significantly slower than the `Doubling` strategy's constant time.
     ///
     /// ## Append
     ///
@@ -141,11 +141,11 @@ impl<T> SplitVec<T, Recursive> {
     ///
     /// `SplitVec::append` method should not be confused with `std::vec::Vec::append` method:
     /// * The split vector version consumes the vector to be appended.
-    /// It takes advantage of its split nature and appends the other vector simply by owning its pointer.
-    /// In other words, the other vector is appended to this vector with no cost and no copies.
+    ///   It takes advantage of its split nature and appends the other vector simply by owning its pointer.
+    ///   In other words, the other vector is appended to this vector with no cost and no copies.
     /// * The standard vector version mutates the vector to be appended,
-    /// moving all its element to the first vector leaving the latter empty.
-    /// This operation is carried out by memory copies.
+    ///   moving all its element to the first vector leaving the latter empty.
+    ///   This operation is carried out by memory copies.
     ///
     /// # Examples
     ///
@@ -198,7 +198,7 @@ impl<T> SplitVec<T, Recursive> {
     /// Note that this (only) important for concurrent programs:
     /// * SplitVec already keeps all elements pinned to their locations;
     /// * Creating a buffer for storing the meta information is important for keeping the meta information pinned as well.
-    /// This is relevant and important for concurrent programs.
+    ///   This is relevant and important for concurrent programs.
     ///
     /// # Panics
     ///
@@ -234,7 +234,7 @@ mod tests {
                 let maybe_fi = growth.get_fragment_and_inner_indices(len, &fragments, index);
                 assert_eq!(maybe_fi, Some((f, i)));
 
-                let ptr = unsafe { growth.get_ptr_mut(&mut fragments, index) }.expect("is-some");
+                let ptr = growth.get_ptr_mut(&mut fragments, index).expect("is-some");
                 assert_eq!(unsafe { *ptr }, index);
 
                 unsafe { *ptr = 10 * index };
@@ -276,8 +276,7 @@ mod tests {
 
                     assert_eq!(maybe_fi, Some((f, i)));
 
-                    let ptr =
-                        unsafe { growth.get_ptr_mut(&mut fragments, index) }.expect("is-some");
+                    let ptr = growth.get_ptr_mut(&mut fragments, index).expect("is-some");
                     assert_eq!(unsafe { *ptr }, index);
 
                     unsafe { *ptr = 10 * index };
@@ -322,6 +321,9 @@ mod tests {
         assert_eq!(max_cap(&vec), 4 + 8 + 16 + 32);
 
         vec.append(alloc::vec!['x'; 10]);
+        assert_eq!(vec.fragments().len(), 2);
+        assert_eq!(vec.fragments()[1].capacity(), 10);
+        assert_eq!(vec.fragments()[1].len(), 10);
 
         assert_eq!(max_cap(&vec), 4 + 10 + 20 + 40);
     }
@@ -368,6 +370,9 @@ mod tests {
     #[test]
     fn required_fragments_len_when_appended() {
         let mut vec: SplitVec<char, Recursive> = SplitVec::with_recursive_growth();
+        for _ in 0..4 {
+            vec.push('x')
+        }
         vec.append(alloc::vec!['x'; 10]);
 
         let num_fragments = |max_cap| {

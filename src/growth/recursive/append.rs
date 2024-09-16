@@ -29,5 +29,90 @@ impl<T> SplitVec<T, Recursive> {
             self.len += fragment.len();
             self.fragments.push(fragment);
         }
+        // TODO: does this break internal structure of the vec; be careful on its impact on linked-list
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use orx_pinned_vec::PinnedVec;
+
+    #[test]
+    fn append_full_fragment_when_empty() {
+        let mut vec = SplitVec::with_recursive_growth();
+        assert_eq!(vec.capacity(), 4);
+
+        vec.append(alloc::vec![0, 1, 2]);
+        assert_eq!(vec.fragments().len(), 2);
+        assert_eq!(vec.capacity(), 4 + 3);
+
+        vec.push(3);
+        assert_eq!(vec.fragments().len(), 3);
+        assert_eq!(vec.capacity(), 4 + 3 + 6);
+
+        assert_eq!(vec, &[0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn append_half_fragment_when_empty() {
+        let mut vec = SplitVec::with_recursive_growth();
+        assert_eq!(vec.capacity(), 4);
+
+        let mut append = alloc::vec::Vec::with_capacity(4);
+        append.extend_from_slice(&[0, 1, 2]);
+        vec.append(append);
+        assert_eq!(vec.fragments().len(), 2);
+        assert_eq!(vec.capacity(), 4 + 4);
+
+        vec.push(3);
+        assert_eq!(vec.fragments().len(), 2);
+        assert_eq!(vec.capacity(), 4 + 4);
+
+        vec.push(4);
+        assert_eq!(vec.fragments().len(), 3);
+        assert_eq!(vec.capacity(), 4 + 4 + 8);
+
+        assert_eq!(vec, &[0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn append_full_fragment_when_non_empty() {
+        let mut vec = SplitVec::with_recursive_growth();
+        vec.push(42);
+        assert_eq!(vec.capacity(), 4);
+
+        vec.append(alloc::vec![0, 1, 2]);
+        assert_eq!(vec.fragments().len(), 2);
+        assert_eq!(vec.capacity(), 4 + 3);
+
+        vec.push(3);
+        assert_eq!(vec.fragments().len(), 3);
+        assert_eq!(vec.capacity(), 4 + 3 + 6);
+
+        assert_eq!(vec, &[42, 0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn append_half_fragment_when_non_empty() {
+        let mut vec = SplitVec::with_recursive_growth();
+        vec.push(42);
+        assert_eq!(vec.capacity(), 4);
+
+        let mut append = alloc::vec::Vec::with_capacity(4);
+        append.extend_from_slice(&[0, 1, 2]);
+        vec.append(append);
+        assert_eq!(vec.fragments().len(), 2);
+        assert_eq!(vec.capacity(), 4 + 4);
+
+        vec.push(3);
+        assert_eq!(vec.fragments().len(), 2);
+        assert_eq!(vec.capacity(), 4 + 4);
+
+        vec.push(4);
+        assert_eq!(vec.fragments().len(), 3);
+        assert_eq!(vec.capacity(), 4 + 4 + 8);
+
+        assert_eq!(vec, &[42, 0, 1, 2, 3, 4]);
     }
 }

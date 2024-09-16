@@ -1,3 +1,5 @@
+use crate::common_traits::iterator::iter_ptr::IterPtr;
+use crate::common_traits::iterator::iter_ptr_bwd::IterPtrBackward;
 use crate::fragment::fragment_struct::set_fragments_len;
 use crate::range_helpers::{range_end, range_start};
 use crate::{algorithms, Fragment, Growth, SplitVec};
@@ -82,6 +84,64 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
         None
     }
 
+    /// Returns the index of the element of the vector that the `element_ptr` points to.
+    /// This method has *O(f)* time complexity where `f << vec.len()` is the number of fragments.
+    ///
+    /// Note that `T: Eq` is not required; reference equality is used.
+    ///
+    /// # Safety
+    ///
+    /// Since `SplitVec` implements `PinnedVec`, the underlying memory
+    /// of the vector stays pinned; i.e., is not carried to different memory
+    /// locations.
+    /// Therefore, it is possible and safe to compare an element's reference
+    /// to find its position in the vector.
+    fn index_of_ptr(&self, element_ptr: *const T) -> Option<usize> {
+        // TODO! # examples in docs
+        let mut count = 0;
+        for fragment in &self.fragments {
+            if let Some(index) = slice::index_of_ptr(&fragment.data, element_ptr) {
+                return Some(count + index);
+            } else {
+                count += fragment.len()
+            }
+        }
+        None
+    }
+
+    fn push_get_ptr(&mut self, value: T) -> *const T {
+        self.len += 1;
+        match self.has_capacity_for_one() {
+            true => {
+                let f = self.fragments.len() - 1;
+                let fragment = &mut self.fragments[f];
+                let idx = fragment.len();
+                fragment.push(value);
+                unsafe { fragment.as_ptr().add(idx) }
+            }
+            false => {
+                //
+                self.add_fragment_with_first_value(value);
+                let f = self.fragments.len() - 1;
+                self.fragments[f].as_ptr()
+            }
+        }
+    }
+
+    unsafe fn iter_ptr<'v, 'i>(&'v self) -> impl Iterator<Item = *const T> + 'i
+    where
+        T: 'i,
+    {
+        IterPtr::from(self.fragments.as_slice())
+    }
+
+    unsafe fn iter_ptr_rev<'v, 'i>(&'v self) -> impl Iterator<Item = *const T> + 'i
+    where
+        T: 'i,
+    {
+        IterPtrBackward::from(self.fragments.as_slice())
+    }
+
     /// Returns whether or not the `element` with the given reference belongs to the vector.
     /// This method has *O(f)* time complexity where `f << vec.len()` is the number of fragments.
     ///
@@ -127,7 +187,18 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     fn contains_reference(&self, element: &T) -> bool {
         self.fragments
             .iter()
-            .any(|fragment| slice::contains_reference(&fragment.data, element))
+            .any(|fragment| slice::contains_reference(fragment.as_slice(), element))
+    }
+
+    /// Returns whether or not the element with the given pointer belongs to the vector.
+    /// This method has *O(f)* time complexity where `f << vec.len()` is the number of fragments.
+    ///
+    /// Note that `T: Eq` is not required; memory address is used.
+    ///
+    fn contains_ptr(&self, element_ptr: *const T) -> bool {
+        self.fragments
+            .iter()
+            .any(|fragment| slice::contains_ptr(fragment.as_slice(), element_ptr))
     }
 
     /// Returns the total number of elements the split vector can hold without
@@ -470,13 +541,13 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     /// ```
     fn push(&mut self, value: T) {
         self.len += 1;
-        if self.has_capacity_for_one() {
-            let last_f = self.fragments.len() - 1;
-            self.fragments[last_f].push(value);
-            return;
+        match self.has_capacity_for_one() {
+            true => {
+                let last_f = self.fragments.len() - 1;
+                self.fragments[last_f].push(value);
+            }
+            false => self.add_fragment_with_first_value(value),
         }
-
-        self.add_fragment_with_first_value(value);
     }
 
     fn remove(&mut self, index: usize) -> T {
@@ -506,10 +577,10 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     fn swap(&mut self, a: usize, b: usize) {
         let (af, ai) = self
             .get_fragment_and_inner_indices(a)
-            .expect("out-of-bounds");
+            .expect("first index is out-of-bounds");
         let (bf, bi) = self
             .get_fragment_and_inner_indices(b)
-            .expect("out-of-bounds");
+            .expect("second index out-of-bounds");
         if af == bf {
             self.fragments[af].swap(ai, bi);
         } else {
@@ -692,7 +763,7 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
         }
     }
 
-    /// Returns a mutable reference to the `index`-th element of the vector.
+    /// Returns a pointer to the `index`-th element of the vector.
     ///
     /// Returns `None` if `index`-th position does not belong to the vector; i.e., if `index` is out of `capacity`.
     ///
@@ -706,7 +777,25 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     /// On the other hand, it will never return a pointer to a memory location that the vector does not own.
     ///
     #[inline(always)]
-    unsafe fn get_ptr_mut(&mut self, index: usize) -> Option<*mut T> {
+    fn get_ptr(&self, index: usize) -> Option<*const T> {
+        self.growth_get_ptr(index)
+    }
+
+    /// Returns a mutable pointer to the `index`-th element of the vector.
+    ///
+    /// Returns `None` if `index`-th position does not belong to the vector; i.e., if `index` is out of `capacity`.
+    ///
+    /// Time complexity of the method is:
+    /// * ***O(1)*** when `G: GrowthWithConstantTimeAccess`,
+    /// * ***O(f)*** for the general case `G: Growth` where `f` is the number of fragments in the split vector.
+    ///
+    /// # Safety
+    ///
+    /// This method allows to write to a memory which is greater than the vector's length.
+    /// On the other hand, it will never return a pointer to a memory location that the vector does not own.
+    ///
+    #[inline(always)]
+    fn get_ptr_mut(&mut self, index: usize) -> Option<*mut T> {
         self.growth_get_ptr_mut(index)
     }
 
@@ -1213,7 +1302,7 @@ mod tests {
         }
 
         for i in vec.capacity()..(vec.capacity() + 100) {
-            assert!(unsafe { vec.get_ptr_mut(i) }.is_none());
+            assert!(vec.get_ptr_mut(i).is_none());
         }
     }
 
