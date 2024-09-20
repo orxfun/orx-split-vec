@@ -266,6 +266,17 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         self.slices(0..len).into_iter().flat_map(|x| x.iter())
     }
 
+    unsafe fn iter_over_range<'a, R: RangeBounds<usize>>(
+        &'a self,
+        range: R,
+    ) -> impl Iterator<Item = &'a T> + 'a
+    where
+        T: 'a,
+    {
+        let [a, b] = orx_pinned_vec::utils::slice::vec_range_limits(&range, None);
+        self.slices(a..b).into_iter().flat_map(|x| x.iter())
+    }
+
     unsafe fn slices_mut<R: RangeBounds<usize>>(
         &self,
         range: R,
