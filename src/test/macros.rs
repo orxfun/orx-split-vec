@@ -1,3 +1,4 @@
+/// Executes and tests the function for different growth strategies.
 #[macro_export]
 #[cfg(test)]
 macro_rules! test_all_growth_types {

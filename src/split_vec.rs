@@ -236,6 +236,10 @@ where
     /// Note that this method does not allocate the `maximum_capacity`, it only ensures that the concurrent growth to this capacity is safe.
     /// In order to achieve this, it might need to extend allocation of the fragments collection.
     /// However, note that by definition number of fragments is insignificant in a split vector.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the vector fails to reserve the requested capacity.
     pub fn reserve_maximum_concurrent_capacity(&mut self, new_maximum_capacity: usize) -> usize {
         let current_max = self.maximum_concurrent_capacity();
         match current_max < new_maximum_capacity {
