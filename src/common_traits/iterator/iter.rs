@@ -30,7 +30,7 @@ impl<'a, T> Iter<'a, T> {
     }
 }
 
-impl<'a, T> Clone for Iter<'a, T> {
+impl<T> Clone for Iter<'_, T> {
     fn clone(&self) -> Self {
         Self {
             outer: self.outer.clone(),

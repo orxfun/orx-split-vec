@@ -1,6 +1,6 @@
 use super::iter::Iter;
 
-impl<'a, T: PartialEq> PartialEq for Iter<'a, T> {
+impl<T: PartialEq> PartialEq for Iter<'_, T> {
     fn eq(&self, other: &Self) -> bool {
         let iter1 = self.clone();
         let mut iter2 = other.clone();
