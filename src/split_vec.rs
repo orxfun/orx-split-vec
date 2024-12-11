@@ -2,12 +2,47 @@ use crate::{fragment::fragment_struct::Fragment, Doubling, Growth};
 use alloc::string::String;
 use alloc::vec::Vec;
 
-/// A split vector; i.e., a vector of fragments, with the following features:
+/// A split vector consisting of a vector of fragments.
+///
+/// A fragment is a contagious memory storing elements of the vector.
+/// Therefore, SplitVec is not one large contagious memory fragment;
+/// it is rather a sequence of contagious fragments.
+///
+/// Different [`Growth`] strategies define the size of the fragments:
+/// * [`Doubling`] (similarly [`Recursive`]) strategy keeps doubling the capacity
+///   of fragments. Therefore, for sequential iteration, its amortized time
+///   complexity is equal to one large contagious fragment.
+///   Furthermore, it allows for constant time random access.
+/// * [`Linear`], on the other hand, keeps creating fragments of equal
+///   sizes. It is then the caller's choice to decide on the level of
+///   fragmentation. Linear growth strategy also allows for constant time random
+///   access.
+/// * It is also possible to define a custom growth strategy where the implementation
+///   decides on the size of each next fragment to be allocated. Please see the
+///   [`Growth`] trait documentation for details.
+///
+///
+/// # Features
+///
+/// SplitVec behaves pretty much like a standard vector. However, since it implements [`PinnedVec`],
+/// it can be used as the vector storage that requires pinned elements.
+/// For instance, we cannot use a standard vector as the backing storage of a
+/// [`LinkedList`](https://crates.io/crates/orx-linked-list), [`ImpVec`](https://crates.io/crates/orx-imp-vec)
+/// or [`ConcurrentVec`](https://crates.io/crates/orx-concurrent-vec), while we can use SplitVec due to
+/// its pinned elements guarantee.
+///
+/// A split vec has the following features:
 ///
 /// * Flexible in growth strategies; custom strategies can be defined.
-/// * Growth does not cause any memory copies.
+/// * Growth does not cause memory copies.
 /// * Capacity of an already created fragment is never changed.
-/// * The above feature allows the data to stay pinned in place. Memory location of an item added to the split vector will never change unless it is removed from the vector or the vector is dropped.
+/// * Memory location of an item added to the split vector will never change unless
+///   either of `remove`, `pop`, `insert`, `clear` or `truncate` mutation methods are
+///   called.
+///
+/// [`Recursive`]: crate::Recursive
+/// [`Linear`]: crate::Linear
+/// [`PinnedVec`]: orx_pinned_vec::PinnedVec
 pub struct SplitVec<T, G = Doubling>
 where
     G: Growth,
@@ -130,7 +165,10 @@ where
 
             self.fragments.reserve(additional_fragments);
 
-            unsafe { self.fragments.set_len(num_fragments) };
+            #[allow(clippy::uninit_vec)]
+            unsafe {
+                self.fragments.set_len(num_fragments)
+            };
         }
 
         Ok(self.maximum_concurrent_capacity())
