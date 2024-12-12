@@ -62,7 +62,7 @@ fn calc_split_vec<T: Default, F: Fn(T, &T) -> T, G: Growth>(add: F, vec: &SplitV
     }
     sum
 }
-fn calc_split_vec_itermut<T: Default, F: Fn(T, &T) -> T, G: Growth>(
+fn calc_split_vec_iter_mut<T: Default, F: Fn(T, &T) -> T, G: Growth>(
     add: F,
     vec: &mut SplitVec<T, G>,
 ) -> T {
@@ -120,7 +120,7 @@ fn test_for_type<T: Default>(
             n,
             |b, _| {
                 let mut vec = split_vec_linear(black_box(*n), value, 10);
-                b.iter(|| calc_split_vec_itermut(add, &mut vec))
+                b.iter(|| calc_split_vec_iter_mut(add, &mut vec))
             },
         );
 
@@ -129,7 +129,7 @@ fn test_for_type<T: Default>(
             n,
             |b, _| {
                 let mut vec = split_vec_doubling(black_box(*n), value);
-                b.iter(|| calc_split_vec_itermut(add, &mut vec))
+                b.iter(|| calc_split_vec_iter_mut(add, &mut vec))
             },
         );
 
@@ -139,7 +139,7 @@ fn test_for_type<T: Default>(
             |b, _| {
                 let mut vec: SplitVec<_, Recursive> =
                     split_vec_doubling(black_box(*n), value).into();
-                b.iter(|| calc_split_vec_itermut(add, &mut vec))
+                b.iter(|| calc_split_vec_iter_mut(add, &mut vec))
             },
         );
     }

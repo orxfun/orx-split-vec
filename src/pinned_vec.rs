@@ -20,12 +20,36 @@ impl<T, G: Growth> PseudoDefault for SplitVec<T, G> {
 }
 
 impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
-    type Iter<'a> = crate::common_traits::iterator::iter::Iter<'a, T> where T: 'a, Self: 'a;
-    type IterMut<'a> = crate::common_traits::iterator::iter_mut::IterMut<'a, T> where T: 'a, Self: 'a;
-    type IterRev<'a> = crate::common_traits::iterator::iter_rev::IterRev<'a, T> where T: 'a, Self: 'a;
-    type IterMutRev<'a> = crate::common_traits::iterator::iter_mut_rev::IterMutRev<'a, T> where T: 'a, Self: 'a;
-    type SliceIter<'a> = Vec<&'a [T]> where T: 'a, Self: 'a;
-    type SliceMutIter<'a> = Vec<&'a mut [T]> where T: 'a, Self: 'a;
+    type Iter<'a>
+        = crate::common_traits::iterator::iter::Iter<'a, T>
+    where
+        T: 'a,
+        Self: 'a;
+    type IterMut<'a>
+        = crate::common_traits::iterator::iter_mut::IterMut<'a, T>
+    where
+        T: 'a,
+        Self: 'a;
+    type IterRev<'a>
+        = crate::common_traits::iterator::iter_rev::IterRev<'a, T>
+    where
+        T: 'a,
+        Self: 'a;
+    type IterMutRev<'a>
+        = crate::common_traits::iterator::iter_mut_rev::IterMutRev<'a, T>
+    where
+        T: 'a,
+        Self: 'a;
+    type SliceIter<'a>
+        = Vec<&'a [T]>
+    where
+        T: 'a,
+        Self: 'a;
+    type SliceMutIter<'a>
+        = Vec<&'a mut [T]>
+    where
+        T: 'a,
+        Self: 'a;
 
     /// Returns the index of the `element` with the given reference.
     /// This method has *O(f)* time complexity where `f << vec.len()` is the number of fragments.
