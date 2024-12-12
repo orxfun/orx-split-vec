@@ -5,7 +5,7 @@
 
 An efficient dynamic capacity vector with pinned element guarantees.
 
-A **SplitVec** implements [`PinnedVec`](https://crates.io/crates/orx-split-vec); you may read the detailed information about [pinned element guarantees](https://docs.rs/orx-pinned-vec/latest/orx_pinned_vec/#pinned-elements-guarantees) and why they are useful in the [motivation-and-examples](https://docs.rs/orx-pinned-vec/latest/orx_pinned_vec/#motivation--examples) section. In brief, a pinned vector does not allow implicit changes in memory locations of its elements; such as moving the entire vector to another memory location due to additional capacity requirement.
+A **SplitVec** implements [`PinnedVec`](https://crates.io/crates/orx-pinned-vec); you may read the detailed information about [pinned element guarantees](https://docs.rs/orx-pinned-vec/latest/orx_pinned_vec/#pinned-elements-guarantees) and why they are useful in the [motivation-and-examples](https://docs.rs/orx-pinned-vec/latest/orx_pinned_vec/#motivation--examples) section. In brief, a pinned vector does not allow implicit changes in memory locations of its elements; such as moving the entire vector to another memory location due to additional capacity requirement.
 
 ## Growth and Capacity Decisions
 
@@ -89,7 +89,7 @@ let std_vec: Vec<_> = vec.into();
 assert_eq!(&std_vec, &[0, 1, 2, 3]);
 ```
 
-Naturally, it has certain specific differences and operations. For instance, we cannot have `as_slice` method for the split vector since it is not a single big chunk  of memory. Instead, we have the `slices` and `try_get_slice` methods.
+Naturally, it has certain specific differences and operations. For instance, we cannot have `as_slice` method for the split vector since it is not a single big chunk  of memory. Instead, we have the `slices`, `slices_mut` and `try_get_slice` methods.
 
 ```rust
 use orx_split_vec::*;
@@ -140,7 +140,12 @@ assert_eq!(slice, SplitVecSlice::Fragmented(0, 1));
 let slice = vec.try_get_slice(3..7);
 assert_eq!(slice, SplitVecSlice::OutOfBounds);
 
-// or the slice can be obtained as a vector of slices
+// instead of a single slice; we can get an iterator of slices
+let slices = vec.slices(..);
+assert_eq!(2, slices.len());
+assert_eq!(slices[0], &[0, 1, 2, 3]);
+assert_eq!(slices[1], &[4]);
+
 let slices = vec.slices(0..3);
 assert_eq!(1, slices.len());
 assert_eq!(slices[0], &[0, 1, 2]);
@@ -148,11 +153,6 @@ assert_eq!(slices[0], &[0, 1, 2]);
 let slices = vec.slices(3..5);
 assert_eq!(2, slices.len());
 assert_eq!(slices[0], &[3]);
-assert_eq!(slices[1], &[4]);
-
-let slices = vec.slices(0..vec.len());
-assert_eq!(2, slices.len());
-assert_eq!(slices[0], &[0, 1, 2, 3]);
 assert_eq!(slices[1], &[4]);
 ```
 
@@ -187,8 +187,8 @@ assert_eq!(3, vec.fragments().len());
 assert_eq!(addr42, &vec[0] as *const usize);
 
 // we can safely dereference it and read the correct value
-// dereferencing is still unsafe for SplitVec,
-// however, it allows for safe api's for wrapper types such as
+// of course, dereferencing is still through the unsafe api,
+// however, the guarantee allows for safe api's for wrapper types such as
 // ConcurrentVec, ImpVec, SelfRefCol
 assert_eq!(unsafe { *addr42 }, 42);
 ```
@@ -197,17 +197,17 @@ assert_eq!(unsafe { *addr42 }, 42);
 
 ## Benchmarks
 
-Recall that the motivation of using a split vector is to provide pinned element guarantees. However, it is also important to keep the performance within an acceptable range compared to the standard vector. Growth strategies implemented in this crate seem to achieve this goal.
+Recall that the motivation of using a split vector is to provide pinned element guarantees. However, it is also important to keep the performance within an acceptable range compared to the standard vector. Growth strategies implemented in this crate achieve this goal.
 
 ### Benchmark: Growth
 
 *You may see the benchmark at [benches/grow.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/grow.rs).*
 
-The benchmark compares the build up time of vectors by pushing elements one by one. The baseline is the vector created by `std::vec::Vec::with_capacity` which has the perfect information on the number of elements to be pushed. Compared variants are vectors created with no prior knowledge about capacity: `Vec::new`, `SplitVec<_, Linear>` and `SplitVec<_, Doubling>`.
+The benchmark compares the build up time of vectors by pushing elements one by one. The baseline is the standard vector created by **Vec::with_capacity** which has the perfect information on the number of elements to be pushed. Compared variants are vectors created with no prior knowledge about capacity: **Vec::new**, `SplitVec<_, Linear>` and `SplitVec<_, Doubling>`.
 
 <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_grow.PNG" />
 
-The baseline **Vec::with_capacity** performs between 1.5 and 2.0 times faster than **Vec::new** which has no capacity information and requires copies while growing. **SplitVec** growth is copy-free. Overall, its growth performance is much closer to standard vector with perfect capacity information than **Vec::new**.
+The baseline **Vec::with_capacity** performs between 1.5 and 2.0 times faster than **Vec::new**. **SplitVec** variants also do not use prior knowledge about the number of elements to be pushed; however, it has the advantage of copy-free growth. Overall, its growth performance is much closer to standard vector with perfect capacity information than that of the **Vec::new**.
 
 *`Recursive` strategy is omitted here since it behaves exactly as the `Doubling` strategy in the growth scenario.*
 
@@ -215,29 +215,29 @@ The baseline **Vec::with_capacity** performs between 1.5 and 2.0 times faster th
 
 *You may see the benchmark at [benches/random_access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/random_access.rs).*
 
-In this benchmark, we access vector elements by indices in a random order. The baseline is again the standard vector which is compared to `Linear` and `Doubling` growth strategies that allow for constant time random access. `Recursive` strategy is also included in the benchmark; however, recall that it does not provide constant time random access.
+In this benchmark, we access vector elements by indices in a random order. The baseline standard vector is compared to `Linear` and `Doubling` growth strategies that allow for constant time random access. `Recursive` strategy without constant time random access is also included in the experimentation.
 
 <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_random_access.PNG" />
 
-We can see that `Linear` is slower than `Doubling`. Random access performance of `Doubling` is at most 40% slower than tht of the standard vector, and the difference diminishes as the element size or number of elements gets larger.
+We can see that `Linear` is slower than `Doubling`. Random access performance of `Doubling` is at most 40% slower than that of the standard vector, and the difference diminishes as the element size or number of elements gets larger.
 
-`Recursive`, on the other hand, is between 5 and 7 times slower than the slower access for small elements and around 1.5 times slower for large structs.
+`Recursive`, on the other hand, is between 5 and 7 times slower for small elements and around 1.5 times slower for larger structs.
 
 ### Benchmark: Serial Access
 
 *You may see the benchmark at [benches/serial_access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/serial_access.rs).*
 
-Here, we benchmark the case where we access each element of the vector in order starting from the first element to the last. For completeness, baseline **Vec** is compared with `Doubling`, `Linear` and `Recursive` growth strategies; however, `SplitVec` actually uses the same iterator to allow for the serial access for any growth strategy. The difference, if any, stems from the sizes of fragments and their impact on cache locality.
+Here, we benchmark the case where we access each element of the vector in order starting from the first element to the last. Baseline **Vec** is compared with `Doubling`, `Linear` and `Recursive` growth strategies; however, `SplitVec` actually uses the same iterator to allow for the serial access for any growth strategy. The difference, if any, stems from the sizes of fragments and their impact on cache locality.
 
 <img src="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_serial_access.PNG" alt="https://raw.githubusercontent.com/orxfun/orx-split-vec/main/docs/img/bench_serial_access.PNG" />
 
-Furthermore, we observe that split vector performance is almost identical to that of the standard vector. Although there are minor deviations, we do not observe any significant difference among tested growth strategies.
+We observe that split vector performance is almost identical to that of the standard vector. Although there are minor deviations, we do not observe any significant difference among tested growth strategies.
 
 ### Benchmark: Append
 
 *You may see the benchmark at [benches/serial_access.rs](https://github.com/orxfun/orx-split-vec/blob/main/benches/append.rs).*
 
-Appending vectors to vectors might be a critical operation in certain cases. One example is the recursive data structures such as trees or linked lists. We might append a tree to another tree to get a new merged tree. This operation could be handled by copying data to keep a certain required structure or by simply accepting the incoming chunk (no-ops).
+Appending vector to another vector is a critical operation for certain use cases. One example is recursive data structures such as trees or linked lists. Consider appending a tree to the leaf of another tree to get a new merged tree. This operation could be handled by copying data around to maintain a certain structure or by simply accepting the incoming chunk in constant time.
 
 * **Vec**, `SplitVec<_, Doubling>` and `SplitVec<_, Linear>` perform memory copies in order to keep their internal structure which allows for efficient random access.
 * `SplitVec<_, Recursive>`, on the other hand, utilizes its fragmented structure and accepts the incoming chunk as it is. Hence, appending another vector to it is simply no-ops. This does not degrade serial access performance. However, it leads to slower random access as we observe in the previous benchmark.
