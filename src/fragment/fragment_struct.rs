@@ -1,11 +1,11 @@
 use alloc::vec::Vec;
 
 #[derive(Default)]
-/// A contagious fragment of the split vector.
+/// A contiguous fragment of the split vector.
 ///
 /// Suppose a split vector contains 10 integers from 0 to 9.
 /// Depending on the growth strategy of the split vector,
-/// this data might be stored in 3 contagious fragments,
+/// this data might be stored in 3 contiguous fragments,
 /// say [0, 1, 2, 3], [4, 5, 6, 7] and [8, 9].
 pub struct Fragment<T> {
     pub(crate) data: Vec<T>,

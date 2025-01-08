@@ -9,7 +9,7 @@ A **SplitVec** implements [`PinnedVec`](https://crates.io/crates/orx-pinned-vec)
 
 ## Growth and Capacity Decisions
 
-As the name suggests, a split vector is a collection of fragments. Each fragment is a contagious memory chunk used to store elements. Unlike standard vectors, a fragment's capacity never changes. However, the fragments of a split vector might have different capacities. The decision on the capacity of the next fragment to be allocated is decided by the [`Growth`](https://docs.rs/orx-split-vec/latest/orx_split_vec/trait.Growth.html) strategy. Notice that the split vector has two generic parameters: the element type and the growth strategy; i.e., `SplitVec<T, G: Growth>`.
+As the name suggests, a split vector is a collection of fragments. Each fragment is a contiguous memory chunk used to store elements. Unlike standard vectors, a fragment's capacity never changes. However, the fragments of a split vector might have different capacities. The decision on the capacity of the next fragment to be allocated is decided by the [`Growth`](https://docs.rs/orx-split-vec/latest/orx_split_vec/trait.Growth.html) strategy. Notice that the split vector has two generic parameters: the element type and the growth strategy; i.e., `SplitVec<T, G: Growth>`.
 
 Defining a growth strategy is straightforward, there exists one required method:
 
@@ -50,7 +50,7 @@ This strategy leads to a (stepwise) linear growth of the total vector capacity:
 
 Therefore, for creating a split vector with linear growth, we are required to explicitly provide the fixed fragment capacity **n** (hence, it does not implement `Default`).
 
-This strategy gives the caller better control on memory usage and is specifically useful when memory is more valuable or scarcer. The impact of fragmentation on sequential access is again up to the caller since **n** directly defines how many contagious fragments will exist.
+This strategy gives the caller better control on memory usage and is specifically useful when memory is more valuable or scarcer. The impact of fragmentation on sequential access is again up to the caller since **n** directly defines how many contiguous fragments will exist.
 
 Linear strategy also implements `GrowthWithConstantTimeAccess` providing constant time random access to elements.
 
@@ -127,7 +127,7 @@ assert_eq!(vec, &[0, 1, 2, 3, 4]);
 assert_eq!(2, vec.fragments().len());
 assert_eq!(4 + 8, vec.capacity());
 
-// SplitVec is not contagious; instead a collection of contagious fragments
+// SplitVec is not contiguous; instead a collection of contiguous fragments
 // so it might or might not return a slice for a given range
 
 let slice: SplitVecSlice<_> = vec.try_get_slice(1..3);

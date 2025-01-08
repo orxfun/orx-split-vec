@@ -6,7 +6,7 @@ use core::{cmp::Ordering, ops::RangeBounds};
 use orx_pinned_vec::PinnedVec;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-/// Returns the result of trying to get a slice as a contagious memory from the split vector.
+/// Returns the result of trying to get a slice as a contiguous memory from the split vector.
 pub enum SplitVecSlice<'a, T> {
     /// The desired range completely belongs to one fragment and the slice can be provided.
     Ok(&'a [T]),
@@ -19,7 +19,7 @@ pub enum SplitVecSlice<'a, T> {
 }
 
 impl<T, G: Growth> SplitVec<T, G> {
-    /// Returns the result of trying to return the required `range` as a contagious slice of data.
+    /// Returns the result of trying to return the required `range` as a contiguous slice of data.
     /// It might return Ok of the slice if the range belongs to one fragment.
     ///
     /// Otherwise, one of the two failure cases will be returned:
