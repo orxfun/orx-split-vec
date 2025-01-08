@@ -7,7 +7,7 @@ impl<T, G> From<SplitVec<T, G>> for Vec<T>
 where
     G: Growth,
 {
-    /// Converts the `SplitVec` into a standard `Vec` with a contagious memory layout.
+    /// Converts the `SplitVec` into a standard `Vec` with a contiguous memory layout.
     ///
     /// If the split vector is composed of only one fragment, it is immediately returned as a `Vec` without any cost.
     ///
@@ -58,7 +58,7 @@ impl<T, G> SplitVec<T, G>
 where
     G: Growth,
 {
-    /// Converts the `SplitVec` into a standard `Vec` with a contagious memory layout.
+    /// Converts the `SplitVec` into a standard `Vec` with a contiguous memory layout.
     ///
     /// # Examples
     ///

@@ -4,14 +4,14 @@ use alloc::vec::Vec;
 
 /// A split vector consisting of a vector of fragments.
 ///
-/// A fragment is a contagious memory storing elements of the vector.
-/// Therefore, SplitVec is not one large contagious memory fragment;
-/// it is rather a sequence of contagious fragments.
+/// A fragment is a contiguous memory storing elements of the vector.
+/// Therefore, SplitVec is not one large contiguous memory fragment;
+/// it is rather a sequence of contiguous fragments.
 ///
 /// Different [`Growth`] strategies define the size of the fragments:
 /// * [`Doubling`] (similarly [`Recursive`]) strategy keeps doubling the capacity
 ///   of fragments. Therefore, for sequential iteration, its amortized time
-///   complexity is equal to one large contagious fragment.
+///   complexity is equal to one large contiguous fragment.
 ///   Furthermore, it allows for constant time random access.
 /// * [`Linear`], on the other hand, keeps creating fragments of equal
 ///   sizes. It is then the caller's choice to decide on the level of
