@@ -6,6 +6,7 @@ use crate::{algorithms, Fragment, Growth, SplitVec};
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::ops::RangeBounds;
+use orx_iterable::Collection;
 use orx_pinned_vec::utils::slice;
 use orx_pinned_vec::{CapacityState, PinnedVec};
 use orx_pseudo_default::PseudoDefault;
@@ -20,16 +21,6 @@ impl<T, G: Growth> PseudoDefault for SplitVec<T, G> {
 }
 
 impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
-    type Iter<'a>
-        = crate::common_traits::iterator::iter::Iter<'a, T>
-    where
-        T: 'a,
-        Self: 'a;
-    type IterMut<'a>
-        = crate::common_traits::iterator::iter_mut::IterMut<'a, T>
-    where
-        T: 'a,
-        Self: 'a;
     type IterRev<'a>
         = crate::common_traits::iterator::iter_rev::IterRev<'a, T>
     where
@@ -623,14 +614,6 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
 
             self.drop_last_empty_fragment();
         }
-    }
-
-    fn iter(&self) -> Self::Iter<'_> {
-        Self::Iter::new(&self.fragments)
-    }
-
-    fn iter_mut(&mut self) -> Self::IterMut<'_> {
-        Self::IterMut::new(&mut self.fragments)
     }
 
     fn iter_rev(&self) -> Self::IterRev<'_> {

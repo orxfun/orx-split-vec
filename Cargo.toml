@@ -1,6 +1,6 @@
 [package]
 name = "orx-split-vec"
-version = "3.11.1"
+version = "3.12.0"
 edition = "2021"
 authors = ["orxfun <orx.ugur.arikan@gmail.com>"]
 description = "An efficient dynamic capacity vector with pinned element guarantees."
@@ -10,8 +10,9 @@ keywords = ["vec", "array", "split", "fragments", "pinned"]
 categories = ["data-structures", "rust-patterns", "no-std"]
 
 [dependencies]
+orx-iterable = { version = "1.1.1", default-features = false }
+orx-pinned-vec = "3.12"
 orx-pseudo-default = { version = "1.4", default-features = false }
-orx-pinned-vec = "3.11"
 
 [[bench]]
 name = "serial_access"

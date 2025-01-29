@@ -1,5 +1,14 @@
-use crate::fragment::fragment_struct::Fragment;
+use crate::{fragment::fragment_struct::Fragment, Growth, SplitVec};
 use core::iter::FusedIterator;
+
+impl<'a, T, G: Growth> IntoIterator for &'a mut SplitVec<T, G> {
+    type Item = &'a mut T;
+    type IntoIter = IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Self::IntoIter::new(&mut self.fragments)
+    }
+}
 
 /// Mutable iterator over the `SplitVec`.
 ///
