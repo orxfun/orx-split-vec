@@ -252,4 +252,4 @@ Contributions are welcome! If you notice an error, have a question or think some
 
 ## License
 
-This library is licensed under MIT license. See LICENSE for details.
+Dual-licensed under [Apache 2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT).

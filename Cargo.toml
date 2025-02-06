@@ -1,17 +1,17 @@
 [package]
 name = "orx-split-vec"
-version = "3.12.0"
+version = "3.14.0"
 edition = "2021"
 authors = ["orxfun <orx.ugur.arikan@gmail.com>"]
 description = "An efficient dynamic capacity vector with pinned element guarantees."
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/orxfun/orx-split-vec/"
 keywords = ["vec", "array", "split", "fragments", "pinned"]
 categories = ["data-structures", "rust-patterns", "no-std"]
 
 [dependencies]
 orx-iterable = { version = "1.1.1", default-features = false }
-orx-pinned-vec = "3.12"
+orx-pinned-vec = "3.14"
 orx-pseudo-default = { version = "1.4", default-features = false }
 
 [[bench]]
@@ -20,8 +20,8 @@ harness = false
 
 [dev-dependencies]
 criterion = { version = "0.5", default-features = false }
-rand = { version = "0.8", default-features = false }
-rand_chacha = { version = "0.3", default-features = false }
+rand = { version = "0.9", default-features = false }
+rand_chacha = { version = "0.9", default-features = false }
 test-case = "3.3.1"
 wasm-bindgen = "0.2"
 wasm-bindgen-test = "0.3"
