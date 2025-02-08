@@ -1,6 +1,7 @@
 # orx-split-vec
 
 [![orx-split-vec crate](https://img.shields.io/crates/v/orx-split-vec.svg)](https://crates.io/crates/orx-split-vec)
+[![orx-split-vec crate](https://img.shields.io/crates/d/orx-split-vec.svg)](https://crates.io/crates/orx-split-vec)
 [![orx-split-vec documentation](https://docs.rs/orx-split-vec/badge.svg)](https://docs.rs/orx-split-vec)
 
 An efficient dynamic capacity vector with pinned element guarantees.
