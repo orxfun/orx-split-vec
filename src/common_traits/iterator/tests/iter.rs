@@ -1,6 +1,7 @@
 use crate::{test_all_growth_types, Growth, SplitVec};
 use alloc::vec::Vec;
 use orx_pinned_vec::*;
+use test_case::{test_case, test_matrix};
 
 #[test]
 fn iter() {
@@ -72,30 +73,28 @@ fn clone() {
     test_all_growth_types!(test);
 }
 
-#[test]
-fn all() {
-    fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-        let n = 564;
-        let std_vec: Vec<_> = (0..n).collect();
-        vec.extend(std_vec);
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 3, 4, 5, 27, 423]
+)]
+fn all(mut vec: SplitVec<usize, impl Growth>, n: usize) {
+    vec.clear();
+    vec.extend(0..n);
 
-        assert!(vec.iter().all(|x| *x as isize >= -1));
-        assert!(!vec.iter().all(|x| *x < 357));
-    }
-    test_all_growth_types!(test);
+    assert!(vec.iter().all(|x| *x as isize >= -1));
+    assert!(vec.is_empty() || !vec.iter().all(|x| *x < n - 1));
 }
 
-#[test]
-fn any() {
-    fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-        let n = 564;
-        let std_vec: Vec<_> = (0..n).collect();
-        vec.extend(std_vec);
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 3, 4, 5, 27, 423]
+)]
+fn any(mut vec: SplitVec<usize, impl Growth>, n: usize) {
+    vec.clear();
+    vec.extend(0..n);
 
-        assert!(!vec.iter().any(|x| *x as isize <= -1));
-        assert!(vec.iter().any(|x| *x < 357));
-    }
-    test_all_growth_types!(test);
+    assert!(!vec.iter().any(|x| *x as isize <= -1));
+    assert!(vec.is_empty() || vec.iter().any(|x| *x >= n / 2));
 }
 
 #[test]
