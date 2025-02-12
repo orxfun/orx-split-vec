@@ -225,19 +225,40 @@ fn min(vec: SplitVec<usize, impl Growth>, n: usize) {
 
 #[test_matrix(
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
-    [0, 3, 4, 8, 5, 27, 423]
+    [0, 3, 4, 8, 5, 27, 423],
+    [0, 3, 4, 8, 124, 99]
 )]
-fn nth(vec: SplitVec<usize, impl Growth>, n: usize) {
+fn nth(vec: SplitVec<usize, impl Growth>, n: usize, nth: usize) {
     let vec = init_vec(vec, n);
 
-    let nth = [0, 3, 4, 8, 124, 99];
-    for nth in nth {
-        let expected = match nth < n {
-            true => Some(nth),
-            false => None,
-        };
-        assert_eq!(vec.iter().nth(nth).copied(), expected);
+    let expected = match nth < n {
+        true => Some(nth),
+        false => None,
+    };
+    assert_eq!(vec.iter().nth(nth).copied(), expected);
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 3, 4, 8, 5, 27, 423],
+    [0, 3, 4, 8, 124, 99]
+)]
+fn nth_progressed(vec: SplitVec<usize, impl Growth>, n: usize, nth: usize) {
+    let vec = init_vec(vec, n);
+
+    let mut iter = vec.iter();
+    let num_used = n / 2;
+    for _ in 0..num_used {
+        _ = iter.next();
     }
+
+    let original_nth = num_used + nth;
+    let expected = match original_nth < n {
+        true => Some(original_nth),
+        false => None,
+    };
+
+    assert_eq!(iter.nth(nth).copied(), expected);
 }
 
 #[test_matrix(
