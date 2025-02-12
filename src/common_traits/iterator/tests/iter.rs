@@ -55,24 +55,6 @@ fn iter_one_fragment() {
     test_all_growth_types!(test);
 }
 
-#[test]
-fn clone2() {
-    fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-        let n = 564;
-        let std_vec: Vec<_> = (0..n).collect();
-        vec.extend(std_vec);
-
-        let iter1 = vec.iter();
-        let iter2 = iter1.clone();
-
-        for (i, (a, b)) in iter1.zip(iter2).enumerate() {
-            assert_eq!(i, *a);
-            assert_eq!(i, *b);
-        }
-    }
-    test_all_growth_types!(test);
-}
-
 fn init_vec<G: Growth>(mut vec: SplitVec<usize, G>, n: usize) -> SplitVec<usize, G> {
     vec.clear();
     vec.extend(0..n);
@@ -83,7 +65,7 @@ fn init_vec<G: Growth>(mut vec: SplitVec<usize, G>, n: usize) -> SplitVec<usize,
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
     [0, 3, 4, 5, 27, 423]
 )]
-fn clone(vec: SplitVec<usize, impl Growth>, n: usize) {
+fn clone_whole(vec: SplitVec<usize, impl Growth>, n: usize) {
     let vec = init_vec(vec, n);
 
     let iter1 = vec.iter();
@@ -92,6 +74,26 @@ fn clone(vec: SplitVec<usize, impl Growth>, n: usize) {
     for (i, (a, b)) in iter1.zip(iter2).enumerate() {
         assert_eq!(i, *a);
         assert_eq!(i, *b);
+    }
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 3, 4, 5, 8, 27, 423]
+)]
+fn clone_used(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
+    let num_used = n / 2;
+
+    let mut iter1 = vec.iter();
+    for _ in 0..num_used {
+        _ = iter1.next();
+    }
+    let iter2 = iter1.clone();
+
+    for (i, (a, b)) in iter1.zip(iter2).enumerate() {
+        assert_eq!(i + num_used, *a);
+        assert_eq!(i + num_used, *b);
     }
 }
 
