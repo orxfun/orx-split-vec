@@ -120,3 +120,18 @@ fn fold() {
     }
     test_all_growth_types!(test);
 }
+
+#[test]
+fn reduce() {
+    fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+        let n = 564;
+        let std_vec: Vec<_> = (0..n).collect();
+        vec.extend(std_vec);
+
+        let sum = vec.iter().copied().reduce(|x, b| x + b);
+        let expected = (0..n).sum::<usize>();
+
+        assert_eq!(sum, Some(expected));
+    }
+    test_all_growth_types!(test);
+}
