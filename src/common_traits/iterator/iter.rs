@@ -170,27 +170,6 @@ impl<'a, T> Iterator for Iter<'a, T> {
         let len = self.remaining_len();
         (len, Some(len))
     }
-
-    fn skip(mut self, n: usize) -> Skip<Self>
-    where
-        Self: Sized,
-    {
-        let mut n = n;
-        while n >= self.inner.len() {
-            n -= self.inner.len();
-            match self.outer.next() {
-                Some(fragment) => self.inner = fragment.iter(),
-                None => self.inner = Default::default(),
-            }
-        }
-
-        let iter = Self {
-            inner: self.inner,
-            outer: self.outer,
-        };
-        todo!();
-        iter.skip(n)
-    }
 }
 
 impl<T> FusedIterator for Iter<'_, T> {}
@@ -213,17 +192,4 @@ where
         (Some(a), None) => Some(a),
         _ => b,
     }
-}
-
-#[test]
-fn abc() {
-    use crate::*;
-
-    let mut v = SplitVec::new();
-    v.push(1);
-    v.push(2);
-    v.push(3);
-
-    let mut iter = v.iter().skip(2);
-    assert_eq!(iter.next(), Some(&3333));
 }
