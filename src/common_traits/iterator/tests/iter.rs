@@ -175,6 +175,58 @@ fn last(vec: SplitVec<usize, impl Growth>, n: usize) {
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
     [0, 3, 4, 8, 5, 27, 423]
 )]
+fn max(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let mut vec = init_vec(vec, n);
+
+    let expected = match n {
+        0 => None,
+        _ => Some(n - 1),
+    };
+    assert_eq!(vec.iter().max().copied(), expected);
+
+    if let Some(x) = vec.get_mut(n / 2) {
+        *x = n + 1;
+        assert_eq!(vec.iter().max().copied(), Some(n + 1));
+    };
+
+    let mut vec = init_vec(vec, n);
+    if let Some(x) = vec.get_mut(4) {
+        *x = n + 1;
+        assert_eq!(vec.iter().max().copied(), Some(n + 1));
+    };
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 3, 4, 8, 5, 27, 423]
+)]
+fn min(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let mut vec = init_vec(vec, n);
+
+    let expected = match n {
+        0 => None,
+        _ => Some(0),
+    };
+    assert_eq!(vec.iter().min().copied(), expected);
+
+    for x in vec.iter_mut() {
+        *x += n;
+    }
+    if let Some(x) = vec.get_mut(n / 2) {
+        *x = 1;
+        assert_eq!(vec.iter().min().copied(), Some(1));
+    };
+
+    if let Some(x) = vec.get_mut(4) {
+        *x = 0;
+        assert_eq!(vec.iter().min().copied(), Some(0));
+    };
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 3, 4, 8, 5, 27, 423]
+)]
 fn reduce(vec: SplitVec<usize, impl Growth>, n: usize) {
     let vec = init_vec(vec, n);
 
