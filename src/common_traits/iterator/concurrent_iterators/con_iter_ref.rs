@@ -84,15 +84,26 @@ where
     type ConIter = ConIterRef<'a, T, G>;
 
     fn new(chunk_size: usize) -> Self {
-        todo!()
+        Self {
+            chunk_size,
+            phantom: PhantomData,
+        }
     }
 
+    #[inline(always)]
     fn chunk_size(&self) -> usize {
-        todo!()
+        self.chunk_size
     }
 
     fn pull_x(&mut self, iter: &Self::ConIter) -> Option<impl ExactSizeIterator<Item = &'a T>> {
-        Some(core::iter::empty())
+        iter.progress_and_get_begin_idx(self.chunk_size)
+            .map(|begin_idx| {
+                let end_idx = (begin_idx + self.chunk_size)
+                    .min(iter.vec_len)
+                    .max(begin_idx);
+                // TODO: return an iterator of slices
+                core::iter::empty()
+            })
     }
 }
 
