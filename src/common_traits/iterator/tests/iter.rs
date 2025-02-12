@@ -65,7 +65,7 @@ fn init_vec<G: Growth>(mut vec: SplitVec<usize, G>, n: usize) -> SplitVec<usize,
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
     [0, 1, 3, 4, 5, 8, 27, 423]
 )]
-fn clone_whole(vec: SplitVec<usize, impl Growth>, n: usize) {
+fn clone(vec: SplitVec<usize, impl Growth>, n: usize) {
     let vec = init_vec(vec, n);
 
     let iter1 = vec.iter();
@@ -81,7 +81,7 @@ fn clone_whole(vec: SplitVec<usize, impl Growth>, n: usize) {
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
     [0, 3, 4, 5, 8, 27, 423]
 )]
-fn clone_used(vec: SplitVec<usize, impl Growth>, n: usize) {
+fn clone_progressed(vec: SplitVec<usize, impl Growth>, n: usize) {
     let vec = init_vec(vec, n);
     let num_used = n / 2;
 
