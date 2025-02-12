@@ -8,15 +8,9 @@ pub fn all<'a, T, F>(outer: &mut Outer<'a, T>, inner: &mut Inner<'a, T>, mut f: 
 where
     F: FnMut(&'a T) -> bool,
 {
-    if !inner.all(&mut f) {
-        false
-    } else {
-        for fragment in outer {
-            if !fragment.iter().all(&mut f) {
-                return false;
-            }
-        }
-        true
+    match inner.all(&mut f) {
+        false => false,
+        true => !outer.any(|inner| !inner.iter().all(&mut f)),
     }
 }
 
@@ -24,15 +18,9 @@ pub fn any<'a, T, F>(outer: &mut Outer<'a, T>, inner: &mut Inner<'a, T>, mut f: 
 where
     F: FnMut(&'a T) -> bool,
 {
-    if inner.any(&mut f) {
-        true
-    } else {
-        for fragment in outer {
-            if fragment.iter().any(&mut f) {
-                return true;
-            }
-        }
-        false
+    match inner.any(&mut f) {
+        true => true,
+        false => outer.any(|inner| inner.iter().any(&mut f)),
     }
 }
 

@@ -54,10 +54,9 @@ impl<'a, T> Iterator for Iter<'a, T> {
     #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         let next_element = self.inner.next();
-        if next_element.is_some() {
-            next_element
-        } else {
-            self.next_fragment()
+        match next_element.is_some() {
+            true => next_element,
+            false => self.next_fragment(),
         }
     }
 
