@@ -1,3 +1,4 @@
+mod concurrent_iterators;
 mod eq;
 mod from_iter;
 pub(crate) mod into_iter;
