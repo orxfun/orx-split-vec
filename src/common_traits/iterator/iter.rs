@@ -139,15 +139,23 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        let mut n = n;
-        while n >= self.inner.len() {
-            n -= self.inner.len();
-            match self.outer.next() {
-                Some(fragment) => self.inner = fragment.iter(),
-                None => self.inner = Default::default(),
+        match self.inner.len() {
+            0 => None,
+            mut inner_len => {
+                let mut n = n;
+                while n >= inner_len {
+                    n -= self.inner.len();
+                    match self.outer.next() {
+                        Some(fragment) => {
+                            self.inner = fragment.iter();
+                            inner_len = fragment.len();
+                        }
+                        None => return None,
+                    }
+                }
+                self.inner.nth(n)
             }
         }
-        self.inner.nth(n)
     }
 
     fn reduce<F>(mut self, f: F) -> Option<Self::Item>
