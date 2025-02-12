@@ -1,9 +1,10 @@
-use crate::{Fragment, Growth};
+use crate::{Growth, SplitVec};
 use core::{
     marker::PhantomData,
     sync::atomic::{AtomicUsize, Ordering},
 };
 use orx_concurrent_iter::{BufferedChunkX, ConcurrentIterX};
+use orx_pinned_vec::PinnedVec;
 
 // iter
 
@@ -13,9 +14,7 @@ where
     G: Growth,
 {
     counter: AtomicUsize,
-    vec_len: usize,
-    fragments: &'a [Fragment<T>],
-    growth: &'a G,
+    vec: &'a SplitVec<T, G>,
 }
 
 impl<'a, T, G> ConIterRef<'a, T, G>
@@ -23,26 +22,22 @@ where
     T: Send + Sync,
     G: Growth,
 {
-    pub fn new(vec_len: usize, fragments: &'a [Fragment<T>], growth: &'a G) -> Self {
+    pub fn new(vec: &'a SplitVec<T, G>) -> Self {
         Self {
             counter: 0.into(),
-            vec_len,
-            fragments,
-            growth,
+            vec,
         }
     }
 
     #[inline(always)]
     fn get(&self, item_idx: usize) -> Option<&'a T> {
-        self.growth
-            .get_fragment_and_inner_indices(self.vec_len, self.fragments, item_idx)
-            .map(|(f, i)| &self.fragments[f][i])
+        self.vec.get(item_idx)
     }
 
     #[inline(always)]
     pub(crate) fn progress_and_get_begin_idx(&self, number_to_fetch: usize) -> Option<usize> {
         let begin_idx = self.counter.fetch_add(number_to_fetch, Ordering::Relaxed);
-        match begin_idx < self.vec_len {
+        match begin_idx < self.vec.len() {
             true => Some(begin_idx),
             _ => None,
         }
@@ -54,9 +49,7 @@ impl<T: Send + Sync, G: Growth> Clone for ConIterRef<'_, T, G> {
         let counter = self.counter.load(Ordering::SeqCst).into();
         Self {
             counter,
-            vec_len: self.vec_len,
-            fragments: self.fragments,
-            growth: self.growth,
+            vec: self.vec,
         }
     }
 }
@@ -115,6 +108,7 @@ impl<'a, T: Send + Sync, G: Growth> ConcurrentIterX for ConIterRef<'a, T, G> {
     type BufferedIterX = ConBufferedIterRef<T, G>;
 
     fn into_seq_iter(self) -> Self::SeqIter {
+        let current = self.counter.load(Ordering::Acquire);
         todo!()
     }
 
