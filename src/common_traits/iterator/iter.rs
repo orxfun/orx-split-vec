@@ -1,6 +1,6 @@
 use super::reductions;
 use crate::{fragment::fragment_struct::Fragment, Growth, SplitVec};
-use core::iter::FusedIterator;
+use core::iter::{FusedIterator, Skip};
 
 impl<'a, T, G: Growth> IntoIterator for &'a SplitVec<T, G> {
     type Item = &'a T;
@@ -19,6 +19,15 @@ impl<'a, T, G: Growth> IntoIterator for &'a SplitVec<T, G> {
 pub struct Iter<'a, T> {
     outer: core::slice::Iter<'a, Fragment<T>>,
     inner: core::slice::Iter<'a, T>,
+}
+
+impl<'a, T> Default for Iter<'a, T> {
+    fn default() -> Self {
+        Self {
+            outer: Default::default(),
+            inner: Default::default(),
+        }
+    }
 }
 
 impl<'a, T> Iter<'a, T> {
@@ -67,23 +76,6 @@ impl<'a, T> Iterator for Iter<'a, T> {
 
     // override default implementations
 
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.remaining_len();
-        (len, Some(len))
-    }
-
-    fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        let mut n = n;
-        while n >= self.inner.len() {
-            n -= self.inner.len();
-            match self.outer.next() {
-                Some(fragment) => self.inner = fragment.iter(),
-                None => self.inner = Default::default(),
-            }
-        }
-        self.inner.nth(n)
-    }
-
     fn all<F>(&mut self, f: F) -> bool
     where
         Self: Sized,
@@ -100,28 +92,20 @@ impl<'a, T> Iterator for Iter<'a, T> {
         reductions::any(&mut self.outer, &mut self.inner, f)
     }
 
-    fn fold<B, F>(mut self, init: B, f: F) -> B
-    where
-        Self: Sized,
-        F: FnMut(B, Self::Item) -> B,
-    {
-        reductions::fold(&mut self.outer, &mut self.inner, init, f)
-    }
-
-    fn reduce<F>(mut self, f: F) -> Option<Self::Item>
-    where
-        Self: Sized,
-        F: FnMut(Self::Item, Self::Item) -> Self::Item,
-    {
-        reductions::reduce(&mut self.outer, &mut self.inner, f)
-    }
-
     #[inline(always)]
     fn count(self) -> usize
     where
         Self: Sized,
     {
         self.remaining_len()
+    }
+
+    fn fold<B, F>(mut self, init: B, f: F) -> B
+    where
+        Self: Sized,
+        F: FnMut(B, Self::Item) -> B,
+    {
+        reductions::fold(&mut self.outer, &mut self.inner, init, f)
     }
 
     fn is_sorted(mut self) -> bool
@@ -161,6 +145,52 @@ impl<'a, T> Iterator for Iter<'a, T> {
         let b = self.outer.filter_map(|x| x.iter().min()).min();
         inner_outer_reduce(a, b, core::cmp::min)
     }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        let mut n = n;
+        while n >= self.inner.len() {
+            n -= self.inner.len();
+            match self.outer.next() {
+                Some(fragment) => self.inner = fragment.iter(),
+                None => self.inner = Default::default(),
+            }
+        }
+        self.inner.nth(n)
+    }
+
+    fn reduce<F>(mut self, f: F) -> Option<Self::Item>
+    where
+        Self: Sized,
+        F: FnMut(Self::Item, Self::Item) -> Self::Item,
+    {
+        reductions::reduce(&mut self.outer, &mut self.inner, f)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.remaining_len();
+        (len, Some(len))
+    }
+
+    fn skip(mut self, n: usize) -> Skip<Self>
+    where
+        Self: Sized,
+    {
+        let mut n = n;
+        while n >= self.inner.len() {
+            n -= self.inner.len();
+            match self.outer.next() {
+                Some(fragment) => self.inner = fragment.iter(),
+                None => self.inner = Default::default(),
+            }
+        }
+
+        let iter = Self {
+            inner: self.inner,
+            outer: self.outer,
+        };
+        todo!();
+        iter.skip(n)
+    }
 }
 
 impl<T> FusedIterator for Iter<'_, T> {}
@@ -183,4 +213,17 @@ where
         (Some(a), None) => Some(a),
         _ => b,
     }
+}
+
+#[test]
+fn abc() {
+    use crate::*;
+
+    let mut v = SplitVec::new();
+    v.push(1);
+    v.push(2);
+    v.push(3);
+
+    let mut iter = v.iter().skip(2);
+    assert_eq!(iter.next(), Some(&3333));
 }
