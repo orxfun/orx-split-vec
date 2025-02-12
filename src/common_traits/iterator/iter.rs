@@ -108,14 +108,6 @@ impl<'a, T> Iterator for Iter<'a, T> {
         reductions::fold(&mut self.outer, &mut self.inner, init, f)
     }
 
-    fn is_sorted(mut self) -> bool
-    where
-        Self: Sized,
-        Self::Item: PartialOrd,
-    {
-        self.inner.is_sorted() && self.outer.all(|inner| inner.iter().is_sorted())
-    }
-
     fn last(self) -> Option<Self::Item>
     where
         Self: Sized,

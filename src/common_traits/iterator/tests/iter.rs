@@ -161,6 +161,20 @@ fn fold(vec: SplitVec<usize, impl Growth>, n: usize) {
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
     [0, 3, 4, 8, 5, 27, 423]
 )]
+fn last(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
+
+    let expected = match n {
+        0 => None,
+        _ => Some(n - 1),
+    };
+    assert_eq!(vec.iter().last().copied(), expected);
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 3, 4, 8, 5, 27, 423]
+)]
 fn reduce(vec: SplitVec<usize, impl Growth>, n: usize) {
     let vec = init_vec(vec, n);
 
