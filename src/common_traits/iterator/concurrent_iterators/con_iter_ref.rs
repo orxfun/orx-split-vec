@@ -1,9 +1,11 @@
 use crate::{Growth, SplitVec};
 use core::{
+    iter::Skip,
     marker::PhantomData,
     sync::atomic::{AtomicUsize, Ordering},
 };
 use orx_concurrent_iter::{BufferedChunkX, ConcurrentIterX};
+use orx_iterable::{Collection, Iterable};
 use orx_pinned_vec::PinnedVec;
 
 // iter
@@ -105,13 +107,13 @@ where
 impl<'a, T: Send + Sync, G: Growth> ConcurrentIterX for ConIterRef<'a, T, G> {
     type Item = &'a T;
 
-    type SeqIter = core::iter::Empty<&'a T>;
+    type SeqIter = Skip<<<SplitVec<T, G> as Collection>::Iterable<'a> as Iterable>::Iter>;
 
     type BufferedIterX = ConBufferedIterRef<T, G>;
 
     fn into_seq_iter(self) -> Self::SeqIter {
         let current = self.counter.load(Ordering::Acquire);
-        todo!()
+        self.vec.iter().skip(current)
     }
 
     fn next_chunk_x(&self, chunk_size: usize) -> Option<impl ExactSizeIterator<Item = Self::Item>> {
