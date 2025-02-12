@@ -91,9 +91,11 @@ where
     fn pull_x(&mut self, iter: &Self::ConIter) -> Option<impl ExactSizeIterator<Item = &'a T>> {
         iter.progress_and_get_begin_idx(self.chunk_size)
             .map(|begin_idx| {
-                let end_idx = (begin_idx + self.chunk_size)
-                    .min(iter.vec_len)
-                    .max(begin_idx);
+                let vec = iter.vec;
+                let end_idx = (begin_idx + self.chunk_size).min(vec.len()).max(begin_idx);
+                let a = vec.slices(begin_idx..end_idx);
+                let b = a.into_iter();
+                let c = b.flat_map(|x| x.iter());
                 // TODO: return an iterator of slices
                 core::iter::empty()
             })
