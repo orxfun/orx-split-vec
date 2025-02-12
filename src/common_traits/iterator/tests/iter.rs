@@ -97,31 +97,47 @@ fn any(mut vec: SplitVec<usize, impl Growth>, n: usize) {
     assert!(vec.is_empty() || vec.iter().any(|x| *x >= n / 2));
 }
 
-#[test]
-fn fold() {
-    fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-        let n = 564;
-        let std_vec: Vec<_> = (0..n).collect();
-        vec.extend(std_vec);
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 3, 4, 5, 27, 423]
+)]
+fn fold(mut vec: SplitVec<usize, impl Growth>, n: usize) {
+    vec.clear();
+    vec.extend(0..n);
 
-        let sum = vec.iter().fold(0isize, |x, b| {
-            if b % 2 == 0 {
-                x + *b as isize
-            } else {
-                x - *b as isize
-            }
-        });
+    let sum = vec.iter().fold(0isize, |x, b| {
+        if b % 2 == 0 {
+            x + *b as isize
+        } else {
+            x - *b as isize
+        }
+    });
 
-        let expected = (0..n).filter(|x| x % 2 == 0).sum::<usize>() as isize
-            - (0..n).filter(|x| x % 2 == 1).sum::<usize>() as isize;
+    let expected = (0..n).filter(|x| x % 2 == 0).sum::<usize>() as isize
+        - (0..n).filter(|x| x % 2 == 1).sum::<usize>() as isize;
 
-        assert_eq!(sum, expected);
-    }
-    test_all_growth_types!(test);
+    assert_eq!(sum, expected);
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 3, 4, 5, 27, 423]
+)]
+fn reduce(mut vec: SplitVec<usize, impl Growth>, n: usize) {
+    vec.clear();
+    vec.extend(0..n);
+
+    let sum = vec.iter().copied().reduce(|x, b| x + b);
+    let expected = match n {
+        0 => None,
+        _ => Some((0..n).sum::<usize>()),
+    };
+
+    assert_eq!(sum, expected);
 }
 
 #[test]
-fn reduce() {
+fn reduce2() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
         let n = 564;
         let std_vec: Vec<_> = (0..n).collect();
