@@ -175,6 +175,32 @@ fn last(vec: SplitVec<usize, impl Growth>, n: usize) {
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
     [0, 1, 3, 4, 5, 8, 27, 423]
 )]
+fn len(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
+
+    let mut len = n;
+    let mut iter = vec.iter();
+    while let Some(_) = iter.next() {
+        len -= 1;
+        assert_eq!(iter.len(), len);
+        assert_eq!(iter.size_hint(), (len, Some(len)));
+    }
+
+    assert_eq!(iter.len(), len);
+    assert_eq!(iter.len(), 0);
+    assert_eq!(iter.size_hint(), (0, Some(0)));
+
+    _ = iter.next();
+
+    assert_eq!(iter.len(), len);
+    assert_eq!(iter.len(), 0);
+    assert_eq!(iter.size_hint(), (0, Some(0)));
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423]
+)]
 fn max(vec: SplitVec<usize, impl Growth>, n: usize) {
     let mut vec = init_vec(vec, n);
 
