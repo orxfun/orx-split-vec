@@ -135,19 +135,27 @@ impl<'a, T: Send + Sync, G: Growth> ConcurrentIterX for ConIterRef<'a, T, G> {
         }
     }
 
+    #[inline(always)]
     fn next(&self) -> Option<Self::Item> {
-        todo!()
+        let idx = self.counter.fetch_add(1, Ordering::Acquire);
+        self.get(idx)
     }
 
     fn skip_to_end(&self) {
-        todo!()
+        let _ = self.counter.fetch_max(self.vec.len(), Ordering::Acquire);
     }
 
     fn try_get_len(&self) -> Option<usize> {
-        todo!()
+        let current = self.counter.load(Ordering::Acquire);
+        let initial_len = self.vec.len();
+        let len = match current.cmp(&initial_len) {
+            core::cmp::Ordering::Less => initial_len - current,
+            _ => 0,
+        };
+        Some(len)
     }
 
     fn try_get_initial_len(&self) -> Option<usize> {
-        todo!()
+        Some(self.vec.len())
     }
 }
