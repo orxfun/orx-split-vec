@@ -63,7 +63,7 @@ fn init_vec<G: Growth>(mut vec: SplitVec<usize, G>, n: usize) -> SplitVec<usize,
 
 #[test_matrix(
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
-    [0, 3, 4, 5, 27, 423]
+    [0, 3, 4, 8, 5, 27, 423]
 )]
 fn clone_whole(vec: SplitVec<usize, impl Growth>, n: usize) {
     let vec = init_vec(vec, n);
@@ -99,7 +99,7 @@ fn clone_used(vec: SplitVec<usize, impl Growth>, n: usize) {
 
 #[test_matrix(
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
-    [0, 3, 4, 5, 27, 423]
+    [0, 3, 4, 8, 5, 27, 423]
 )]
 fn all(vec: SplitVec<usize, impl Growth>, n: usize) {
     let vec = init_vec(vec, n);
@@ -110,7 +110,7 @@ fn all(vec: SplitVec<usize, impl Growth>, n: usize) {
 
 #[test_matrix(
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
-    [0, 3, 4, 5, 27, 423]
+    [0, 3, 4, 8, 5, 27, 423]
 )]
 fn any(vec: SplitVec<usize, impl Growth>, n: usize) {
     let vec = init_vec(vec, n);
@@ -121,7 +121,24 @@ fn any(vec: SplitVec<usize, impl Growth>, n: usize) {
 
 #[test_matrix(
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
-    [0, 3, 4, 5, 27, 423]
+    [0, 3, 4, 8, 5, 27, 423]
+)]
+fn count(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
+    let num_used = n / 2;
+
+    assert_eq!(vec.iter().count(), n);
+
+    let mut iter = vec.iter();
+    for _ in 0..num_used {
+        _ = iter.next();
+    }
+    assert_eq!(iter.count(), n - num_used);
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 3, 4, 8, 5, 27, 423]
 )]
 fn fold(vec: SplitVec<usize, impl Growth>, n: usize) {
     let vec = init_vec(vec, n);
@@ -142,7 +159,7 @@ fn fold(vec: SplitVec<usize, impl Growth>, n: usize) {
 
 #[test_matrix(
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
-    [0, 3, 4, 5, 27, 423]
+    [0, 3, 4, 8, 5, 27, 423]
 )]
 fn reduce(vec: SplitVec<usize, impl Growth>, n: usize) {
     let vec = init_vec(vec, n);
