@@ -117,7 +117,22 @@ impl<'a, T: Send + Sync, G: Growth> ConcurrentIterX for ConIterRef<'a, T, G> {
     }
 
     fn next_chunk_x(&self, chunk_size: usize) -> Option<impl ExactSizeIterator<Item = Self::Item>> {
-        Some(core::iter::empty())
+        let begin_idx = self
+            .progress_and_get_begin_idx(chunk_size)
+            .unwrap_or(self.vec.len());
+        let end_idx = (begin_idx + chunk_size).min(self.vec.len()).max(begin_idx);
+
+        match begin_idx < end_idx {
+            true => {
+                // Some(self.slice[begin_idx..end_idx].iter())
+                let a = self.vec.slices(begin_idx..end_idx);
+                let b = a.into_iter();
+                let c = b.flat_map(|x| x.iter());
+                // TODO: return an iterator of slices
+                Some(core::iter::empty())
+            }
+            false => None,
+        }
     }
 
     fn next(&self) -> Option<Self::Item> {
