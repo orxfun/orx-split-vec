@@ -37,6 +37,11 @@ impl<'a, T> Iter<'a, T> {
             None => None,
         }
     }
+
+    #[inline(always)]
+    fn remaining_len(&self) -> usize {
+        self.inner.len() + self.outer.clone().map(|x| x.len()).sum::<usize>()
+    }
 }
 
 impl<T> Clone for Iter<'_, T> {
@@ -60,7 +65,25 @@ impl<'a, T> Iterator for Iter<'a, T> {
         }
     }
 
-    // reductions
+    // override default implementations
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.remaining_len();
+        (len, Some(len))
+    }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        let mut n = n;
+        while n >= self.inner.len() {
+            n -= self.inner.len();
+            match self.outer.next() {
+                Some(fragment) => self.inner = fragment.iter(),
+                None => self.inner = Default::default(),
+            }
+        }
+        self.inner.nth(n)
+    }
+
     fn all<F>(&mut self, f: F) -> bool
     where
         Self: Sized,
@@ -84,6 +107,80 @@ impl<'a, T> Iterator for Iter<'a, T> {
     {
         reductions::fold(&mut self.outer, &mut self.inner, init, f)
     }
+
+    fn reduce<F>(mut self, f: F) -> Option<Self::Item>
+    where
+        Self: Sized,
+        F: FnMut(Self::Item, Self::Item) -> Self::Item,
+    {
+        reductions::reduce(&mut self.outer, &mut self.inner, f)
+    }
+
+    #[inline(always)]
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.remaining_len()
+    }
+
+    fn is_sorted(mut self) -> bool
+    where
+        Self: Sized,
+        Self::Item: PartialOrd,
+    {
+        self.inner.is_sorted() && self.outer.all(|inner| inner.iter().is_sorted())
+    }
+
+    fn last(self) -> Option<Self::Item>
+    where
+        Self: Sized,
+    {
+        match self.outer.last() {
+            Some(x) => x.last(),
+            _ => self.inner.last(),
+        }
+    }
+
+    fn max(self) -> Option<Self::Item>
+    where
+        Self: Sized,
+        Self::Item: Ord,
+    {
+        let a = self.inner.max();
+        let b = self.outer.filter_map(|x| x.iter().max()).max();
+        inner_outer_reduce(a, b, core::cmp::max)
+    }
+
+    fn min(self) -> Option<Self::Item>
+    where
+        Self: Sized,
+        Self::Item: Ord,
+    {
+        let a = self.inner.min();
+        let b = self.outer.filter_map(|x| x.iter().min()).min();
+        inner_outer_reduce(a, b, core::cmp::min)
+    }
 }
 
 impl<T> FusedIterator for Iter<'_, T> {}
+
+impl<T> ExactSizeIterator for Iter<'_, T> {
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.remaining_len()
+    }
+}
+
+// helper functions
+
+fn inner_outer_reduce<'a, T, F>(a: Option<&'a T>, b: Option<&'a T>, compare: F) -> Option<&'a T>
+where
+    F: Fn(&'a T, &'a T) -> &'a T,
+{
+    match (a, b) {
+        (Some(a), Some(b)) => Some(compare(a, b)),
+        (Some(a), None) => Some(a),
+        _ => b,
+    }
+}
