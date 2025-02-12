@@ -28,9 +28,6 @@ pub fn fold<'a, T, B, F>(outer: &mut Outer<'a, T>, inner: &mut Inner<'a, T>, ini
 where
     F: FnMut(B, &'a T) -> B,
 {
-    let mut res = inner.fold(init, &mut f);
-    for fragment in outer {
-        res = fragment.iter().fold(res, &mut f);
-    }
-    res
+    let res = inner.fold(init, &mut f);
+    outer.fold(res, |res, inner| inner.iter().fold(res, &mut f))
 }
