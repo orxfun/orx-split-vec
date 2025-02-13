@@ -2,7 +2,7 @@ use crate::{
     range_helpers::{range_end, range_start},
     Fragment, Growth, SplitVec,
 };
-use core::ops::RangeBounds;
+use core::{iter::FusedIterator, ops::RangeBounds};
 use orx_pinned_vec::PinnedVec;
 
 pub struct IterSlices<'a, T> {
@@ -101,3 +101,5 @@ impl<'a, T> Iterator for IterSlices<'a, T> {
         }
     }
 }
+
+impl<'a, T> FusedIterator for IterSlices<'a, T> {}
