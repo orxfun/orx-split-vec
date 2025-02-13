@@ -8,6 +8,7 @@ pub(crate) mod iter_mut_rev;
 pub(crate) mod iter_ptr;
 pub(crate) mod iter_ptr_bwd;
 pub(crate) mod iter_rev;
+pub(crate) mod iter_slices;
 mod reductions;
 
 #[cfg(test)]
