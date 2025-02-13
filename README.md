@@ -142,19 +142,19 @@ let slice = vec.try_get_slice(3..7);
 assert_eq!(slice, SplitVecSlice::OutOfBounds);
 
 // instead of a single slice; we can get an iterator of slices
-let slices = vec.slices(..);
+let mut slices = vec.slices(..);
 assert_eq!(2, slices.len());
-assert_eq!(slices[0], &[0, 1, 2, 3]);
-assert_eq!(slices[1], &[4]);
+assert_eq!(slices.next().unwrap(), &[0, 1, 2, 3]);
+assert_eq!(slices.next().unwrap(), &[4]);
 
-let slices = vec.slices(0..3);
+let mut slices = vec.slices(0..3);
 assert_eq!(1, slices.len());
-assert_eq!(slices[0], &[0, 1, 2]);
+assert_eq!(slices.next().unwrap(), &[0, 1, 2]);
 
-let slices = vec.slices(3..5);
+let mut slices = vec.slices(3..5);
 assert_eq!(2, slices.len());
-assert_eq!(slices[0], &[3]);
-assert_eq!(slices[1], &[4]);
+assert_eq!(slices.next().unwrap(), &[3]);
+assert_eq!(slices.next().unwrap(), &[4]);
 ```
 
 Finally, its main difference and objective is to provide pinned element guarantees as demonstrated in the example below.

@@ -1,5 +1,6 @@
 use crate::common_traits::iterator::iter_ptr::IterPtr;
 use crate::common_traits::iterator::iter_ptr_bwd::IterPtrBackward;
+use crate::common_traits::iterator::iter_slices::IterSlices;
 use crate::fragment::fragment_struct::set_fragments_len;
 use crate::range_helpers::{range_end, range_start};
 use crate::{algorithms, Fragment, Growth, SplitVec};
@@ -26,16 +27,19 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     where
         T: 'a,
         Self: 'a;
+
     type IterMutRev<'a>
         = crate::common_traits::iterator::iter_mut_rev::IterMutRev<'a, T>
     where
         T: 'a,
         Self: 'a;
+
     type SliceIter<'a>
-        = Vec<&'a [T]>
+        = IterSlices<'a, T>
     where
         T: 'a,
         Self: 'a;
+
     type SliceMutIter<'a>
         = Vec<&'a mut [T]>
     where
@@ -644,44 +648,21 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     /// assert_eq!(vec.fragments()[2], &[8, 9]);
     ///
     /// // single fragment
-    /// assert_eq!(vec![&[0, 1, 2, 3]], vec.slices(0..4));
-    /// assert_eq!(vec![&[5, 6]], vec.slices(5..7));
-    /// assert_eq!(vec![&[8, 9]], vec.slices(8..10));
+    /// assert_eq!(vec![&[0, 1, 2, 3]], vec.slices(0..4).collect::<Vec<_>>());
+    /// assert_eq!(vec![&[5, 6]], vec.slices(5..7).collect::<Vec<_>>());
+    /// assert_eq!(vec![&[8, 9]], vec.slices(8..10).collect::<Vec<_>>());
     ///
     /// // Fragmented
-    /// assert_eq!(vec![&vec![3], &vec![4, 5]], vec.slices(3..6));
-    /// assert_eq!(vec![&vec![3], &vec![4, 5, 6, 7], &vec![8]], vec.slices(3..9));
-    /// assert_eq!(vec![&vec![7], &vec![8]], vec.slices(7..9));
+    /// assert_eq!(vec![&vec![3], &vec![4, 5]], vec.slices(3..6).collect::<Vec<_>>());
+    /// assert_eq!(vec![&vec![3], &vec![4, 5, 6, 7], &vec![8]], vec.slices(3..9).collect::<Vec<_>>());
+    /// assert_eq!(vec![&vec![7], &vec![8]], vec.slices(7..9).collect::<Vec<_>>());
     ///
     /// // OutOfBounds
-    /// assert!(vec.slices(5..12).is_empty());
-    /// assert!(vec.slices(10..11).is_empty());
+    /// assert_eq!(vec.slices(5..12).len(), 0);
+    /// assert_eq!(vec.slices(10..11).len(), 0);
     /// ```
     fn slices<R: RangeBounds<usize>>(&self, range: R) -> Self::SliceIter<'_> {
-        let a = range_start(&range);
-        let b = range_end(&range, self.len());
-
-        match b.saturating_sub(a) {
-            0 => Vec::new(),
-            _ => match self.get_fragment_and_inner_indices(a) {
-                None => Vec::new(),
-                Some((sf, si)) => match self.get_fragment_and_inner_indices(b - 1) {
-                    None => Vec::new(),
-                    Some((ef, ei)) => match sf.cmp(&ef) {
-                        Ordering::Equal => alloc::vec![&self.fragments[sf][si..=ei]],
-                        _ => {
-                            let mut vec = Vec::with_capacity(ef - sf + 1);
-                            vec.push(&self.fragments[sf][si..]);
-                            for f in sf + 1..ef {
-                                vec.push(&self.fragments[f]);
-                            }
-                            vec.push(&self.fragments[ef][..=ei]);
-                            vec
-                        }
-                    },
-                },
-            },
-        }
+        Self::SliceIter::new(self, range)
     }
 
     /// Returns a mutable view on the required `range` as a vector of slices:
@@ -1196,8 +1177,8 @@ mod tests {
     fn slices() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
             for i in 0..184 {
-                assert!(vec.slices(i..i + 1).is_empty());
-                assert!(vec.slices(0..i + 1).is_empty());
+                assert_eq!(vec.slices(i..i + 1).len(), 0);
+                assert_eq!(vec.slices(0..i + 1).len(), 0);
                 vec.push(i);
             }
 
