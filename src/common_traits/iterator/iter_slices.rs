@@ -78,6 +78,11 @@ impl<'a, T> IterSlices<'a, T> {
             },
         }
     }
+
+    #[inline(always)]
+    fn remaining_len(&self) -> usize {
+        (1 + self.ef).saturating_sub(self.f)
+    }
 }
 
 impl<'a, T> Iterator for IterSlices<'a, T> {
@@ -100,6 +105,17 @@ impl<'a, T> Iterator for IterSlices<'a, T> {
             _ => None,
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.remaining_len();
+        (len, Some(len))
+    }
 }
 
 impl<'a, T> FusedIterator for IterSlices<'a, T> {}
+
+impl<'a, T> ExactSizeIterator for IterSlices<'a, T> {
+    fn len(&self) -> usize {
+        self.remaining_len()
+    }
+}

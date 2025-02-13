@@ -57,3 +57,41 @@ fn slices_iter_fused() {
     assert!(slices.next().is_none());
     assert!(slices.next().is_none());
 }
+
+#[test]
+fn slices_iter_exact_sized() {
+    let vec = init_vec(SplitVec::new(), 20);
+
+    let mut empty = IterSlices::new(&vec, 20..87);
+    assert_eq!(empty.len(), 0);
+    _ = empty.next();
+    _ = empty.next();
+    assert_eq!(empty.len(), 0);
+
+    let mut single = IterSlices::new(&vec, 5..11);
+    assert_eq!(single.len(), 1);
+    _ = single.next();
+    assert_eq!(single.len(), 0);
+    _ = single.next();
+    assert_eq!(single.len(), 0);
+
+    let mut two = IterSlices::new(&vec, 5..13);
+    assert_eq!(two.len(), 2);
+    _ = two.next();
+    assert_eq!(two.len(), 1);
+    _ = two.next();
+    assert_eq!(two.len(), 0);
+    _ = two.next();
+    assert_eq!(two.len(), 0);
+
+    let mut three = IterSlices::new(&vec, 3..13);
+    assert_eq!(three.len(), 3);
+    _ = three.next();
+    assert_eq!(three.len(), 2);
+    _ = three.next();
+    assert_eq!(three.len(), 1);
+    _ = three.next();
+    assert_eq!(three.len(), 0);
+    _ = three.next();
+    assert_eq!(three.len(), 0);
+}
