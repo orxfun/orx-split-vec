@@ -1,6 +1,6 @@
-use crate::common_traits::iterator::iter_ptr::IterPtr;
-use crate::common_traits::iterator::iter_ptr_bwd::IterPtrBackward;
-use crate::common_traits::iterator::iter_slices::IterSlices;
+use crate::common_traits::iterator::IterPtr;
+use crate::common_traits::iterator::IterPtrBackward;
+use crate::common_traits::iterator::IterSlices;
 use crate::fragment::fragment_struct::set_fragments_len;
 use crate::range_helpers::{range_end, range_start};
 use crate::{algorithms, Fragment, Growth, SplitVec};
@@ -23,13 +23,13 @@ impl<T, G: Growth> PseudoDefault for SplitVec<T, G> {
 
 impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     type IterRev<'a>
-        = crate::common_traits::iterator::iter_rev::IterRev<'a, T>
+        = crate::common_traits::iterator::IterRev<'a, T>
     where
         T: 'a,
         Self: 'a;
 
     type IterMutRev<'a>
-        = crate::common_traits::iterator::iter_mut_rev::IterMutRev<'a, T>
+        = crate::common_traits::iterator::IterMutRev<'a, T>
     where
         T: 'a,
         Self: 'a;
