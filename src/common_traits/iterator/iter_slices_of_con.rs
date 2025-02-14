@@ -2,6 +2,7 @@ use crate::{
     range_helpers::{range_end, range_start},
     GrowthWithConstantTimeAccess,
 };
+use core::cmp::min;
 use core::slice::from_raw_parts;
 use core::{cell::UnsafeCell, iter::FusedIterator, ops::RangeBounds};
 
@@ -73,7 +74,7 @@ where
         let fragment_and_inner_indices = |i| growth.get_fragment_and_inner_indices_unchecked(i);
 
         let a = range_start(&range);
-        let b = range_end(&range, capacity);
+        let b = min(capacity, range_end(&range, capacity));
 
         match b.saturating_sub(a) {
             0 => Self::empty(),
@@ -129,7 +130,7 @@ where
             f if f == self.sf => {
                 self.f += 1;
                 let p = unsafe { self.get_raw_mut_unchecked_fi(self.sf, self.si) };
-                let slice = unsafe { from_raw_parts(p, self.si_end - self.si + 1) };
+                let slice = unsafe { from_raw_parts(p, self.si_end - self.si) };
                 Some(&slice)
             }
             f if f < self.ef => {

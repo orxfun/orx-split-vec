@@ -23,3 +23,4 @@ pub use iter_ptr::IterPtr;
 pub use iter_ptr_bwd::IterPtrBackward;
 pub use iter_rev::IterRev;
 pub use iter_slices::IterSlices;
+pub use iter_slices_of_con::IterSlicesOfCon;
