@@ -28,6 +28,19 @@ fn slices_iter_mut(vec: SplitVec<usize, impl Growth>, n: usize, range: Range<usi
     let expected: Vec<_> = (a..b).collect();
 
     let slices = IterOfSlices::<_, SliceBorrowAsMut>::new(&mut vec, a..b);
+    for x in slices {
+        for x in x {
+            *x += 25;
+        }
+    }
+    let slices = IterOfSlices::<_, SliceBorrowAsMut>::new(&mut vec, a..b);
+    for x in slices {
+        for x in x {
+            *x -= 25;
+        }
+    }
+
+    let slices = IterOfSlices::<_, SliceBorrowAsMut>::new(&mut vec, a..b);
     let values: Vec<_> = slices.flat_map(|x| x.iter()).copied().collect();
 
     assert_eq!(values, expected);
