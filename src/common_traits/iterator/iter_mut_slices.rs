@@ -211,6 +211,22 @@ where
             _ => None,
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.remaining_len();
+        (len, Some(len))
+    }
+}
+
+impl<'a, T, K> FusedIterator for IterOfSlices<'a, T, K> where K: SliceBorrowKind<'a, T> {}
+
+impl<'a, T, K> ExactSizeIterator for IterOfSlices<'a, T, K>
+where
+    K: SliceBorrowKind<'a, T>,
+{
+    fn len(&self) -> usize {
+        self.remaining_len()
+    }
 }
 
 // ###############
