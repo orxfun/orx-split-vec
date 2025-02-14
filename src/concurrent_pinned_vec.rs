@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use core::cell::UnsafeCell;
 use core::ops::RangeBounds;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use orx_pinned_vec::{ConcurrentPinnedVec, PinnedVec};
+use orx_pinned_vec::ConcurrentPinnedVec;
 
 struct FragmentData {
     f: usize,
@@ -27,7 +27,7 @@ pub struct ConcurrentSplitVec<T, G: GrowthWithConstantTimeAccess = Doubling> {
 
 impl<T, G: GrowthWithConstantTimeAccess> Drop for ConcurrentSplitVec<T, G> {
     fn drop(&mut self) {
-        let mut take_fragment = |_fragment: Fragment<T>| {};
+        fn take_fragment<T>(_fragment: Fragment<T>) {}
         unsafe { self.process_into_fragments(self.pinned_vec_len, &mut take_fragment) };
         self.zero();
     }
@@ -179,6 +179,16 @@ impl<T, G: GrowthWithConstantTimeAccess> From<SplitVec<T, G>> for ConcurrentSpli
 impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSplitVec<T, G> {
     type P = SplitVec<T, G>;
 
+    type SliceIter<'a>
+        = alloc::vec::Vec<&'a [T]>
+    where
+        Self: 'a;
+
+    type SliceMutIter<'a>
+        = alloc::vec::Vec<&'a mut [T]>
+    where
+        Self: 'a;
+
     unsafe fn into_inner(mut self, len: usize) -> Self::P {
         let mut fragments = Vec::with_capacity(self.max_num_fragments);
         let mut take_fragment = |fragment| fragments.push(fragment);
@@ -211,7 +221,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         split_vec.into()
     }
 
-    fn slices<R: RangeBounds<usize>>(&self, range: R) -> <Self::P as PinnedVec<T>>::SliceIter<'_> {
+    fn slices<R: RangeBounds<usize>>(&self, range: R) -> Self::SliceIter<'_> {
         use core::slice::from_raw_parts;
 
         let fragment_and_inner_indices =
@@ -277,10 +287,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         self.slices(a..b).into_iter().flat_map(|x| x.iter())
     }
 
-    unsafe fn slices_mut<R: RangeBounds<usize>>(
-        &self,
-        range: R,
-    ) -> <Self::P as PinnedVec<T>>::SliceMutIter<'_> {
+    unsafe fn slices_mut<R: RangeBounds<usize>>(&self, range: R) -> Self::SliceMutIter<'_> {
         use core::slice::from_raw_parts_mut;
 
         let fragment_and_inner_indices =
