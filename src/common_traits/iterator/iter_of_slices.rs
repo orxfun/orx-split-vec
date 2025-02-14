@@ -30,6 +30,8 @@ pub trait SliceBorrowKind<'a, T> {
 
     fn get_slice(ptr: Self::Ptr, len: usize) -> Self::Slice;
 
+    fn get_slice_from_mut_ptr(ptr: *mut T, len: usize) -> Self::Slice;
+
     fn fragment_len(fragments: &Self::FragmentsData, f: usize) -> usize;
 }
 
@@ -61,6 +63,10 @@ impl<'a, T: 'a> SliceBorrowKind<'a, T> for SliceBorrowAsRef {
 
     fn get_slice(ptr: Self::Ptr, len: usize) -> Self::Slice {
         unsafe { from_raw_parts(ptr, len) }
+    }
+
+    fn get_slice_from_mut_ptr(ptr: *mut T, len: usize) -> Self::Slice {
+        Self::get_slice(ptr, len)
     }
 
     fn fragment_len(fragments: &Self::FragmentsData, f: usize) -> usize {
@@ -95,6 +101,10 @@ impl<'a, T: 'a> SliceBorrowKind<'a, T> for SliceBorrowAsMut {
     }
     fn get_slice(ptr: Self::Ptr, len: usize) -> Self::Slice {
         unsafe { from_raw_parts_mut(ptr, len) }
+    }
+
+    fn get_slice_from_mut_ptr(ptr: *mut T, len: usize) -> Self::Slice {
+        Self::get_slice(ptr, len)
     }
 
     fn fragment_len(fragments: &Self::FragmentsData, f: usize) -> usize {

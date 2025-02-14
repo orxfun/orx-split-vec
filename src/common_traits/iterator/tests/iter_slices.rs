@@ -1,5 +1,5 @@
 use crate::{
-    common_traits::iterator::{iter_slices::IterOfSlices, SliceBorrowAsRef},
+    common_traits::iterator::{iter_of_slices::IterOfSlices, SliceBorrowAsRef},
     range_helpers::{range_end, range_start},
     Growth, SplitVec,
 };
