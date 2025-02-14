@@ -37,9 +37,7 @@ pub(crate) mod test;
 /// Common relevant traits, structs, enums.
 pub mod prelude;
 
-pub use common_traits::iterator::{
-    into_iter::IntoIter, iter::Iter, iter_mut::IterMut, iter_mut_rev::IterMutRev, iter_rev::IterRev,
-};
+pub use common_traits::iterator::{IntoIter, Iter, IterMut, IterMutRev, IterRev};
 pub use concurrent_pinned_vec::ConcurrentSplitVec;
 pub use fragment::fragment_struct::Fragment;
 pub use fragment::into_fragments::IntoFragments;
