@@ -10,7 +10,7 @@ mod iter_of_slices_of_con;
 mod iter_ptr;
 mod iter_ptr_bwd;
 mod iter_rev;
-mod iter_slices_of_con;
+mod iter_slices_of_con; // TODO
 mod reductions;
 
 #[cfg(test)]
@@ -21,7 +21,7 @@ pub use iter::Iter;
 pub use iter_mut::IterMut;
 pub use iter_mut_rev::IterMutRev;
 pub use iter_of_slices::{IterOfSlices, SliceBorrowAsMut, SliceBorrowAsRef};
+pub use iter_of_slices_of_con::IterOfSlicesOfCon;
 pub use iter_ptr::IterPtr;
 pub use iter_ptr_bwd::IterPtrBackward;
 pub use iter_rev::IterRev;
-pub use iter_slices_of_con::IterSlicesOfCon;

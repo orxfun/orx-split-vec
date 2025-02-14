@@ -1,5 +1,5 @@
 use crate::{
-    common_traits::iterator::IterSlicesOfCon,
+    common_traits::iterator::{IterOfSlicesOfCon, SliceBorrowAsRef},
     fragment::transformations::{fragment_from_raw, fragment_into_raw},
     range_helpers::{range_end, range_start},
     Doubling, Fragment, GrowthWithConstantTimeAccess, SplitVec,
@@ -181,7 +181,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     type P = SplitVec<T, G>;
 
     type SliceIter<'a>
-        = IterSlicesOfCon<'a, T, G>
+        = IterOfSlicesOfCon<'a, T, G, SliceBorrowAsRef>
     where
         Self: 'a;
 
@@ -223,7 +223,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     }
 
     fn slices<R: RangeBounds<usize>>(&self, range: R) -> Self::SliceIter<'_> {
-        IterSlicesOfCon::new(self.capacity(), &self.data, self.growth.clone(), range)
+        Self::SliceIter::new(self.capacity(), &self.data, self.growth.clone(), range)
     }
 
     unsafe fn iter<'a>(&'a self, len: usize) -> impl Iterator<Item = &'a T> + 'a

@@ -3,7 +3,9 @@ use crate::{
     range_helpers::{range_end, range_start},
     GrowthWithConstantTimeAccess,
 };
-use core::{cell::UnsafeCell, cmp::min, marker::PhantomData, ops::RangeBounds};
+use core::{
+    cell::UnsafeCell, cmp::min, iter::FusedIterator, marker::PhantomData, ops::RangeBounds,
+};
 
 pub struct IterOfSlicesOfCon<'a, T, G, K>
 where
@@ -114,6 +116,15 @@ where
         self.growth.fragment_capacity_of(f)
     }
 }
+impl<'a, T, G, K> Default for IterOfSlicesOfCon<'a, T, G, K>
+where
+    G: GrowthWithConstantTimeAccess,
+    K: SliceBorrowKind<'a, T>,
+{
+    fn default() -> Self {
+        Self::empty()
+    }
+}
 
 impl<'a, T, G, K> Iterator for IterOfSlicesOfCon<'a, T, G, K>
 where
@@ -149,5 +160,22 @@ where
     fn size_hint(&self) -> (usize, Option<usize>) {
         let len = self.remaining_len();
         (len, Some(len))
+    }
+}
+
+impl<'a, T, G, K> FusedIterator for IterOfSlicesOfCon<'a, T, G, K>
+where
+    G: GrowthWithConstantTimeAccess,
+    K: SliceBorrowKind<'a, T>,
+{
+}
+
+impl<'a, T, G, K> ExactSizeIterator for IterOfSlicesOfCon<'a, T, G, K>
+where
+    G: GrowthWithConstantTimeAccess,
+    K: SliceBorrowKind<'a, T>,
+{
+    fn len(&self) -> usize {
+        self.remaining_len()
     }
 }

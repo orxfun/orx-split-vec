@@ -1,5 +1,5 @@
 use crate::{
-    common_traits::iterator::IterSlicesOfCon,
+    common_traits::iterator::{IterOfSlicesOfCon, SliceBorrowAsRef},
     range_helpers::{range_end, range_start},
     Doubling, Growth, GrowthWithConstantTimeAccess, SplitVec,
 };
@@ -40,7 +40,7 @@ fn slices_iter_of_con(
 
 #[test]
 fn slices_iter_of_con_empty() {
-    let mut iter = IterSlicesOfCon::<u32, Doubling>::default();
+    let mut iter = IterOfSlicesOfCon::<u32, Doubling, SliceBorrowAsRef>::default();
     assert_eq!(iter.next(), None);
     assert_eq!(iter.next(), None);
     assert_eq!(iter.next(), None);
