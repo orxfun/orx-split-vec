@@ -5,6 +5,7 @@ mod into_iter;
 mod iter;
 mod iter_mut;
 mod iter_mut_rev;
+mod iter_mut_slices;
 mod iter_ptr;
 mod iter_ptr_bwd;
 mod iter_rev;
