@@ -23,5 +23,5 @@ pub use iter_mut_rev::IterMutRev;
 pub use iter_ptr::IterPtr;
 pub use iter_ptr_bwd::IterPtrBackward;
 pub use iter_rev::IterRev;
-pub use iter_slices::IterSlices;
+pub use iter_slices::{IterOfSlices, SliceBorrowAsMut, SliceBorrowAsRef, SliceBorrowKind};
 pub use iter_slices_of_con::IterSlicesOfCon;

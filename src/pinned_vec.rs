@@ -1,6 +1,7 @@
+use crate::common_traits::iterator::IterOfSlices;
 use crate::common_traits::iterator::IterPtr;
 use crate::common_traits::iterator::IterPtrBackward;
-use crate::common_traits::iterator::IterSlices;
+use crate::common_traits::iterator::SliceBorrowAsRef;
 use crate::fragment::fragment_struct::set_fragments_len;
 use crate::range_helpers::{range_end, range_start};
 use crate::{algorithms, Fragment, Growth, SplitVec};
@@ -35,7 +36,7 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
         Self: 'a;
 
     type SliceIter<'a>
-        = IterSlices<'a, T>
+        = IterOfSlices<'a, T, SliceBorrowAsRef>
     where
         T: 'a,
         Self: 'a;
