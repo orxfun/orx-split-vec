@@ -1,3 +1,4 @@
+use crate::common_traits::iterator::FlattenedIterOfSlices;
 use crate::common_traits::iterator::IterOfSlices;
 use crate::common_traits::iterator::IterPtr;
 use crate::common_traits::iterator::IterPtrBackward;
@@ -718,6 +719,26 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     /// ```
     fn slices_mut<R: RangeBounds<usize>>(&mut self, range: R) -> Self::SliceMutIter<'_> {
         Self::SliceMutIter::new(self, range)
+    }
+
+    fn iter_over<'a>(
+        &'a self,
+        range: impl RangeBounds<usize>,
+    ) -> impl ExactSizeIterator<Item = &'a T>
+    where
+        T: 'a,
+    {
+        FlattenedIterOfSlices::<_, SliceBorrowAsRef>::new(self, range)
+    }
+
+    fn iter_mut_over<'a>(
+        &'a mut self,
+        range: impl RangeBounds<usize>,
+    ) -> impl ExactSizeIterator<Item = &'a mut T>
+    where
+        T: 'a,
+    {
+        FlattenedIterOfSlices::<_, SliceBorrowAsMut>::new(self, range)
     }
 
     /// Returns a pointer to the `index`-th element of the vector.
