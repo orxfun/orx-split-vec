@@ -1,3 +1,4 @@
+mod flattened_iter_of_slices;
 mod into_iter;
 mod iter;
 mod iter_mut;

@@ -98,6 +98,7 @@ where
                 let a = vec.slices(begin_idx..end_idx);
                 let b = a.into_iter();
                 let c = b.flat_map(|x| x.iter());
+
                 // TODO: return an iterator of slices
                 core::iter::empty()
             })

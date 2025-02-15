@@ -15,6 +15,8 @@ use orx_pinned_vec::PinnedVec;
 pub trait SliceBorrowKind<'a, T> {
     type FragmentsData;
     type Slice;
+    type SliceElem;
+    type SliceIter: Iterator<Item = Self::SliceElem> + Default;
     type Ptr;
     type SplitVecBorrow<G>: Borrow<SplitVec<T, G>>
     where
@@ -30,6 +32,10 @@ pub trait SliceBorrowKind<'a, T> {
 
     fn get_slice(ptr: Self::Ptr, len: usize) -> Self::Slice;
 
+    fn get_slice_iter(slice: Self::Slice) -> Self::SliceIter;
+
+    fn empty_slice() -> Self::Slice;
+
     fn get_slice_from_mut_ptr(ptr: *mut T, len: usize) -> Self::Slice;
 
     fn fragment_len(fragments: &Self::FragmentsData, f: usize) -> usize;
@@ -40,6 +46,8 @@ pub struct SliceBorrowAsRef;
 impl<'a, T: 'a> SliceBorrowKind<'a, T> for SliceBorrowAsRef {
     type FragmentsData = &'a [Fragment<T>];
     type Slice = &'a [T];
+    type SliceElem = &'a T;
+    type SliceIter = core::slice::Iter<'a, T>;
     type Ptr = *const T;
     type SplitVecBorrow<G>
         = &'a SplitVec<T, G>
@@ -65,6 +73,14 @@ impl<'a, T: 'a> SliceBorrowKind<'a, T> for SliceBorrowAsRef {
         unsafe { from_raw_parts(ptr, len) }
     }
 
+    fn get_slice_iter(slice: Self::Slice) -> Self::SliceIter {
+        slice.iter()
+    }
+
+    fn empty_slice() -> Self::Slice {
+        &[]
+    }
+
     fn get_slice_from_mut_ptr(ptr: *mut T, len: usize) -> Self::Slice {
         Self::get_slice(ptr, len)
     }
@@ -79,6 +95,8 @@ pub struct SliceBorrowAsMut;
 impl<'a, T: 'a> SliceBorrowKind<'a, T> for SliceBorrowAsMut {
     type FragmentsData = &'a mut [Fragment<T>];
     type Slice = &'a mut [T];
+    type SliceElem = &'a mut T;
+    type SliceIter = core::slice::IterMut<'a, T>;
     type Ptr = *mut T;
     type SplitVecBorrow<G>
         = &'a mut SplitVec<T, G>
@@ -101,6 +119,14 @@ impl<'a, T: 'a> SliceBorrowKind<'a, T> for SliceBorrowAsMut {
     }
     fn get_slice(ptr: Self::Ptr, len: usize) -> Self::Slice {
         unsafe { from_raw_parts_mut(ptr, len) }
+    }
+
+    fn get_slice_iter(slice: Self::Slice) -> Self::SliceIter {
+        slice.iter_mut()
+    }
+
+    fn empty_slice() -> Self::Slice {
+        &mut []
     }
 
     fn get_slice_from_mut_ptr(ptr: *mut T, len: usize) -> Self::Slice {
