@@ -5,10 +5,47 @@ use core::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 use orx_concurrent_iter::{
-    BufferedChunk, BufferedChunkX, ConcurrentIter, ConcurrentIterX, Next, NextChunk,
+    BufferedChunk, BufferedChunkX, ConcurrentIter, ConcurrentIterX, ConcurrentIterable,
+    IntoConcurrentIter, Next, NextChunk,
 };
 use orx_iterable::{Collection, Iterable};
 use orx_pinned_vec::PinnedVec;
+
+// concurrent iterable
+
+impl<T, G> ConcurrentIterable for SplitVec<T, G>
+where
+    T: Send + Sync,
+    G: Growth,
+{
+    type Item<'i>
+        = &'i T
+    where
+        Self: 'i;
+
+    type ConIter<'i>
+        = ConIterRef<'i, T, G>
+    where
+        Self: 'i;
+
+    fn con_iter(&self) -> Self::ConIter<'_> {
+        ConIterRef::new(self)
+    }
+}
+
+impl<'i, T, G> IntoConcurrentIter for &'i SplitVec<T, G>
+where
+    T: Send + Sync,
+    G: Growth,
+{
+    type Item = &'i T;
+
+    type ConIter = ConIterRef<'i, T, G>;
+
+    fn into_con_iter(self) -> Self::ConIter {
+        ConIterRef::new(self)
+    }
+}
 
 // iter
 
