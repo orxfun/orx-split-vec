@@ -66,6 +66,7 @@ where
     }
 
     // get
+
     /// Growth strategy of the split vector.
     ///
     /// Note that allocated data of split vector is pinned and allocated in fragments.

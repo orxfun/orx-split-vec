@@ -1,6 +1,7 @@
 use crate::{test_all_growth_types, Growth, SplitVec};
 use alloc::vec::Vec;
 use orx_pinned_vec::*;
+use test_case::test_matrix;
 
 #[test]
 fn iter() {
@@ -54,69 +55,287 @@ fn iter_one_fragment() {
     test_all_growth_types!(test);
 }
 
-#[test]
-fn clone() {
-    fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-        let n = 564;
-        let std_vec: Vec<_> = (0..n).collect();
-        vec.extend(std_vec);
+fn init_vec<G: Growth>(mut vec: SplitVec<usize, G>, n: usize) -> SplitVec<usize, G> {
+    vec.clear();
+    vec.extend(0..n);
+    vec
+}
 
-        let iter1 = vec.iter();
-        let iter2 = iter1.clone();
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423]
+)]
+fn clone(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
 
-        for (i, (a, b)) in iter1.zip(iter2).enumerate() {
-            assert_eq!(i, *a);
-            assert_eq!(i, *b);
+    let iter1 = vec.iter();
+    let iter2 = iter1.clone();
+
+    for (i, (a, b)) in iter1.zip(iter2).enumerate() {
+        assert_eq!(i, *a);
+        assert_eq!(i, *b);
+    }
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 3, 4, 5, 8, 27, 423]
+)]
+fn clone_progressed(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
+    let num_used = n / 2;
+
+    let mut iter1 = vec.iter();
+    for _ in 0..num_used {
+        _ = iter1.next();
+    }
+    let iter2 = iter1.clone();
+
+    for (i, (a, b)) in iter1.zip(iter2).enumerate() {
+        assert_eq!(i + num_used, *a);
+        assert_eq!(i + num_used, *b);
+    }
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423]
+)]
+fn all(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
+
+    assert!(vec.iter().all(|x| *x as isize >= -1));
+    assert!(vec.is_empty() || !vec.iter().all(|x| *x < n - 1));
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423]
+)]
+fn any(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
+
+    assert!(!vec.iter().any(|x| *x as isize <= -1));
+    assert!(vec.is_empty() || vec.iter().any(|x| *x >= n / 2));
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423]
+)]
+fn count(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
+    let num_used = n / 2;
+
+    assert_eq!(vec.iter().count(), n);
+
+    let mut iter = vec.iter();
+    for _ in 0..num_used {
+        _ = iter.next();
+    }
+    assert_eq!(iter.count(), n - num_used);
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423]
+)]
+fn fold(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
+
+    let sum = vec.iter().fold(0isize, |x, b| {
+        if b % 2 == 0 {
+            x + *b as isize
+        } else {
+            x - *b as isize
         }
-    }
-    test_all_growth_types!(test);
+    });
+
+    let expected = (0..n).filter(|x| x % 2 == 0).sum::<usize>() as isize
+        - (0..n).filter(|x| x % 2 == 1).sum::<usize>() as isize;
+
+    assert_eq!(sum, expected);
 }
 
-#[test]
-fn all() {
-    fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-        let n = 564;
-        let std_vec: Vec<_> = (0..n).collect();
-        vec.extend(std_vec);
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423]
+)]
+fn last(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
 
-        assert!(vec.iter().all(|x| *x as isize >= -1));
-        assert!(!vec.iter().all(|x| *x < 357));
-    }
-    test_all_growth_types!(test);
+    let expected = match n {
+        0 => None,
+        _ => Some(n - 1),
+    };
+    assert_eq!(vec.iter().last().copied(), expected);
 }
 
-#[test]
-fn any() {
-    fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-        let n = 564;
-        let std_vec: Vec<_> = (0..n).collect();
-        vec.extend(std_vec);
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423]
+)]
+fn len(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
 
-        assert!(!vec.iter().any(|x| *x as isize <= -1));
-        assert!(vec.iter().any(|x| *x < 357));
+    let mut len = n;
+    let mut iter = vec.iter();
+    while let Some(_) = iter.next() {
+        len -= 1;
+        assert_eq!(iter.len(), len);
+        assert_eq!(iter.size_hint(), (len, Some(len)));
     }
-    test_all_growth_types!(test);
+
+    assert_eq!(iter.len(), len);
+    assert_eq!(iter.len(), 0);
+    assert_eq!(iter.size_hint(), (0, Some(0)));
+
+    _ = iter.next();
+
+    assert_eq!(iter.len(), len);
+    assert_eq!(iter.len(), 0);
+    assert_eq!(iter.size_hint(), (0, Some(0)));
 }
 
-#[test]
-fn fold() {
-    fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-        let n = 564;
-        let std_vec: Vec<_> = (0..n).collect();
-        vec.extend(std_vec);
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423]
+)]
+fn max(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let mut vec = init_vec(vec, n);
 
-        let sum = vec.iter().fold(0isize, |x, b| {
-            if b % 2 == 0 {
-                x + *b as isize
-            } else {
-                x - *b as isize
-            }
-        });
+    let expected = match n {
+        0 => None,
+        _ => Some(n - 1),
+    };
+    assert_eq!(vec.iter().max().copied(), expected);
 
-        let expected = (0..n).filter(|x| x % 2 == 0).sum::<usize>() as isize
-            - (0..n).filter(|x| x % 2 == 1).sum::<usize>() as isize;
+    if let Some(x) = vec.get_mut(n / 2) {
+        *x = n + 1;
+        assert_eq!(vec.iter().max().copied(), Some(n + 1));
+    };
 
-        assert_eq!(sum, expected);
+    let mut vec = init_vec(vec, n);
+    if let Some(x) = vec.get_mut(4) {
+        *x = n + 1;
+        assert_eq!(vec.iter().max().copied(), Some(n + 1));
+    };
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423]
+)]
+fn min(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let mut vec = init_vec(vec, n);
+
+    let expected = match n {
+        0 => None,
+        _ => Some(0),
+    };
+    assert_eq!(vec.iter().min().copied(), expected);
+
+    for x in vec.iter_mut() {
+        *x += n;
     }
-    test_all_growth_types!(test);
+    if let Some(x) = vec.get_mut(n / 2) {
+        *x = 1;
+        assert_eq!(vec.iter().min().copied(), Some(1));
+    };
+
+    if let Some(x) = vec.get_mut(4) {
+        *x = 0;
+        assert_eq!(vec.iter().min().copied(), Some(0));
+    };
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423],
+    [0, 3, 4, 8, 124, 99]
+)]
+fn nth(vec: SplitVec<usize, impl Growth>, n: usize, nth: usize) {
+    let vec = init_vec(vec, n);
+
+    let expected = match nth < n {
+        true => Some(nth),
+        false => None,
+    };
+    assert_eq!(vec.iter().nth(nth).copied(), expected);
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423],
+    [0, 3, 4, 8, 124, 99]
+)]
+fn nth_progressed(vec: SplitVec<usize, impl Growth>, n: usize, nth: usize) {
+    let vec = init_vec(vec, n);
+
+    let mut iter = vec.iter();
+    let num_used = n / 2;
+    for _ in 0..num_used {
+        _ = iter.next();
+    }
+
+    let original_nth = num_used + nth;
+    let expected = match original_nth < n {
+        true => Some(original_nth),
+        false => None,
+    };
+
+    assert_eq!(iter.nth(nth).copied(), expected);
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423]
+)]
+fn reduce(vec: SplitVec<usize, impl Growth>, n: usize) {
+    let vec = init_vec(vec, n);
+
+    let sum = vec.iter().copied().reduce(|x, b| x + b);
+    let expected = match n {
+        0 => None,
+        _ => Some((0..n).sum::<usize>()),
+    };
+
+    assert_eq!(sum, expected);
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423],
+    [0, 3, 4, 8, 124, 99]
+)]
+fn skip(vec: SplitVec<usize, impl Growth>, n: usize, skip: usize) {
+    let vec = init_vec(vec, n);
+    let expected: usize = match skip < n {
+        true => (0..n).skip(skip).sum(),
+        false => 0,
+    };
+    assert_eq!(vec.iter().skip(skip).sum::<usize>(), expected);
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2), SplitVec::with_recursive_growth()],
+    [0, 1, 3, 4, 5, 8, 27, 423],
+    [0, 3, 4, 8, 124, 99]
+)]
+fn skip_progressed(vec: SplitVec<usize, impl Growth>, n: usize, skip: usize) {
+    let vec = init_vec(vec, n);
+    let mut iter = vec.iter();
+
+    let num_used = n / 2;
+    for _ in 0..num_used {
+        _ = iter.next();
+    }
+
+    let original_skip = num_used + skip;
+    let expected: usize = match original_skip < n {
+        true => (original_skip..n).sum(),
+        false => 0,
+    };
+
+    assert_eq!(iter.skip(skip).sum::<usize>(), expected);
 }

@@ -1,13 +1,13 @@
 use crate::{
+    common_traits::iterator::{IterOfSlicesOfCon, SliceBorrowAsMut, SliceBorrowAsRef},
     fragment::transformations::{fragment_from_raw, fragment_into_raw},
-    range_helpers::{range_end, range_start},
     Doubling, Fragment, GrowthWithConstantTimeAccess, SplitVec,
 };
 use alloc::vec::Vec;
 use core::cell::UnsafeCell;
 use core::ops::RangeBounds;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use orx_pinned_vec::{ConcurrentPinnedVec, PinnedVec};
+use orx_pinned_vec::ConcurrentPinnedVec;
 
 struct FragmentData {
     f: usize,
@@ -27,7 +27,7 @@ pub struct ConcurrentSplitVec<T, G: GrowthWithConstantTimeAccess = Doubling> {
 
 impl<T, G: GrowthWithConstantTimeAccess> Drop for ConcurrentSplitVec<T, G> {
     fn drop(&mut self) {
-        let mut take_fragment = |_fragment: Fragment<T>| {};
+        fn take_fragment<T>(_fragment: Fragment<T>) {}
         unsafe { self.process_into_fragments(self.pinned_vec_len, &mut take_fragment) };
         self.zero();
     }
@@ -179,6 +179,16 @@ impl<T, G: GrowthWithConstantTimeAccess> From<SplitVec<T, G>> for ConcurrentSpli
 impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSplitVec<T, G> {
     type P = SplitVec<T, G>;
 
+    type SliceIter<'a>
+        = IterOfSlicesOfCon<'a, T, G, SliceBorrowAsRef>
+    where
+        Self: 'a;
+
+    type SliceMutIter<'a>
+        = IterOfSlicesOfCon<'a, T, G, SliceBorrowAsMut>
+    where
+        Self: 'a;
+
     unsafe fn into_inner(mut self, len: usize) -> Self::P {
         let mut fragments = Vec::with_capacity(self.max_num_fragments);
         let mut take_fragment = |fragment| fragments.push(fragment);
@@ -211,52 +221,8 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         split_vec.into()
     }
 
-    fn slices<R: RangeBounds<usize>>(&self, range: R) -> <Self::P as PinnedVec<T>>::SliceIter<'_> {
-        use core::slice::from_raw_parts;
-
-        let fragment_and_inner_indices =
-            |i| self.growth.get_fragment_and_inner_indices_unchecked(i);
-
-        let a = range_start(&range);
-        let b = range_end(&range, self.capacity());
-
-        match b.saturating_sub(a) {
-            0 => alloc::vec![],
-            _ => {
-                let (sf, si) = fragment_and_inner_indices(a);
-                let (ef, ei) = fragment_and_inner_indices(b - 1);
-
-                match sf == ef {
-                    true => {
-                        let p = unsafe { self.get_raw_mut_unchecked_fi(sf, si) };
-                        let slice = unsafe { from_raw_parts(p, ei - si + 1) };
-                        alloc::vec![slice]
-                    }
-                    false => {
-                        let mut vec = Vec::with_capacity(ef - sf + 1);
-
-                        let slice_len = self.capacity_of(sf) - si;
-                        let p = unsafe { self.get_raw_mut_unchecked_fi(sf, si) };
-                        let slice = unsafe { from_raw_parts(p, slice_len) };
-                        vec.push(slice);
-
-                        for f in (sf + 1)..ef {
-                            let slice_len = self.capacity_of(f);
-                            let p = unsafe { self.get_raw_mut_unchecked_fi(f, 0) };
-                            let slice = unsafe { from_raw_parts(p, slice_len) };
-                            vec.push(slice);
-                        }
-
-                        let slice_len = ei + 1;
-                        let p = unsafe { self.get_raw_mut_unchecked_fi(ef, 0) };
-                        let slice = unsafe { from_raw_parts(p, slice_len) };
-                        vec.push(slice);
-
-                        vec
-                    }
-                }
-            }
-        }
+    fn slices<R: RangeBounds<usize>>(&self, range: R) -> Self::SliceIter<'_> {
+        Self::SliceIter::new(self.capacity(), &self.data, self.growth.clone(), range)
     }
 
     unsafe fn iter<'a>(&'a self, len: usize) -> impl Iterator<Item = &'a T> + 'a
@@ -277,55 +243,8 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         self.slices(a..b).into_iter().flat_map(|x| x.iter())
     }
 
-    unsafe fn slices_mut<R: RangeBounds<usize>>(
-        &self,
-        range: R,
-    ) -> <Self::P as PinnedVec<T>>::SliceMutIter<'_> {
-        use core::slice::from_raw_parts_mut;
-
-        let fragment_and_inner_indices =
-            |i| self.growth.get_fragment_and_inner_indices_unchecked(i);
-
-        let a = range_start(&range);
-        let b = range_end(&range, self.capacity());
-
-        match b.saturating_sub(a) {
-            0 => alloc::vec![],
-            _ => {
-                let (sf, si) = fragment_and_inner_indices(a);
-                let (ef, ei) = fragment_and_inner_indices(b - 1);
-
-                match sf == ef {
-                    true => {
-                        let p = unsafe { self.get_raw_mut_unchecked_fi(sf, si) };
-                        let slice = unsafe { from_raw_parts_mut(p, ei - si + 1) };
-                        alloc::vec![slice]
-                    }
-                    false => {
-                        let mut vec = Vec::with_capacity(ef - sf + 1);
-
-                        let slice_len = self.capacity_of(sf) - si;
-                        let p = unsafe { self.get_raw_mut_unchecked_fi(sf, si) };
-                        let slice = unsafe { from_raw_parts_mut(p, slice_len) };
-                        vec.push(slice);
-
-                        for f in (sf + 1)..ef {
-                            let slice_len = self.capacity_of(f);
-                            let p = unsafe { self.get_raw_mut_unchecked_fi(f, 0) };
-                            let slice = unsafe { from_raw_parts_mut(p, slice_len) };
-                            vec.push(slice);
-                        }
-
-                        let slice_len = ei + 1;
-                        let p = unsafe { self.get_raw_mut_unchecked_fi(ef, 0) };
-                        let slice = unsafe { from_raw_parts_mut(p, slice_len) };
-                        vec.push(slice);
-
-                        vec
-                    }
-                }
-            }
-        }
+    unsafe fn slices_mut<R: RangeBounds<usize>>(&self, range: R) -> Self::SliceMutIter<'_> {
+        Self::SliceMutIter::new(self.capacity(), &self.data, self.growth.clone(), range)
     }
 
     unsafe fn iter_mut<'a>(&'a mut self, len: usize) -> impl Iterator<Item = &'a mut T> + 'a
