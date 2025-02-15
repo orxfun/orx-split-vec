@@ -4,7 +4,9 @@ use core::{
     marker::PhantomData,
     sync::atomic::{AtomicUsize, Ordering},
 };
-use orx_concurrent_iter::{BufferedChunk, BufferedChunkX, ConcurrentIterX, NextChunk};
+use orx_concurrent_iter::{
+    BufferedChunk, BufferedChunkX, ConcurrentIter, ConcurrentIterX, Next, NextChunk,
+};
 use orx_iterable::{Collection, Iterable};
 use orx_pinned_vec::PinnedVec;
 
@@ -119,6 +121,8 @@ where
     }
 }
 
+// concurrent iter
+
 impl<'a, T: Send + Sync, G: Growth> ConcurrentIterX for ConIterRef<'a, T, G> {
     type Item = &'a T;
 
@@ -165,5 +169,32 @@ impl<'a, T: Send + Sync, G: Growth> ConcurrentIterX for ConIterRef<'a, T, G> {
 
     fn try_get_initial_len(&self) -> Option<usize> {
         Some(self.vec.len())
+    }
+}
+
+impl<'a, T: Send + Sync, G: Growth> ConcurrentIter for ConIterRef<'a, T, G> {
+    type BufferedIter = Self::BufferedIterX;
+
+    fn next_id_and_value(&self) -> Option<Next<Self::Item>> {
+        let idx = self.counter.fetch_add(1, Ordering::Acquire);
+        self.get(idx).map(|value| Next { idx, value })
+    }
+
+    fn next_chunk(
+        &self,
+        chunk_size: usize,
+    ) -> Option<NextChunk<Self::Item, impl ExactSizeIterator<Item = Self::Item>>> {
+        let begin_idx = self
+            .progress_and_get_begin_idx(chunk_size)
+            .unwrap_or(self.vec.len());
+        let end_idx = (begin_idx + chunk_size).min(self.vec.len()).max(begin_idx);
+
+        match begin_idx < end_idx {
+            true => {
+                let values = self.vec.iter_over(begin_idx..end_idx);
+                Some(NextChunk { begin_idx, values })
+            }
+            false => None,
+        }
     }
 }
