@@ -95,12 +95,7 @@ where
             .map(|begin_idx| {
                 let vec = iter.vec;
                 let end_idx = (begin_idx + self.chunk_size).min(vec.len()).max(begin_idx);
-                let a = vec.slices(begin_idx..end_idx);
-                let b = a.into_iter();
-                let c = b.flat_map(|x| x.iter());
-
-                // TODO: return an iterator of slices
-                core::iter::empty()
+                vec.iter_over(begin_idx..end_idx)
             })
     }
 }
@@ -124,14 +119,7 @@ impl<'a, T: Send + Sync, G: Growth> ConcurrentIterX for ConIterRef<'a, T, G> {
         let end_idx = (begin_idx + chunk_size).min(self.vec.len()).max(begin_idx);
 
         match begin_idx < end_idx {
-            true => {
-                // Some(self.slice[begin_idx..end_idx].iter())
-                let a = self.vec.slices(begin_idx..end_idx);
-                let b = a.into_iter();
-                let c = b.flat_map(|x| x.iter());
-                // TODO: return an iterator of slices
-                Some(core::iter::empty())
-            }
+            true => Some(self.vec.iter_over(begin_idx..end_idx)),
             false => None,
         }
     }
