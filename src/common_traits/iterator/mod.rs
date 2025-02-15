@@ -16,6 +16,7 @@ mod reductions;
 #[cfg(test)]
 mod tests;
 
+pub use flattened_iter_of_slices::FlattenedIterOfSlices;
 pub use into_iter::IntoIter;
 pub use iter::Iter;
 pub use iter_mut::IterMut;
