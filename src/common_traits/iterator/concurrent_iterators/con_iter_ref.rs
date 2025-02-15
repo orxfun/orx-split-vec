@@ -4,7 +4,7 @@ use core::{
     marker::PhantomData,
     sync::atomic::{AtomicUsize, Ordering},
 };
-use orx_concurrent_iter::{BufferedChunkX, ConcurrentIterX};
+use orx_concurrent_iter::{BufferedChunk, BufferedChunkX, ConcurrentIterX, NextChunk};
 use orx_iterable::{Collection, Iterable};
 use orx_pinned_vec::PinnedVec;
 
@@ -96,6 +96,25 @@ where
                 let vec = iter.vec;
                 let end_idx = (begin_idx + self.chunk_size).min(vec.len()).max(begin_idx);
                 vec.iter_over(begin_idx..end_idx)
+            })
+    }
+}
+
+impl<'a, T, G> BufferedChunk<&'a T> for ConBufferedIterRef<T, G>
+where
+    T: Send + Sync,
+    G: Growth + 'a,
+{
+    fn pull(
+        &mut self,
+        iter: &Self::ConIter,
+    ) -> Option<NextChunk<&'a T, impl ExactSizeIterator<Item = &'a T>>> {
+        iter.progress_and_get_begin_idx(self.chunk_size)
+            .map(|begin_idx| {
+                let vec = iter.vec;
+                let end_idx = (begin_idx + self.chunk_size).min(vec.len()).max(begin_idx);
+                let values = vec.iter_over(begin_idx..end_idx);
+                NextChunk { begin_idx, values }
             })
     }
 }
