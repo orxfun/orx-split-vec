@@ -75,13 +75,23 @@ where
         self.vec.get(item_idx)
     }
 
-    #[inline(always)]
-    pub(crate) fn progress_and_get_begin_idx(&self, number_to_fetch: usize) -> Option<usize> {
+    fn progress_and_get_begin_idx(&self, number_to_fetch: usize) -> Option<usize> {
         let begin_idx = self.counter.fetch_add(number_to_fetch, Ordering::Relaxed);
         match begin_idx < self.vec.len() {
             true => Some(begin_idx),
             _ => None,
         }
+    }
+
+    fn progress_and_get_chunk(
+        &self,
+        chunk_size: usize,
+    ) -> Option<(usize, impl ExactSizeIterator<Item = &'a T>)> {
+        self.progress_and_get_begin_idx(chunk_size)
+            .map(|begin_idx| {
+                let end_idx = (begin_idx + chunk_size).min(self.vec.len()).max(begin_idx);
+                (begin_idx, self.vec.iter_over(begin_idx..end_idx))
+            })
     }
 }
 
@@ -130,12 +140,7 @@ where
     }
 
     fn pull_x(&mut self, iter: &Self::ConIter) -> Option<impl ExactSizeIterator<Item = &'a T>> {
-        iter.progress_and_get_begin_idx(self.chunk_size)
-            .map(|begin_idx| {
-                let vec = iter.vec;
-                let end_idx = (begin_idx + self.chunk_size).min(vec.len()).max(begin_idx);
-                vec.iter_over(begin_idx..end_idx)
-            })
+        iter.progress_and_get_chunk(self.chunk_size).map(|x| x.1)
     }
 }
 
@@ -148,13 +153,8 @@ where
         &mut self,
         iter: &Self::ConIter,
     ) -> Option<NextChunk<&'a T, impl ExactSizeIterator<Item = &'a T>>> {
-        iter.progress_and_get_begin_idx(self.chunk_size)
-            .map(|begin_idx| {
-                let vec = iter.vec;
-                let end_idx = (begin_idx + self.chunk_size).min(vec.len()).max(begin_idx);
-                let values = vec.iter_over(begin_idx..end_idx);
-                NextChunk { begin_idx, values }
-            })
+        iter.progress_and_get_chunk(self.chunk_size)
+            .map(|(begin_idx, values)| NextChunk { begin_idx, values })
     }
 }
 
@@ -173,15 +173,7 @@ impl<'a, T: Send + Sync, G: Growth> ConcurrentIterX for ConIterRef<'a, T, G> {
     }
 
     fn next_chunk_x(&self, chunk_size: usize) -> Option<impl ExactSizeIterator<Item = Self::Item>> {
-        let begin_idx = self
-            .progress_and_get_begin_idx(chunk_size)
-            .unwrap_or(self.vec.len());
-        let end_idx = (begin_idx + chunk_size).min(self.vec.len()).max(begin_idx);
-
-        match begin_idx < end_idx {
-            true => Some(self.vec.iter_over(begin_idx..end_idx)),
-            false => None,
-        }
+        self.progress_and_get_chunk(chunk_size).map(|x| x.1)
     }
 
     #[inline(always)]
@@ -197,11 +189,10 @@ impl<'a, T: Send + Sync, G: Growth> ConcurrentIterX for ConIterRef<'a, T, G> {
     fn try_get_len(&self) -> Option<usize> {
         let current = self.counter.load(Ordering::Acquire);
         let initial_len = self.vec.len();
-        let len = match current.cmp(&initial_len) {
+        Some(match current.cmp(&initial_len) {
             core::cmp::Ordering::Less => initial_len - current,
             _ => 0,
-        };
-        Some(len)
+        })
     }
 
     fn try_get_initial_len(&self) -> Option<usize> {
@@ -221,17 +212,7 @@ impl<'a, T: Send + Sync, G: Growth> ConcurrentIter for ConIterRef<'a, T, G> {
         &self,
         chunk_size: usize,
     ) -> Option<NextChunk<Self::Item, impl ExactSizeIterator<Item = Self::Item>>> {
-        let begin_idx = self
-            .progress_and_get_begin_idx(chunk_size)
-            .unwrap_or(self.vec.len());
-        let end_idx = (begin_idx + chunk_size).min(self.vec.len()).max(begin_idx);
-
-        match begin_idx < end_idx {
-            true => {
-                let values = self.vec.iter_over(begin_idx..end_idx);
-                Some(NextChunk { begin_idx, values })
-            }
-            false => None,
-        }
+        self.progress_and_get_chunk(chunk_size)
+            .map(|(begin_idx, values)| NextChunk { begin_idx, values })
     }
 }
