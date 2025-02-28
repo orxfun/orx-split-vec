@@ -21,6 +21,7 @@ harness = false
 
 [dev-dependencies]
 criterion = { version = "0.5", default-features = false }
+orx-parallel = { path = "../orx-parallel" }
 rand = { version = "0.9", default-features = false }
 rand_chacha = { version = "0.9", default-features = false }
 test-case = "3.3.1"
