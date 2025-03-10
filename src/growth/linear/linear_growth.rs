@@ -57,7 +57,7 @@ impl Linear {
 
 impl PseudoDefault for Linear {
     fn pseudo_default() -> Self {
-        Self::new(1)
+        Self::new(10)
     }
 }
 
