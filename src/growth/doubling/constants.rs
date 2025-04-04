@@ -1,7 +1,7 @@
-pub(super) const FIRST_FRAGMENT_CAPACITY_POW: usize = 2;
-pub(super) const FIRST_FRAGMENT_CAPACITY: usize = usize::pow(2, FIRST_FRAGMENT_CAPACITY_POW as u32);
-pub(super) const SIZE_USIZE: usize = core::mem::size_of::<usize>() * 8;
-pub(super) const OFFSET_FRAGMENT_IDX: usize = SIZE_USIZE - FIRST_FRAGMENT_CAPACITY_POW - 1;
+pub(crate) const FIRST_FRAGMENT_CAPACITY_POW: usize = 2;
+pub(crate) const FIRST_FRAGMENT_CAPACITY: usize = usize::pow(2, FIRST_FRAGMENT_CAPACITY_POW as u32);
+pub(crate) const SIZE_USIZE: usize = core::mem::size_of::<usize>() * 8;
+pub(crate) const OFFSET_FRAGMENT_IDX: usize = SIZE_USIZE - FIRST_FRAGMENT_CAPACITY_POW - 1;
 
 const fn fragment_capacity(fragment_idx: usize) -> usize {
     usize::pow(2, (fragment_idx + FIRST_FRAGMENT_CAPACITY_POW) as u32)
