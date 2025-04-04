@@ -245,6 +245,10 @@ impl<T> SplitVec<T, Doubling> {
     /// Panics if `fragments_capacity == 0`.
     pub fn with_doubling_growth_and_fragments_capacity(fragments_capacity: usize) -> Self {
         assert!(fragments_capacity > 0);
+        let fragments_capacity = match fragments_capacity <= CAPACITIES_LEN {
+            true => fragments_capacity,
+            false => CAPACITIES_LEN,
+        };
         let fragments =
             Fragment::new(FIRST_FRAGMENT_CAPACITY).into_fragments_with_capacity(fragments_capacity);
         Self::from_raw_parts(0, fragments, Doubling)
@@ -350,6 +354,15 @@ mod tests {
     #[should_panic]
     fn with_doubling_growth_and_fragments_capacity_zero() {
         let _: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(0);
+    }
+
+    #[test]
+    fn with_doubling_growth_and_fragments_capacity_too_large_capacity_is_trimmed() {
+        let vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(1000);
+        assert_eq!(
+            vec.maximum_concurrent_capacity(),
+            (1 << (CAPACITIES_LEN + 2)) - FIRST_FRAGMENT_CAPACITY
+        );
     }
 
     #[test]

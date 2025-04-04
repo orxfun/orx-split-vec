@@ -12,11 +12,13 @@ const fn cumulative_capacity(fragment_idx: usize) -> usize {
 }
 
 #[cfg(target_pointer_width = "32")]
-pub const CUMULATIVE_CAPACITIES_LEN: usize = 30;
+const CUMULATIVE_CAPACITIES_LEN: usize = 30;
 #[cfg(target_pointer_width = "64")]
-pub const CUMULATIVE_CAPACITIES_LEN: usize = 33;
+const CUMULATIVE_CAPACITIES_LEN: usize = 33;
 
-pub(super) const CAPACITIES: [usize; CUMULATIVE_CAPACITIES_LEN - 1] = [
+pub const CAPACITIES_LEN: usize = CUMULATIVE_CAPACITIES_LEN - 1;
+
+pub(super) const CAPACITIES: [usize; CAPACITIES_LEN] = [
     fragment_capacity(0),
     fragment_capacity(1),
     fragment_capacity(2),
