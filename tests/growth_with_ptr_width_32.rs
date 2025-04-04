@@ -1,5 +1,5 @@
 #![cfg(target_pointer_width = "32")]
-use orx_split_vec::*;
+use orx_split_vec::{SplitVec, *};
 
 #[cfg(feature = "test-allocation")]
 const LEN: usize = 1 << 28;
@@ -14,13 +14,13 @@ fn grow_with_default_growth() {
 #[test]
 fn grow_with_doubling() {
     grow_split_vec(SplitVec::with_doubling_growth());
-    grow_split_vec(SplitVec::with_doubling_growth_and_fragments_capacity(32));
+    grow_split_vec(SplitVec::with_doubling_growth_and_max_concurrent_capacity());
 }
 
 #[test]
 fn grow_with_recursive() {
     grow_split_vec(SplitVec::with_recursive_growth());
-    grow_split_vec(SplitVec::with_recursive_growth_and_fragments_capacity(32));
+    grow_split_vec(SplitVec::with_recursive_growth_and_max_concurrent_capacity());
 }
 
 #[test]

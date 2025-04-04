@@ -44,7 +44,7 @@ fn con_pin_vec_grow() {
         }
     }
 
-    test(SplitVec::with_doubling_growth_and_fragments_capacity(32));
+    test(SplitVec::with_doubling_growth_and_max_concurrent_capacity());
     test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
 }
 
@@ -99,7 +99,7 @@ fn con_pin_vec_grow_filled() {
         }
     }
 
-    test(SplitVec::with_doubling_growth_and_fragments_capacity(32));
+    test(SplitVec::with_doubling_growth_and_max_concurrent_capacity());
     test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
 }
 
@@ -158,7 +158,7 @@ fn into_concurrent_fill_with() {
                 .collect::<Vec<_>>()
         );
     }
-    test(SplitVec::with_doubling_growth_and_fragments_capacity(32));
+    test(SplitVec::with_doubling_growth_and_max_concurrent_capacity());
     test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
 }
 
