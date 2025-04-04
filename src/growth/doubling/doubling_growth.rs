@@ -253,6 +253,17 @@ impl<T> SplitVec<T, Doubling> {
             Fragment::new(FIRST_FRAGMENT_CAPACITY).into_fragments_with_capacity(fragments_capacity);
         Self::from_raw_parts(0, fragments, Doubling)
     }
+
+    /// Creates a new split vector with `Doubling` growth and maximum concurrent capacity which depends
+    /// on the pointer size of the target architecture.
+    ///
+    /// This method differs from [`SplitVec::with_doubling_growth`] only by the pre-allocation of fragments collection,
+    /// which never contains more elements than 33.
+    pub fn with_doubling_growth_and_max_concurrent_capacity() -> Self {
+        let fragments =
+            Fragment::new(FIRST_FRAGMENT_CAPACITY).into_fragments_with_capacity(CAPACITIES_LEN);
+        Self::from_raw_parts(0, fragments, Doubling)
+    }
 }
 
 #[cfg(test)]
@@ -359,6 +370,15 @@ mod tests {
     #[test]
     fn with_doubling_growth_and_fragments_capacity_too_large_capacity_is_trimmed() {
         let vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(1000);
+        assert_eq!(
+            vec.maximum_concurrent_capacity(),
+            (1 << (CAPACITIES_LEN + 2)) - FIRST_FRAGMENT_CAPACITY
+        );
+    }
+
+    #[test]
+    fn with_doubling_growth_and_max_concurrent_capacity() {
+        let vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
         assert_eq!(
             vec.maximum_concurrent_capacity(),
             (1 << (CAPACITIES_LEN + 2)) - FIRST_FRAGMENT_CAPACITY
