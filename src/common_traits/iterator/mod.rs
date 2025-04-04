@@ -1,4 +1,3 @@
-mod concurrent_iterators;
 mod eq;
 mod flattened_iter_of_slices;
 mod from_iter;
