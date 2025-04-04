@@ -1,7 +1,7 @@
 use crate::{
+    Doubling, Fragment, GrowthWithConstantTimeAccess, SplitVec,
     common_traits::iterator::{IterOfSlicesOfCon, SliceBorrowAsMut, SliceBorrowAsRef},
     fragment::transformations::{fragment_from_raw, fragment_into_raw},
-    Doubling, Fragment, GrowthWithConstantTimeAccess, SplitVec,
 };
 use alloc::vec::Vec;
 use core::cell::UnsafeCell;
@@ -35,13 +35,13 @@ impl<T, G: GrowthWithConstantTimeAccess> Drop for ConcurrentSplitVec<T, G> {
 
 impl<T, G: GrowthWithConstantTimeAccess> ConcurrentSplitVec<T, G> {
     unsafe fn get_raw_mut_unchecked_fi(&self, f: usize, i: usize) -> *mut T {
-        let p = *self.data[f].get();
-        p.add(i)
+        let p = unsafe { *self.data[f].get() };
+        unsafe { p.add(i) }
     }
 
     unsafe fn get_raw_mut_unchecked_idx(&self, idx: usize) -> *mut T {
         let (f, i) = self.growth.get_fragment_and_inner_indices_unchecked(idx);
-        self.get_raw_mut_unchecked_fi(f, i)
+        unsafe { self.get_raw_mut_unchecked_fi(f, i) }
     }
 
     fn capacity_of(&self, f: usize) -> usize {
@@ -53,8 +53,8 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentSplitVec<T, G> {
     }
 
     unsafe fn to_fragment(&self, data: FragmentData) -> Fragment<T> {
-        let ptr = *self.data[data.f].get();
-        fragment_from_raw(ptr, data.len, data.capacity)
+        let ptr = unsafe { *self.data[data.f].get() };
+        unsafe { fragment_from_raw(ptr, data.len, data.capacity) }
     }
 
     unsafe fn process_into_fragments<F>(&mut self, len: usize, take_fragment: &mut F)
@@ -62,14 +62,14 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentSplitVec<T, G> {
         F: FnMut(Fragment<T>),
     {
         let mut process_in_cap = |x: FragmentData| {
-            let _fragment_to_drop = self.to_fragment(x);
+            let _fragment_to_drop = unsafe { self.to_fragment(x) };
         };
         let mut process_in_len = |x: FragmentData| {
-            let fragment = self.to_fragment(x);
+            let fragment = unsafe { self.to_fragment(x) };
             take_fragment(fragment);
         };
 
-        self.process_fragments(len, &mut process_in_len, &mut process_in_cap);
+        unsafe { self.process_fragments(len, &mut process_in_len, &mut process_in_cap) };
     }
 
     unsafe fn process_fragments<P, Q>(
@@ -192,7 +192,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     unsafe fn into_inner(mut self, len: usize) -> Self::P {
         let mut fragments = Vec::with_capacity(self.max_num_fragments);
         let mut take_fragment = |fragment| fragments.push(fragment);
-        self.process_into_fragments(len, &mut take_fragment);
+        unsafe { self.process_into_fragments(len, &mut take_fragment) };
 
         self.zero();
         SplitVec::from_raw_parts(len, fragments, self.growth.clone())
@@ -206,16 +206,16 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         let mut clone_fragment = |x: FragmentData| {
             let mut fragment = Fragment::new(x.capacity);
             let dst: *mut T = fragment.data.as_mut_ptr();
-            let src = *self.data[x.f].get();
+            let src = unsafe { *self.data[x.f].get() };
             for i in 0..x.len {
-                let value = src.add(i).as_ref().expect("must be some");
-                dst.add(i).write(value.clone());
+                let value = unsafe { src.add(i).as_ref() }.expect("must be some");
+                unsafe { dst.add(i).write(value.clone()) };
             }
-            fragment.set_len(x.len);
+            unsafe { fragment.set_len(x.len) };
             fragments.push(fragment);
         };
 
-        self.process_fragments(len, &mut clone_fragment, &mut |_| {});
+        unsafe { self.process_fragments(len, &mut clone_fragment, &mut |_| {}) };
 
         let split_vec = SplitVec::from_raw_parts(len, fragments, self.growth.clone());
         split_vec.into()
@@ -251,14 +251,14 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     where
         T: 'a,
     {
-        self.slices_mut(0..len).flat_map(|x| x.iter_mut())
+        unsafe { self.slices_mut(0..len) }.flat_map(|x| x.iter_mut())
     }
 
     unsafe fn get(&self, index: usize) -> Option<&T> {
         match index < self.capacity() {
             true => {
-                let p = self.get_raw_mut_unchecked_idx(index);
-                Some(&*p)
+                let p = unsafe { self.get_raw_mut_unchecked_idx(index) };
+                Some(unsafe { &*p })
             }
             false => None,
         }
@@ -267,15 +267,15 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     unsafe fn get_mut(&mut self, index: usize) -> Option<&mut T> {
         match index < self.capacity() {
             true => {
-                let p = self.get_raw_mut_unchecked_idx(index);
-                Some(&mut *p)
+                let p = unsafe { self.get_raw_mut_unchecked_idx(index) };
+                Some(unsafe { &mut *p })
             }
             false => None,
         }
     }
 
     unsafe fn get_ptr_mut(&self, index: usize) -> *mut T {
-        self.get_raw_mut_unchecked_idx(index)
+        unsafe { self.get_raw_mut_unchecked_idx(index) }
     }
 
     fn max_capacity(&self) -> usize {
@@ -402,7 +402,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     where
         F: Fn() -> T,
     {
-        self.reserve_maximum_concurrent_capacity(current_len, new_maximum_capacity)
+        unsafe { self.reserve_maximum_concurrent_capacity(current_len, new_maximum_capacity) }
     }
 
     unsafe fn set_pinned_vec_len(&mut self, len: usize) {

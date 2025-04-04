@@ -5,7 +5,7 @@ use crate::common_traits::iterator::IterPtrBackward;
 use crate::common_traits::iterator::SliceBorrowAsMut;
 use crate::common_traits::iterator::SliceBorrowAsRef;
 use crate::fragment::fragment_struct::set_fragments_len;
-use crate::{algorithms, Fragment, Growth, SplitVec};
+use crate::{Fragment, Growth, SplitVec, algorithms};
 use core::cmp::Ordering;
 use core::ops::RangeBounds;
 use orx_iterable::Collection;
@@ -442,13 +442,13 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
 
     #[inline(always)]
     unsafe fn first_unchecked(&self) -> &T {
-        self.fragments.get_unchecked(0).get_unchecked(0)
+        unsafe { self.fragments.get_unchecked(0).get_unchecked(0) }
     }
 
     #[inline(always)]
     unsafe fn last_unchecked(&self) -> &T {
-        let fragment = self.fragments.get_unchecked(self.fragments.len() - 1);
-        fragment.get_unchecked(fragment.len() - 1)
+        let fragment = unsafe { self.fragments.get_unchecked(self.fragments.len() - 1) };
+        unsafe { fragment.get_unchecked(fragment.len() - 1) }
     }
 
     fn insert(&mut self, index: usize, value: T) {
@@ -778,7 +778,7 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     }
 
     unsafe fn set_len(&mut self, new_len: usize) {
-        set_fragments_len(&mut self.fragments, new_len);
+        unsafe { set_fragments_len(&mut self.fragments, new_len) };
         self.len = new_len;
     }
 

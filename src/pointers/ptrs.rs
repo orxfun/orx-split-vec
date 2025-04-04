@@ -1,6 +1,6 @@
 use crate::{
-    pointers::{Ptr, PtrBackward},
     Fragment,
+    pointers::{Ptr, PtrBackward},
 };
 
 #[derive(Copy)]
@@ -35,11 +35,11 @@ impl<'a, T> From<&'a [Fragment<T>]> for Ptrs<T> {
 
 impl<T> Ptrs<T> {
     pub unsafe fn get(&self, f: usize) -> Option<Ptr<T>> {
-        (f < self.num_fragments).then(|| Ptr::from(&*self.begin.add(f)))
+        (f < self.num_fragments).then(|| Ptr::from(unsafe { &*self.begin.add(f) }))
     }
 
     pub unsafe fn get_bwd(&self, f: usize) -> Option<PtrBackward<T>> {
-        (f < self.num_fragments).then(|| PtrBackward::from(&*self.begin.add(f)))
+        (f < self.num_fragments).then(|| PtrBackward::from(unsafe { &*self.begin.add(f) }))
     }
 }
 

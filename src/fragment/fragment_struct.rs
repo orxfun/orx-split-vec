@@ -72,8 +72,11 @@ impl<T> Fragment<T> {
     /// Zeroes out all memory; i.e., positions in `0..fragment.capacity()`, of the fragment.
     #[inline(always)]
     pub(crate) unsafe fn zero(&mut self) {
-        let slice = core::slice::from_raw_parts_mut(self.data.as_mut_ptr(), self.capacity());
-        slice.iter_mut().for_each(|m| *m = core::mem::zeroed());
+        let slice =
+            unsafe { core::slice::from_raw_parts_mut(self.data.as_mut_ptr(), self.capacity()) };
+        slice
+            .iter_mut()
+            .for_each(|m| *m = unsafe { core::mem::zeroed() });
     }
 }
 
@@ -85,11 +88,11 @@ pub(crate) unsafe fn set_fragments_len<T>(fragments: &mut [Fragment<T>], len: us
 
         match remaining <= capacity {
             true => {
-                fragment.set_len(remaining);
+                unsafe { fragment.set_len(remaining) };
                 remaining = 0;
             }
             false => {
-                fragment.set_len(capacity);
+                unsafe { fragment.set_len(capacity) };
                 remaining -= capacity;
             }
         }
