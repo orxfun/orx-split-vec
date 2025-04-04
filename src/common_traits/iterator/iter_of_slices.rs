@@ -10,8 +10,6 @@ use core::{
 };
 use orx_pinned_vec::PinnedVec;
 
-use super::flattened_iter_of_slices::FlattenedIterOfSlices;
-
 // variants
 
 pub trait SliceBorrowKind<'a, T> {

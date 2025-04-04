@@ -21,7 +21,7 @@ pub struct Iter<'a, T> {
     inner: core::slice::Iter<'a, T>,
 }
 
-impl<'a, T> Default for Iter<'a, T> {
+impl<T> Default for Iter<'_, T> {
     fn default() -> Self {
         Self {
             outer: Default::default(),

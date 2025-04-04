@@ -229,7 +229,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     where
         T: 'a,
     {
-        self.slices(0..len).into_iter().flat_map(|x| x.iter())
+        self.slices(0..len).flat_map(|x| x.iter())
     }
 
     unsafe fn iter_over_range<'a, R: RangeBounds<usize>>(
@@ -240,7 +240,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         T: 'a,
     {
         let [a, b] = orx_pinned_vec::utils::slice::vec_range_limits(&range, None);
-        self.slices(a..b).into_iter().flat_map(|x| x.iter())
+        self.slices(a..b).flat_map(|x| x.iter())
     }
 
     unsafe fn slices_mut<R: RangeBounds<usize>>(&self, range: R) -> Self::SliceMutIter<'_> {
@@ -251,9 +251,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     where
         T: 'a,
     {
-        self.slices_mut(0..len)
-            .into_iter()
-            .flat_map(|x| x.iter_mut())
+        self.slices_mut(0..len).flat_map(|x| x.iter_mut())
     }
 
     unsafe fn get(&self, index: usize) -> Option<&T> {
