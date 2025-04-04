@@ -25,7 +25,7 @@ fn drop_con_pin_vec_after_into_inner() {
     }
 
     test(SplitVec::new());
-    test(SplitVec::with_doubling_growth_and_fragments_capacity(32));
+    test(SplitVec::with_doubling_growth_and_max_concurrent_capacity());
     test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
 }
 
@@ -47,6 +47,6 @@ fn drop_con_pin_vec_as_con_pin_vec() {
     }
 
     test(SplitVec::new());
-    test(SplitVec::with_doubling_growth_and_fragments_capacity(32));
+    test(SplitVec::with_doubling_growth_and_max_concurrent_capacity());
     test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
 }
