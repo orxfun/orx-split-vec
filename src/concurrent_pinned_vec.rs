@@ -370,11 +370,12 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
 
         let mut num_required_fragments = 0;
         let mut max_cap = self.maximum_capacity;
-        let f = self.data.len();
+        let mut f = self.data.len();
 
         while max_cap < new_maximum_capacity {
             max_cap += self.capacity_of(f);
             num_required_fragments += 1;
+            f += 1;
         }
 
         if num_required_fragments > 0 {
@@ -387,15 +388,6 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
 
         self.maximum_capacity = (0..self.data.len()).map(|f| self.capacity_of(f)).sum();
         self.max_num_fragments = self.data.len();
-
-        while self.maximum_capacity < new_maximum_capacity {
-            let f = self.data.len();
-            self.data.push(UnsafeCell::new(core::ptr::null_mut()));
-
-            let capacity = self.capacity_of(f);
-            self.maximum_capacity += capacity;
-            self.max_num_fragments += 1;
-        }
 
         assert_eq!(self.max_num_fragments, self.data.len());
         assert_eq!(self.max_num_fragments, self.data.capacity());
