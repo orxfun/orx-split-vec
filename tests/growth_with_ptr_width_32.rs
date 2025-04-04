@@ -1,7 +1,10 @@
 #![cfg(target_pointer_width = "32")]
 use orx_split_vec::*;
 
+#[cfg(feature = "test-allocation")]
 const LEN: usize = 1 << 28;
+#[cfg(not(feature = "test-allocation"))]
+const LEN: usize = 1 << 14;
 
 #[test]
 fn grow_with_default_growth() {
