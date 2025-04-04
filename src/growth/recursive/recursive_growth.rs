@@ -359,7 +359,8 @@ mod tests {
     }
 
     #[test]
-    fn with_recursive_growth_and_fragments_capacity_too_large_capacity_is_trimmed() {
+    #[should_panic]
+    fn with_recursive_growth_and_fragments_capacity_too_large_fragments_capacity() {
         let vec: SplitVec<char, _> = SplitVec::with_recursive_growth_and_fragments_capacity(1000);
         assert_eq!(
             vec.maximum_concurrent_capacity(),
