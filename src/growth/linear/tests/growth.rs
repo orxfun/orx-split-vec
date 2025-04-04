@@ -1,4 +1,4 @@
-use crate::{Doubling, Fragment, Growth};
+use crate::{Doubling, Fragment, Growth, GrowthWithConstantTimeAccess, Linear};
 use alloc::vec::Vec;
 
 #[test]
@@ -66,4 +66,15 @@ fn indices() {
         None,
         growth.get_fragment_and_inner_indices(8, &[new_full(), new_half()], 12)
     );
+}
+
+#[test]
+fn fragment_capacity_linear() {
+    let growth = Linear::new(10);
+
+    let capacity = u32::pow(2, 10) as usize;
+
+    for f in 0..100 {
+        assert_eq!(growth.fragment_capacity_of(f), capacity);
+    }
 }
