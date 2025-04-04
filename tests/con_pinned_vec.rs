@@ -50,26 +50,3 @@ fn drop_con_pin_vec_as_con_pin_vec() {
     test(SplitVec::with_doubling_growth_and_fragments_capacity(32));
     test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
 }
-
-#[test]
-fn aaa() {
-    // const LEN: usize = 1486;
-    const LEN: usize = 0;
-
-    fn test<G: GrowthWithConstantTimeAccess>(mut vec: SplitVec<String, G>) {
-        for i in 0..LEN {
-            vec.push(i.to_string());
-        }
-
-        let con_pinned_vec = vec.into_concurrent();
-
-        // for i in 0..LEN {
-        //     let x = unsafe { con_pinned_vec.get(i) };
-        //     assert_eq!(x, Some(&i.to_string()));
-        // }
-    }
-
-    // test(SplitVec::new());
-    test(SplitVec::with_doubling_growth_and_fragments_capacity(32));
-    // test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
-}

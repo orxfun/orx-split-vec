@@ -1,5 +1,5 @@
+use super::constants::FIXED_CAPACITIES;
 use crate::growth::growth_trait::{Growth, GrowthWithConstantTimeAccess};
-use crate::growth::linear::constants::FIXED_CAPACITIES;
 use crate::{Fragment, SplitVec};
 use alloc::string::String;
 use orx_pseudo_default::PseudoDefault;
@@ -46,7 +46,19 @@ pub struct Linear {
 
 impl Linear {
     /// Creates a linear growth where each fragment will have a capacity of `2 ^ constant_fragment_capacity_exponent`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `constant_fragment_capacity_exponent` is zero or `constant_fragment_capacity_exponent >= MAX_EXPONENT` where `MAX_EXPONENT` is:
+    ///
+    /// * 29 in 32-bit targets,
+    /// * 32 in 64-bit.
     pub fn new(constant_fragment_capacity_exponent: usize) -> Self {
+        assert!(
+            constant_fragment_capacity_exponent > 0
+                && constant_fragment_capacity_exponent < FIXED_CAPACITIES.len(),
+            "constant_fragment_capacity_exponent must be within 1..32 (1..29) for 64-bit (32-bit) platforms."
+        );
         let constant_fragment_capacity = FIXED_CAPACITIES[constant_fragment_capacity_exponent];
         Self {
             constant_fragment_capacity_exponent,
@@ -171,9 +183,10 @@ impl<T> SplitVec<T, Linear> {
     ///
     /// # Panics
     ///
-    /// Panics if `constant_fragment_capacity_exponent` is not within:
-    /// * 1..32 for 64-bit platforms, or
-    /// * 1..29 for 32-bit platforms.
+    /// Panics if `constant_fragment_capacity_exponent` is zero or `constant_fragment_capacity_exponent >= MAX_EXPONENT` where `MAX_EXPONENT` is:
+    ///
+    /// * 29 in 32-bit targets,
+    /// * 32 in 64-bit.
     ///
     /// # Examples
     ///
@@ -205,8 +218,11 @@ impl<T> SplitVec<T, Linear> {
     /// assert_eq!(Some(1), vec.fragments().last().map(|f| f.len()));
     /// ```
     pub fn with_linear_growth(constant_fragment_capacity_exponent: usize) -> Self {
-        assert!(constant_fragment_capacity_exponent > 0 && constant_fragment_capacity_exponent < FIXED_CAPACITIES.len(),
-            "constant_fragment_capacity_exponent must be within 1..32 (1..29) for 64-bit (32-bit) platforms.");
+        assert!(
+            constant_fragment_capacity_exponent > 0
+                && constant_fragment_capacity_exponent < FIXED_CAPACITIES.len(),
+            "constant_fragment_capacity_exponent must be within 1..32 (1..29) for 64-bit (32-bit) platforms."
+        );
 
         let constant_fragment_capacity = FIXED_CAPACITIES[constant_fragment_capacity_exponent];
         let fragments = Fragment::new(constant_fragment_capacity).into_fragments();
@@ -224,12 +240,20 @@ impl<T> SplitVec<T, Linear> {
     ///
     /// # Panics
     ///
-    /// Panics if `fragments_capacity == 0`.
+    /// Panics if `constant_fragment_capacity_exponent` is zero or `constant_fragment_capacity_exponent >= MAX_EXPONENT` where `MAX_EXPONENT` is:
+    ///
+    /// * 29 in 32-bit targets,
+    /// * 32 in 64-bit.
     pub fn with_linear_growth_and_fragments_capacity(
         constant_fragment_capacity_exponent: usize,
         fragments_capacity: usize,
     ) -> Self {
-        assert!(constant_fragment_capacity_exponent > 0);
+        assert!(
+            constant_fragment_capacity_exponent > 0
+                && constant_fragment_capacity_exponent < FIXED_CAPACITIES.len(),
+            "constant_fragment_capacity_exponent must be within 1..{}",
+            FIXED_CAPACITIES.len()
+        );
         assert!(fragments_capacity > 0);
 
         let constant_fragment_capacity = FIXED_CAPACITIES[constant_fragment_capacity_exponent];
@@ -339,6 +363,19 @@ mod tests {
     #[should_panic]
     fn with_linear_growth_and_fragments_capacity_zero() {
         let _: SplitVec<char, _> = SplitVec::with_linear_growth_and_fragments_capacity(10, 0);
+    }
+
+    #[test]
+    fn with_linear_growth_with_max_fragment_capacity() {
+        let exponent = FIXED_CAPACITIES.len() - 1;
+        let _: SplitVec<char, _> = SplitVec::with_linear_growth(exponent);
+    }
+
+    #[test]
+    #[should_panic]
+    fn with_linear_growth_with_too_large_fragment_capacity() {
+        let exponent = FIXED_CAPACITIES.len();
+        let _: SplitVec<char, _> = SplitVec::with_linear_growth(exponent);
     }
 
     #[test]
