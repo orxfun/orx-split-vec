@@ -290,14 +290,6 @@ where
             false => self.maximum_concurrent_capacity(),
         }
     }
-
-    /// Reserves maximum possible concurrent capacity and returns the new reserved concurrent capacity.
-    pub fn reserve_for_maximum_concurrent_capacity(&mut self) -> usize {
-        let new_maximum_capacity = self
-            .growth()
-            .maximum_concurrent_capacity_bound(&self.fragments, self.fragments.capacity());
-        self.reserve_maximum_concurrent_capacity(new_maximum_capacity)
-    }
 }
 
 #[cfg(test)]

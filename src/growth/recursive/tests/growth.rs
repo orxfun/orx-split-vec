@@ -1,4 +1,4 @@
-use crate::{Fragment, Growth, Recursive, SplitVec};
+use crate::{Fragment, Growth, Recursive};
 use alloc::vec::Vec;
 
 #[test]
@@ -70,8 +70,7 @@ fn indices() {
 
 #[test]
 fn reserve_for_maximum_concurrent_capacity() {
-    let mut vec = SplitVec::<u32, Recursive>::with_recursive_growth();
-    let max_capacity = vec.reserve_for_maximum_concurrent_capacity();
+    let max_capacity = Recursive.maximum_concurrent_capacity_bound::<char>(&[], 0);
 
     #[cfg(target_pointer_width = "32")]
     assert_eq!(max_capacity, 2_147_483_644);

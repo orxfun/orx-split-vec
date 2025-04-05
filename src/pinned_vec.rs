@@ -811,6 +811,12 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
         let compare = |a: &T, b: &T| f(a).cmp(&f(b));
         algorithms::in_place_sort::in_place_sort_by(&mut self.fragments, compare)
     }
+
+    fn capacity_bound(&self) -> usize {
+        self.growth
+            .maximum_concurrent_capacity_bound(&self.fragments, self.fragments.capacity());
+        usize::MAX
+    }
 }
 
 #[cfg(test)]
