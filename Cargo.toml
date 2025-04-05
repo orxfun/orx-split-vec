@@ -10,8 +10,8 @@ keywords = ["vec", "array", "split", "fragments", "pinned"]
 categories = ["data-structures", "rust-patterns", "no-std"]
 
 [dependencies]
-orx-iterable = { version = "1.2.0", default-features = false }
-orx-pseudo-default = { version = "2.0.0", default-features = false }
+orx-iterable = { path = "../orx-iterable", default-features = false }
+orx-pseudo-default = { path = "../orx-pseudo-default", default-features = false }
 orx-pinned-vec = { path = "../orx-pinned-vec" }
 
 [[bench]]

@@ -1,4 +1,4 @@
-use crate::{Doubling, Fragment, Growth, GrowthWithConstantTimeAccess, Linear};
+use crate::{Doubling, Fragment, Growth, GrowthWithConstantTimeAccess, Linear, SplitVec};
 use alloc::vec::Vec;
 
 #[test]
@@ -77,4 +77,16 @@ fn fragment_capacity_linear() {
     for f in 0..100 {
         assert_eq!(growth.fragment_capacity_of(f), capacity);
     }
+}
+
+#[test]
+fn reserve_for_maximum_concurrent_capacity() {
+    let mut vec = SplitVec::<u32, Linear>::with_linear_growth(10);
+    let max_capacity = vec.reserve_for_maximum_concurrent_capacity();
+
+    #[cfg(target_pointer_width = "32")]
+    assert_eq!(max_capacity, 268_435_456);
+
+    #[cfg(target_pointer_width = "64")]
+    assert_eq!(max_capacity, 2_147_483_648);
 }

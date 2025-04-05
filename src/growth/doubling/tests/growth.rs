@@ -1,5 +1,5 @@
 use crate::{
-    Doubling, Fragment, Growth, GrowthWithConstantTimeAccess,
+    Doubling, Fragment, Growth, GrowthWithConstantTimeAccess, SplitVec,
     growth::doubling::constants::CAPACITIES_LEN,
 };
 use alloc::vec::Vec;
@@ -81,4 +81,16 @@ fn fragment_capacity_doubling() {
         assert_eq!(growth.fragment_capacity_of(f), capacity);
         capacity *= 2;
     }
+}
+
+#[test]
+fn reserve_for_maximum_concurrent_capacity() {
+    let mut vec = SplitVec::<u32, Doubling>::with_doubling_growth();
+    let max_capacity = vec.reserve_for_maximum_concurrent_capacity();
+
+    #[cfg(target_pointer_width = "32")]
+    assert_eq!(max_capacity, 2_147_483_644);
+
+    #[cfg(target_pointer_width = "64")]
+    assert_eq!(max_capacity, 17_179_869_180);
 }

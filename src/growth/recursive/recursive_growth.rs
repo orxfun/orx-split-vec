@@ -114,6 +114,14 @@ impl Growth for Recursive {
 
         Ok(f)
     }
+
+    fn maximum_concurrent_capacity_bound<T>(
+        &self,
+        fragments: &[Fragment<T>],
+        fragments_capacity: usize,
+    ) -> usize {
+        Doubling::default().maximum_concurrent_capacity_bound(fragments, fragments_capacity)
+    }
 }
 
 impl<T> SplitVec<T, Recursive> {

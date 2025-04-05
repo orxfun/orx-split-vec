@@ -160,6 +160,12 @@ impl Growth for Doubling {
             CUMULATIVE_CAPACITIES[CUMULATIVE_CAPACITIES.len() - 1]
         ))
     }
+
+    fn maximum_concurrent_capacity_bound<T>(&self, _: &[Fragment<T>], _: usize) -> usize {
+        *CUMULATIVE_CAPACITIES
+            .last()
+            .expect("cumulative capacities is not empty")
+    }
 }
 
 impl GrowthWithConstantTimeAccess for Doubling {

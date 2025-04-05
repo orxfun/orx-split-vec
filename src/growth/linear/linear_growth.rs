@@ -160,6 +160,12 @@ impl Growth for Linear {
 
         Ok(num_full_fragments + additional_fragment)
     }
+
+    fn maximum_concurrent_capacity_bound<T>(&self, _: &[Fragment<T>], _: usize) -> usize {
+        *FIXED_CAPACITIES
+            .last()
+            .expect("fixed capacities is non-empty")
+    }
 }
 
 impl GrowthWithConstantTimeAccess for Linear {
