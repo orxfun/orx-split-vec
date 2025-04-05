@@ -814,8 +814,7 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
 
     fn capacity_bound(&self) -> usize {
         self.growth
-            .maximum_concurrent_capacity_bound(&self.fragments, self.fragments.capacity());
-        usize::MAX
+            .maximum_concurrent_capacity_bound(&self.fragments, self.fragments.capacity())
     }
 }
 
