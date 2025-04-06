@@ -8,6 +8,8 @@ An efficient dynamic capacity vector with pinned element guarantees.
 
 A **SplitVec** implements [`PinnedVec`](https://crates.io/crates/orx-pinned-vec); you may read the detailed information about [pinned element guarantees](https://docs.rs/orx-pinned-vec/latest/orx_pinned_vec/#pinned-elements-guarantees) and why they are useful in the [motivation-and-examples](https://docs.rs/orx-pinned-vec/latest/orx_pinned_vec/#motivation--examples) section. In brief, a pinned vector does not allow implicit changes in memory locations of its elements; such as moving the entire vector to another memory location due to additional capacity requirement.
 
+> This crate is **no-std** by default.
+
 ## Growth and Capacity Decisions
 
 As the name suggests, a split vector is a collection of fragments. Each fragment is a contiguous memory chunk used to store elements. Unlike standard vectors, a fragment's capacity never changes. However, the fragments of a split vector might have different capacities. The decision on the capacity of the next fragment to be allocated is decided by the [`Growth`](https://docs.rs/orx-split-vec/latest/orx_split_vec/trait.Growth.html) strategy. Notice that the split vector has two generic parameters: the element type and the growth strategy; i.e., `SplitVec<T, G: Growth>`.
