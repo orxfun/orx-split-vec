@@ -1,6 +1,6 @@
 use crate::{
-    algorithms::in_place_sort::{find_position_to_insert, in_place_sort_by},
     Doubling, Fragment, Growth, Linear, Recursive,
+    algorithms::in_place_sort::{find_position_to_insert, in_place_sort_by},
 };
 use alloc::vec::Vec;
 use core::cmp::Ordering::*;
@@ -82,11 +82,15 @@ fn sort_simple() {
 
 #[test_case(Doubling)]
 #[test_case(Recursive)]
-#[test_case(Linear::new(10))]
+#[test_case(Linear::new(6))]
 fn sort_growth(growth: impl Growth) {
     let mut c = |a: &i32, b: &i32| a.cmp(b);
 
+    #[cfg(not(miri))]
     let num_fragments = 10;
+    #[cfg(miri)]
+    let num_fragments = 3;
+
     let mut fragments: Vec<Fragment<_>> = alloc::vec![];
 
     let mut len = 0;
