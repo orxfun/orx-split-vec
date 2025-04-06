@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
+use criterion::{BatchSize, BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use orx_split_vec::*;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
@@ -17,7 +17,7 @@ fn get_vectors(n: usize) -> Vectors {
     let mut rng = ChaCha8Rng::seed_from_u64(685412);
     Vectors(
         (0..NUM_APPEND_OPS)
-            .map(|_| (0..n).map(|_| rng.gen_range(0..n)).collect())
+            .map(|_| (0..n).map(|_| rng.random_range(0..n)).collect())
             .collect(),
     )
 }
