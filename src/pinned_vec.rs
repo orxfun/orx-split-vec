@@ -831,7 +831,12 @@ mod tests {
     #[test]
     fn pinned_vec_tests() {
         fn test<G: Growth>(vec: SplitVec<usize, G>) {
-            for cap in [0, 10, 124, 5421] {
+            #[cfg(not(miri))]
+            let capacities = [0, 10, 124, 5421];
+            #[cfg(miri)]
+            let capacities = [0, 34];
+
+            for cap in capacities {
                 test_pinned_vec(vec.clone(), cap);
             }
         }
