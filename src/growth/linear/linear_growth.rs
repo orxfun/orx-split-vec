@@ -358,7 +358,12 @@ mod tests {
 
         assert_eq!(1, vec.fragments.capacity());
 
-        for _ in 0..100_000 {
+        #[cfg(not(miri))]
+        let n = 100_000;
+        #[cfg(miri)]
+        let n = 55;
+
+        for _ in 0..n {
             vec.push('x');
         }
 
