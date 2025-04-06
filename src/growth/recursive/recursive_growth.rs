@@ -273,7 +273,7 @@ mod tests {
         #[cfg(not(miri))]
         let lengths = [30, 1, 7, 3, 79, 147, 530];
         #[cfg(miri)]
-        let lengths = [30, 1, 7, 3, 79];
+        let lengths = [1, 7, 3, 30];
 
         let mut index = 0;
         for _ in 0..10 {
