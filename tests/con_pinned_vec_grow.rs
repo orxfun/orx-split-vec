@@ -1,8 +1,12 @@
 use orx_split_vec::*;
 
 #[test]
-fn con_pin_vec_grow() {
-    const LEN: usize = 1486;
+fn con_pin_vec_grow_xyz() {
+    #[cfg(not(miri))]
+    const TARGET_LEN: usize = 35478;
+
+    #[cfg(miri)]
+    const TARGET_LEN: usize = 37;
 
     fn test<G: GrowthWithConstantTimeAccess>(vec: SplitVec<String, G>) {
         assert_eq!(vec.fragments().len(), 1);
@@ -10,11 +14,18 @@ fn con_pin_vec_grow() {
         let growth = vec.growth().clone();
 
         let mut num_fragments = 1;
-        let mut capacity = growth.fragment_capacity_of(0);
+        let initial_capacity = growth.fragment_capacity_of(0);
+
+        assert!(
+            initial_capacity < TARGET_LEN,
+            "otherwise, growth test is meaningless"
+        );
+
+        let mut capacity = initial_capacity;
 
         let con_pinned_vec = vec.into_concurrent();
 
-        for i in 0..LEN {
+        for i in 0..TARGET_LEN {
             if i == capacity {
                 let new_fragment_capacity = growth.fragment_capacity_of(num_fragments);
                 let expected_new_capacity = capacity + new_fragment_capacity;
@@ -28,28 +39,34 @@ fn con_pin_vec_grow() {
             }
 
             let ptr = unsafe { con_pinned_vec.get_ptr_mut(i) };
+            // # SAFETY: gaps within the vector's capacity must be filled
             unsafe { ptr.write(i.to_string()) };
         }
 
-        for i in 0..LEN {
+        for i in 0..TARGET_LEN {
             let x = unsafe { con_pinned_vec.get(i) };
             assert_eq!(x, Some(&i.to_string()));
         }
 
-        let vec = unsafe { con_pinned_vec.into_inner(LEN) };
+        // # SAFETY: can leave elements in TARGET_LEN..capacity out, they are not initialized
+        let vec = unsafe { con_pinned_vec.into_inner(TARGET_LEN) };
 
-        assert_eq!(vec.len(), LEN);
+        assert_eq!(vec.len(), TARGET_LEN);
         for i in 0..vec.len() {
             assert_eq!(&vec[i], &i.to_string());
         }
     }
 
     test(SplitVec::with_doubling_growth_and_max_concurrent_capacity());
+
+    #[cfg(not(miri))]
     test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
+    #[cfg(miri)]
+    test(SplitVec::with_linear_growth_and_fragments_capacity(4, 32));
 }
 
 #[test]
-fn con_pin_vec_grow_filled() {
+fn con_pin_vec_grow_filled_abc() {
     #[cfg(not(miri))]
     const TARGET_LEN: usize = 35478;
 
@@ -72,11 +89,6 @@ fn con_pin_vec_grow_filled() {
         );
 
         let mut capacity = initial_capacity;
-
-        // # SAFETY: the vector must have no gaps within its capacity before grow_to_and_fill_with call.
-        for _ in 0..capacity {
-            vec.push("before".to_string());
-        }
 
         let con_pinned_vec = vec.into_concurrent();
 
@@ -101,7 +113,14 @@ fn con_pin_vec_grow_filled() {
             }
 
             let ptr = unsafe { con_pinned_vec.get_ptr_mut(i) };
-            let _ = unsafe { ptr.replace(i.to_string()) };
+            match i < initial_capacity {
+                // # SAFETY: gaps within the vector's capacity must be filled
+                true => unsafe { ptr.write(i.to_string()) },
+                // # SAFETY: these are already filled with grow_to_and_fill_with call
+                false => {
+                    let _ = unsafe { ptr.replace(i.to_string()) };
+                }
+            }
         }
 
         for i in 0..TARGET_LEN {
@@ -131,7 +150,7 @@ fn con_pin_vec_grow_filled() {
         }
     }
 
-    // test(SplitVec::with_doubling_growth_and_max_concurrent_capacity());
+    test(SplitVec::with_doubling_growth_and_max_concurrent_capacity());
 
     #[cfg(not(miri))]
     test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
