@@ -1,7 +1,7 @@
 use orx_split_vec::*;
 
 #[test]
-fn con_pin_vec_grow_xyz() {
+fn con_pin_vec_grow() {
     #[cfg(not(miri))]
     const TARGET_LEN: usize = 35478;
 
@@ -66,7 +66,7 @@ fn con_pin_vec_grow_xyz() {
 }
 
 #[test]
-fn con_pin_vec_grow_filled_abc() {
+fn con_pin_vec_grow_filled() {
     #[cfg(not(miri))]
     const TARGET_LEN: usize = 35478;
 
