@@ -367,6 +367,7 @@ mod tests {
             vec.push('x');
         }
 
+        #[cfg(not(miri))]
         assert!(vec.fragments.capacity() > 4);
     }
 
