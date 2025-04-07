@@ -250,6 +250,14 @@ fn reserve_fill_with() {
         );
     }
 
-    test(SplitVec::with_doubling_growth_and_fragments_capacity(16));
-    test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
+    #[cfg(not(miri))]
+    {
+        test(SplitVec::with_doubling_growth_and_fragments_capacity(16));
+        test(SplitVec::with_linear_growth_and_fragments_capacity(10, 32));
+    }
+    #[cfg(miri)]
+    {
+        test(SplitVec::with_doubling_growth_and_fragments_capacity(5));
+        test(SplitVec::with_linear_growth_and_fragments_capacity(4, 3));
+    }
 }
