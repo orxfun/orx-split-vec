@@ -4,7 +4,6 @@ use orx_split_vec::*;
 fn con_pin_vec_grow() {
     #[cfg(not(miri))]
     const TARGET_LEN: usize = 35478;
-
     #[cfg(miri)]
     const TARGET_LEN: usize = 37;
 

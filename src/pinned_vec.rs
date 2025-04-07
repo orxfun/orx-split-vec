@@ -846,8 +846,13 @@ mod tests {
     #[test]
     fn index_of_and_contains() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+            #[cfg(not(miri))]
+            const TARGET_LEN: usize = 157;
+            #[cfg(miri)]
+            const TARGET_LEN: usize = 37;
+
             let mut another_vec = Vec::new();
-            for i in 0..157 {
+            for i in 0..TARGET_LEN {
                 vec.push(i);
                 another_vec.push(i);
             }
@@ -1018,7 +1023,12 @@ mod tests {
                 assert_eq!(vec.last_unchecked(), &7);
             }
 
-            for _ in 0..800 {
+            #[cfg(not(miri))]
+            const TARGET_LEN: usize = 800;
+            #[cfg(miri)]
+            const TARGET_LEN: usize = 37;
+
+            for _ in 0..TARGET_LEN {
                 vec.insert(1, 56421);
             }
 
@@ -1042,12 +1052,12 @@ mod tests {
     #[test]
     fn extend_from_slice() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
-            vec.extend_from_slice(&(42..63).collect::<Vec<_>>());
-            vec.extend_from_slice(&(63..100).collect::<Vec<_>>());
+            vec.extend_from_slice(&(0..21).collect::<Vec<_>>());
+            vec.extend_from_slice(&(21..35).collect::<Vec<_>>());
+            vec.extend_from_slice(&(35..49).collect::<Vec<_>>());
 
-            assert_eq!(100, vec.len());
-            for i in 0..100 {
+            assert_eq!(49, vec.len());
+            for i in 0..49 {
                 assert_eq!(i, vec[i]);
             }
         }
@@ -1176,7 +1186,12 @@ mod tests {
     #[test]
     fn slices() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            for i in 0..184 {
+            #[cfg(not(miri))]
+            const TARGET_LEN: usize = 184;
+            #[cfg(miri)]
+            const TARGET_LEN: usize = 41;
+
+            for i in 0..TARGET_LEN {
                 assert_eq!(vec.slices(i..i + 1).len(), 0);
                 assert_eq!(vec.slices(0..i + 1).len(), 0);
                 vec.push(i);
@@ -1187,7 +1202,7 @@ mod tests {
             for s in slice {
                 combined.extend_from_slice(s);
             }
-            for i in 0..184 {
+            for i in 0..TARGET_LEN {
                 assert_eq!(i, vec[i]);
                 assert_eq!(i, combined[i]);
             }
