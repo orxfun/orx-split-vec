@@ -8,7 +8,8 @@ fn con_pin_vec_grow() {
     #[cfg(miri)]
     const TARGET_LEN: usize = 37;
 
-    fn test<G: GrowthWithConstantTimeAccess>(vec: SplitVec<String, G>) {
+    fn test<G: GrowthWithConstantTimeAccess>(mut vec: SplitVec<String, G>) {
+        vec.reserve_maximum_concurrent_capacity(TARGET_LEN);
         assert_eq!(vec.fragments().len(), 1);
 
         let growth = vec.growth().clone();
