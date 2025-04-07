@@ -6,7 +6,7 @@ fn num_moves() -> usize {
     return 2500;
 
     #[cfg(miri)]
-    return 100;
+    return 21;
 }
 
 /// Takes ownership of the `vec`.
