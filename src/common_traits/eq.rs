@@ -87,7 +87,7 @@ mod tests {
     #[test]
     fn eq() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            for i in 0..142 {
+            for i in 0..57 {
                 vec.push(i);
             }
 

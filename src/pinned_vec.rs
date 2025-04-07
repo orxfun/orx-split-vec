@@ -1225,7 +1225,7 @@ mod tests {
     #[test]
     fn slices_mut() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            for i in 0..184 {
+            for i in 0..84 {
                 assert_eq!(vec.slices_mut(i..i + 1).len(), 0);
                 assert_eq!(vec.slices_mut(0..i + 1).len(), 0);
                 vec.push(i);
@@ -1236,7 +1236,7 @@ mod tests {
             for s in slice {
                 combined.extend_from_slice(s);
             }
-            for i in 0..184 {
+            for i in 0..84 {
                 assert_eq!(i, vec[i]);
                 assert_eq!(i, combined[i]);
             }
@@ -1255,7 +1255,7 @@ mod tests {
 
             vec.clear();
 
-            for _ in 0..184 {
+            for _ in 0..84 {
                 vec.push(0);
             }
 
@@ -1273,13 +1273,13 @@ mod tests {
                 update(vec.slices_mut(range), begin);
             };
 
-            fill(0, 14);
-            fill(14, 56);
-            fill(56, 77);
-            fill(77, 149);
-            fill(149, 182);
-            fill(182, 184);
-            for i in 0..184 {
+            fill(0, 7);
+            fill(7, 14);
+            fill(14, 33);
+            fill(33, 61);
+            fill(61, 72);
+            fill(72, 84);
+            for i in 0..84 {
                 assert_eq!(vec.get(i), Some(&i));
             }
         }

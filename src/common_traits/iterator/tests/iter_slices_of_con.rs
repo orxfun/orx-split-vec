@@ -1,13 +1,18 @@
 use crate::{
+    Doubling, Growth, GrowthWithConstantTimeAccess, SplitVec,
     common_traits::iterator::{IterOfSlicesOfCon, SliceBorrowAsRef},
     range_helpers::{range_end, range_start},
-    Doubling, Growth, GrowthWithConstantTimeAccess, SplitVec,
 };
 use alloc::vec::Vec;
 use core::cmp::min;
 use core::ops::Range;
 use orx_pinned_vec::*;
 use test_case::test_matrix;
+
+#[cfg(not(miri))]
+const N: [usize; 8] = [0, 1, 3, 4, 5, 8, 185, 423];
+#[cfg(miri)]
+const N: [usize; 8] = [0, 1, 3, 4, 5, 8, 27, 37];
 
 fn init_vec<G: Growth>(mut vec: SplitVec<usize, G>, n: usize) -> SplitVec<usize, G> {
     vec.clear();
@@ -17,25 +22,25 @@ fn init_vec<G: Growth>(mut vec: SplitVec<usize, G>, n: usize) -> SplitVec<usize,
 
 #[test_matrix(
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2)],
-    [0, 1, 3, 4, 5, 8, 27, 185, 446],
     [0..0, 0..1, 4..4, 4..5, 1..4, 2..6, 2..15, 4..11, 4..12, 4..13, 4..59, 5..9, 5..12, 7..28, 7..60, 4..28, 4..60, 0..28, 0..60]
 )]
 fn slices_iter_of_con(
     vec: SplitVec<usize, impl GrowthWithConstantTimeAccess>,
-    n: usize,
     range: Range<usize>,
 ) {
-    let vec = init_vec(vec, n);
+    for n in N {
+        let vec = init_vec(vec.clone(), n);
 
-    let a = min(range_start(&range), n);
-    let b = min(range_end(&range, n), n);
-    let expected: Vec<_> = (a..b).collect();
+        let a = min(range_start(&range), n);
+        let b = min(range_end(&range, n), n);
+        let expected: Vec<_> = (a..b).collect();
 
-    let vec = vec.into_concurrent();
-    let slices = vec.slices(a..b);
-    let values: Vec<_> = slices.flat_map(|x| x.iter()).copied().collect();
+        let vec = vec.into_concurrent();
+        let slices = vec.slices(a..b);
+        let values: Vec<_> = slices.flat_map(|x| x.iter()).copied().collect();
 
-    assert_eq!(values, expected);
+        assert_eq!(values, expected);
+    }
 }
 
 #[test]

@@ -2,7 +2,10 @@ use orx_split_vec::*;
 
 #[test]
 fn drop_con_pin_vec_after_into_inner() {
+    #[cfg(not(miri))]
     const LEN: usize = 1486;
+    #[cfg(miri)]
+    const LEN: usize = 65;
 
     fn test<G: GrowthWithConstantTimeAccess>(mut vec: SplitVec<String, G>) {
         for i in 0..LEN {
@@ -31,7 +34,10 @@ fn drop_con_pin_vec_after_into_inner() {
 
 #[test]
 fn drop_con_pin_vec_as_con_pin_vec() {
+    #[cfg(not(miri))]
     const LEN: usize = 1486;
+    #[cfg(miri)]
+    const LEN: usize = 65;
 
     fn test<G: GrowthWithConstantTimeAccess>(mut vec: SplitVec<String, G>) {
         for i in 0..LEN {

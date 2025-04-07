@@ -1,11 +1,14 @@
-use crate::{test_all_growth_types, Growth, SplitVec};
+use crate::{Growth, SplitVec, test_all_growth_types};
 use alloc::vec::Vec;
 use orx_pinned_vec::*;
 
 #[test]
 fn iter() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+        #[cfg(not(miri))]
         let n = 564;
+        #[cfg(miri)]
+        let n = 37;
         let std_vec: Vec<_> = (0..n).collect();
         vec.extend(std_vec);
 
@@ -60,7 +63,11 @@ fn iter_one_fragment() {
 #[test]
 fn clone() {
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+        #[cfg(not(miri))]
         let n = 564;
+        #[cfg(miri)]
+        let n = 37;
+
         let std_vec: Vec<_> = (0..n).collect();
         vec.extend(std_vec);
 
