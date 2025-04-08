@@ -1,4 +1,7 @@
-use crate::{Doubling, Fragment, Growth};
+use crate::{
+    Doubling, Fragment, Growth, GrowthWithConstantTimeAccess,
+    growth::doubling::constants::CAPACITIES_LEN,
+};
 use alloc::vec::Vec;
 
 #[test]
@@ -66,4 +69,27 @@ fn indices() {
         None,
         growth.get_fragment_and_inner_indices(8, &[new_full(), new_half()], 12)
     );
+}
+
+#[test]
+fn fragment_capacity_doubling() {
+    let growth = Doubling;
+
+    let mut capacity = 4;
+
+    for f in 0..CAPACITIES_LEN {
+        assert_eq!(growth.fragment_capacity_of(f), capacity);
+        capacity *= 2;
+    }
+}
+
+#[test]
+fn reserve_for_maximum_concurrent_capacity() {
+    let max_capacity = Doubling.maximum_concurrent_capacity_bound::<char>(&[], 0);
+
+    #[cfg(target_pointer_width = "32")]
+    assert_eq!(max_capacity, 2_147_483_644);
+
+    #[cfg(target_pointer_width = "64")]
+    assert_eq!(max_capacity, 17_179_869_180);
 }

@@ -67,3 +67,14 @@ fn indices() {
         growth.get_fragment_and_inner_indices(8, &[new_full(), new_half()], 12)
     );
 }
+
+#[test]
+fn reserve_for_maximum_concurrent_capacity() {
+    let max_capacity = Recursive.maximum_concurrent_capacity_bound::<char>(&[], 0);
+
+    #[cfg(target_pointer_width = "32")]
+    assert_eq!(max_capacity, 2_147_483_644);
+
+    #[cfg(target_pointer_width = "64")]
+    assert_eq!(max_capacity, 17_179_869_180);
+}

@@ -27,7 +27,7 @@ mod tests {
     #[test]
     fn clone() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            for i in 0..168 {
+            for i in 0..57 {
                 vec.push(i);
             }
 

@@ -209,6 +209,11 @@ pub trait Growth: Clone + PseudoDefault {
 
         Ok(num_fragments)
     }
+
+    /// Returns the maximum possible bound on concurrent capacity.
+    fn maximum_concurrent_capacity_bound<T>(&self, _: &[Fragment<T>], _: usize) -> usize {
+        usize::MAX
+    }
 }
 
 /// Growth strategy of a split vector which allows for constant time access to the elements.

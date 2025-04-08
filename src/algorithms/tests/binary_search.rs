@@ -1,5 +1,5 @@
 use crate::algorithms::binary_search::binary_search_by;
-use crate::{test_all_growth_types, Growth, SplitVec};
+use crate::{Growth, SplitVec, test_all_growth_types};
 use core::cmp::Ordering;
 use orx_pinned_vec::PinnedVec;
 
@@ -78,10 +78,15 @@ fn bin_search_randomized() {
     use rand_chacha::ChaCha8Rng;
 
     fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
+        #[cfg(not(miri))]
+        let len = 1033;
+        #[cfg(miri)]
+        let len = 33;
+
         let mut rng = ChaCha8Rng::seed_from_u64(8654);
         let mut ref_vec = alloc::vec![];
         let mut idx = 0;
-        while ref_vec.len() < 1033 {
+        while ref_vec.len() < len {
             if rng.random::<f32>() < 0.85 {
                 ref_vec.push(idx);
                 vec.push(idx);

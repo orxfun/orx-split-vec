@@ -3,7 +3,10 @@ use orx_split_vec::SplitVec;
 
 #[test]
 fn last_on_pop() {
+    #[cfg(not(miri))]
     let n = 164135;
+    #[cfg(miri)]
+    let n = 37;
 
     let mut vec = SplitVec::new();
     for i in 0..n {
@@ -28,7 +31,11 @@ fn last_on_pop() {
 
 #[test]
 fn last_on_remove() {
+    #[cfg(not(miri))]
     let n = 1641;
+    #[cfg(miri)]
+    let n = 39;
+
     let expected_last = n - 1;
 
     let mut vec = SplitVec::new();
@@ -52,7 +59,10 @@ fn last_on_remove() {
 
 #[test]
 fn last_on_truncate() {
+    #[cfg(not(miri))]
     let n = 164135;
+    #[cfg(miri)]
+    let n = 37;
 
     let mut vec = SplitVec::new();
     for i in 0..n {
@@ -76,7 +86,11 @@ fn last_on_truncate() {
 
 #[test]
 fn first_on_pop() {
+    #[cfg(not(miri))]
     let n = 164135;
+    #[cfg(miri)]
+    let n = 37;
+
     let expected_first = 0;
 
     let mut vec = SplitVec::new();
@@ -101,7 +115,10 @@ fn first_on_pop() {
 
 #[test]
 fn first_on_remove() {
-    let n = 1635;
+    #[cfg(not(miri))]
+    let n = 1641;
+    #[cfg(miri)]
+    let n = 39;
 
     let mut vec = SplitVec::new();
     for i in 0..n {
@@ -126,7 +143,10 @@ fn first_on_remove() {
 
 #[test]
 fn first_on_truncate() {
+    #[cfg(not(miri))]
     let n = 164135;
+    #[cfg(miri)]
+    let n = 37;
 
     let mut vec = SplitVec::new();
     for i in 0..n {

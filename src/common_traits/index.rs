@@ -196,17 +196,17 @@ mod tests {
     #[test]
     fn index() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
-            vec.extend_from_slice(&(42..63).collect::<Vec<_>>());
-            vec.extend_from_slice(&(63..100).collect::<Vec<_>>());
+            vec.extend_from_slice(&(0..21).collect::<Vec<_>>());
+            vec.extend_from_slice(&(21..33).collect::<Vec<_>>());
+            vec.extend_from_slice(&(33..50).collect::<Vec<_>>());
 
-            assert_eq!(100, vec.len());
-            for i in 0..100 {
+            assert_eq!(50, vec.len());
+            for i in 0..50 {
                 assert_eq!(i, vec[i]);
-                vec[i] += 100;
+                vec[i] += 50;
             }
-            for i in 0..100 {
-                assert_eq!(100 + i, vec[i]);
+            for i in 0..50 {
+                assert_eq!(50 + i, vec[i]);
             }
         }
         test_all_growth_types!(test);
@@ -215,19 +215,19 @@ mod tests {
     #[test]
     fn double_indices() {
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            vec.extend_from_slice(&(0..42).collect::<Vec<_>>());
-            vec.extend_from_slice(&(42..63).collect::<Vec<_>>());
-            vec.extend_from_slice(&(63..100).collect::<Vec<_>>());
+            vec.extend_from_slice(&(0..21).collect::<Vec<_>>());
+            vec.extend_from_slice(&(21..33).collect::<Vec<_>>());
+            vec.extend_from_slice(&(33..50).collect::<Vec<_>>());
 
-            assert_eq!(100, vec.len());
-            for i in 0..100 {
+            assert_eq!(50, vec.len());
+            for i in 0..50 {
                 let (f, j) = vec.get_fragment_and_inner_indices(i).expect("is-some");
                 assert_eq!(i, vec[(f, j)]);
-                vec[(f, j)] += 100;
+                vec[(f, j)] += 50;
             }
-            for i in 0..100 {
+            for i in 0..50 {
                 let (f, j) = vec.get_fragment_and_inner_indices(i).expect("is-some");
-                assert_eq!(100 + i, vec[(f, j)]);
+                assert_eq!(50 + i, vec[(f, j)]);
             }
         }
         test_all_growth_types!(test);

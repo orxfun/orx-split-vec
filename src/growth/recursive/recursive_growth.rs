@@ -114,6 +114,14 @@ impl Growth for Recursive {
 
         Ok(f)
     }
+
+    fn maximum_concurrent_capacity_bound<T>(
+        &self,
+        fragments: &[Fragment<T>],
+        fragments_capacity: usize,
+    ) -> usize {
+        Doubling.maximum_concurrent_capacity_bound(fragments, fragments_capacity)
+    }
 }
 
 impl<T> SplitVec<T, Recursive> {
@@ -206,10 +214,21 @@ impl<T> SplitVec<T, Recursive> {
     pub fn with_recursive_growth_and_fragments_capacity(fragments_capacity: usize) -> Self {
         SplitVec::with_doubling_growth_and_fragments_capacity(fragments_capacity).into()
     }
+
+    /// Creates a new split vector with `Recursive` growth and maximum concurrent capacity which depends
+    /// on the pointer size of the target architecture.
+    ///
+    /// This method differs from [`SplitVec::with_recursive_growth`] only by the pre-allocation of fragments collection,
+    /// which never contains more elements than 33.
+    pub fn with_recursive_growth_and_max_concurrent_capacity() -> Self {
+        SplitVec::with_doubling_growth_and_max_concurrent_capacity().into()
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::growth::doubling::constants::{CAPACITIES_LEN, FIRST_FRAGMENT_CAPACITY};
+
     use super::*;
     use alloc::vec::Vec;
     use orx_pinned_vec::PinnedVec;
@@ -251,7 +270,11 @@ mod tests {
 
         let mut fragments: Vec<Fragment<_>> = alloc::vec![];
 
+        #[cfg(not(miri))]
         let lengths = [30, 1, 7, 3, 79, 147, 530];
+        #[cfg(miri)]
+        let lengths = [1, 7, 3, 30];
+
         let mut index = 0;
         for _ in 0..10 {
             for &len in &lengths {
@@ -334,10 +357,16 @@ mod tests {
 
         assert_eq!(1, vec.fragments.capacity());
 
-        for _ in 0..100_000 {
+        #[cfg(not(miri))]
+        let n = 100_000;
+        #[cfg(miri)]
+        let n = 55;
+
+        for _ in 0..n {
             vec.push('x');
         }
 
+        #[cfg(not(miri))]
         assert!(vec.fragments.capacity() > 4);
     }
 
@@ -345,6 +374,25 @@ mod tests {
     #[should_panic]
     fn with_recursive_growth_and_fragments_capacity_zero() {
         let _: SplitVec<char, _> = SplitVec::with_recursive_growth_and_fragments_capacity(0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn with_recursive_growth_and_fragments_capacity_too_large_fragments_capacity() {
+        let vec: SplitVec<char, _> = SplitVec::with_recursive_growth_and_fragments_capacity(1000);
+        assert_eq!(
+            vec.maximum_concurrent_capacity(),
+            (1 << (CAPACITIES_LEN + 2)) - FIRST_FRAGMENT_CAPACITY
+        );
+    }
+
+    #[test]
+    fn with_recursive_growth_and_max_concurrent_capacity() {
+        let vec: SplitVec<char, _> = SplitVec::with_recursive_growth_and_max_concurrent_capacity();
+        assert_eq!(
+            vec.maximum_concurrent_capacity(),
+            (1 << (CAPACITIES_LEN + 2)) - FIRST_FRAGMENT_CAPACITY
+        );
     }
 
     #[test]

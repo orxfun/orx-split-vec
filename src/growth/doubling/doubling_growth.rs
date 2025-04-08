@@ -160,6 +160,12 @@ impl Growth for Doubling {
             CUMULATIVE_CAPACITIES[CUMULATIVE_CAPACITIES.len() - 1]
         ))
     }
+
+    fn maximum_concurrent_capacity_bound<T>(&self, _: &[Fragment<T>], _: usize) -> usize {
+        *CUMULATIVE_CAPACITIES
+            .last()
+            .expect("cumulative capacities is not empty")
+    }
 }
 
 impl GrowthWithConstantTimeAccess for Doubling {
@@ -243,10 +249,34 @@ impl<T> SplitVec<T, Doubling> {
     /// # Panics
     ///
     /// Panics if `fragments_capacity == 0`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `fragments_capacity` is zero or `fragments_capacity > MAX_FRAGMENTS_CAPACITY` where `MAX_FRAGMENTS_CAPACITY` is:
+    ///
+    /// * 29 in 32-bit targets,
+    /// * 32 in 64-bit.
     pub fn with_doubling_growth_and_fragments_capacity(fragments_capacity: usize) -> Self {
+        assert!(
+            fragments_capacity > 0 && fragments_capacity <= CAPACITIES_LEN,
+            "fragments_capacity must be within 1..{}; however, {} is provided.",
+            CAPACITIES_LEN,
+            fragments_capacity
+        );
         assert!(fragments_capacity > 0);
         let fragments =
             Fragment::new(FIRST_FRAGMENT_CAPACITY).into_fragments_with_capacity(fragments_capacity);
+        Self::from_raw_parts(0, fragments, Doubling)
+    }
+
+    /// Creates a new split vector with `Doubling` growth and maximum concurrent capacity which depends
+    /// on the pointer size of the target architecture.
+    ///
+    /// This method differs from [`SplitVec::with_doubling_growth`] only by the pre-allocation of fragments collection,
+    /// which never contains more elements than 33.
+    pub fn with_doubling_growth_and_max_concurrent_capacity() -> Self {
+        let fragments =
+            Fragment::new(FIRST_FRAGMENT_CAPACITY).into_fragments_with_capacity(CAPACITIES_LEN);
         Self::from_raw_parts(0, fragments, Doubling)
     }
 }
@@ -339,10 +369,16 @@ mod tests {
 
         assert_eq!(1, vec.fragments.capacity());
 
-        for _ in 0..100_000 {
+        #[cfg(not(miri))]
+        let n = 100_000;
+        #[cfg(miri)]
+        let n = 44;
+
+        for _ in 0..n {
             vec.push('x');
         }
 
+        #[cfg(not(miri))]
         assert!(vec.fragments.capacity() > 4);
     }
 
@@ -350,6 +386,32 @@ mod tests {
     #[should_panic]
     fn with_doubling_growth_and_fragments_capacity_zero() {
         let _: SplitVec<char, _> = SplitVec::with_doubling_growth_and_fragments_capacity(0);
+    }
+
+    #[test]
+    fn with_doubling_growth_and_fragments_capacity_with_max_fragments_capacity() {
+        let vec: SplitVec<char, _> =
+            SplitVec::with_doubling_growth_and_fragments_capacity(CAPACITIES_LEN);
+        assert_eq!(
+            vec.maximum_concurrent_capacity(),
+            (1 << (CAPACITIES_LEN + 2)) - FIRST_FRAGMENT_CAPACITY
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn with_doubling_growth_and_fragments_capacity_too_large_fragments_capacity() {
+        let _: SplitVec<char, _> =
+            SplitVec::with_doubling_growth_and_fragments_capacity(CAPACITIES_LEN + 1);
+    }
+
+    #[test]
+    fn with_doubling_growth_and_max_concurrent_capacity() {
+        let vec: SplitVec<char, _> = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
+        assert_eq!(
+            vec.maximum_concurrent_capacity(),
+            (1 << (CAPACITIES_LEN + 2)) - FIRST_FRAGMENT_CAPACITY
+        );
     }
 
     #[test]

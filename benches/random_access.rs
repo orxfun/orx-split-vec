@@ -1,6 +1,6 @@
 use criterion::{
-    black_box, criterion_group, criterion_main, measurement::WallTime, BenchmarkGroup, BenchmarkId,
-    Criterion,
+    BenchmarkGroup, BenchmarkId, Criterion, black_box, criterion_group, criterion_main,
+    measurement::WallTime,
 };
 use orx_split_vec::*;
 use rand::prelude::*;
@@ -10,7 +10,7 @@ fn get_indices(n: usize) -> Vec<usize> {
     let mut rng = ChaCha8Rng::seed_from_u64(7541);
     let mut vec = Vec::with_capacity(n);
     for _ in 0..n {
-        vec.push(rng.gen_range(0..n));
+        vec.push(rng.random_range(0..n));
     }
     vec
 }

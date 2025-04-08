@@ -1,5 +1,4 @@
-use orx_split_vec::prelude::*;
-use test_case::test_matrix;
+use orx_split_vec::*;
 
 fn slices_mut<G: Growth>(mut vec: SplitVec<String, G>, len: usize) {
     vec.clear();
@@ -22,9 +21,16 @@ fn slices_mut<G: Growth>(mut vec: SplitVec<String, G>, len: usize) {
     }
 }
 
-#[test_matrix([0, 1, 4, 5, 15, 16, 17, 1033])]
-fn test_slices_mut(len: usize) {
-    slices_mut(SplitVec::with_doubling_growth(), len);
-    slices_mut(SplitVec::with_recursive_growth(), len);
-    slices_mut(SplitVec::with_linear_growth(4), len);
+#[cfg(not(miri))]
+const LENGTHS: [usize; 8] = [0, 1, 4, 5, 15, 16, 17, 1033];
+#[cfg(miri)]
+const LENGTHS: [usize; 8] = [0, 1, 4, 5, 15, 16, 17, 37];
+
+#[test]
+fn test_slices_mut() {
+    for len in LENGTHS {
+        slices_mut(SplitVec::with_doubling_growth(), len);
+        slices_mut(SplitVec::with_recursive_growth(), len);
+        slices_mut(SplitVec::with_linear_growth(4), len);
+    }
 }

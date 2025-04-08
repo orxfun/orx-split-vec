@@ -1,4 +1,4 @@
-use crate::{fragment::fragment_struct::Fragment, Doubling, Growth};
+use crate::{Doubling, Growth, fragment::fragment_struct::Fragment};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -66,6 +66,7 @@ where
     }
 
     // get
+
     /// Growth strategy of the split vector.
     ///
     /// Note that allocated data of split vector is pinned and allocated in fragments.
@@ -325,13 +326,18 @@ mod tests {
 
     #[test]
     fn get_fragment_and_inner_indices() {
+        #[cfg(not(miri))]
+        const LEN: usize = 432;
+        #[cfg(miri)]
+        const LEN: usize = 57;
+
         fn test<G: Growth>(mut vec: SplitVec<usize, G>) {
-            for i in 0..432 {
+            for i in 0..LEN {
                 vec.push(i);
                 assert_eq!(None, vec.get_fragment_and_inner_indices(i + 1));
             }
 
-            for i in 0..432 {
+            for i in 0..LEN {
                 let (f, ii) = vec.get_fragment_and_inner_indices(i).expect("is-some");
                 assert_eq!(vec[i], vec.fragments[f][ii]);
             }
