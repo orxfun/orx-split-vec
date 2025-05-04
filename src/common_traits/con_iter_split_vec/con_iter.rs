@@ -79,11 +79,12 @@ where
     }
 
     fn next(&self) -> Option<Self::Item> {
-        todo!()
+        self.progress_and_get_begin_idx(1).map(|idx| &self.vec[idx])
     }
 
     fn next_with_idx(&self) -> Option<(usize, Self::Item)> {
-        todo!()
+        self.progress_and_get_begin_idx(1)
+            .map(|idx| (idx, &self.vec[idx]))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
