@@ -1,25 +1,25 @@
-use super::con_iter::ConIterSplitVec;
+use super::con_iter::ConIterSplitVecRef;
 use crate::{
     Growth,
     common_traits::iterator::{FlattenedIterOfSlices, SliceBorrowAsRef},
 };
 use orx_concurrent_iter::ChunkPuller;
 
-pub struct ChunkPullerSplitVec<'i, 'a, G, T>
+pub struct ChunkPullerSplitVecRef<'i, 'a, G, T>
 where
     T: Send + Sync,
     G: Growth,
 {
-    con_iter: &'i ConIterSplitVec<'a, T, G>,
+    con_iter: &'i ConIterSplitVecRef<'a, T, G>,
     chunk_size: usize,
 }
 
-impl<'i, 'a, G, T> ChunkPullerSplitVec<'i, 'a, G, T>
+impl<'i, 'a, G, T> ChunkPullerSplitVecRef<'i, 'a, G, T>
 where
     T: Send + Sync,
     G: Growth,
 {
-    pub(super) fn new(con_iter: &'i ConIterSplitVec<'a, T, G>, chunk_size: usize) -> Self {
+    pub(super) fn new(con_iter: &'i ConIterSplitVecRef<'a, T, G>, chunk_size: usize) -> Self {
         Self {
             con_iter,
             chunk_size,
@@ -27,7 +27,7 @@ where
     }
 }
 
-impl<'i, 'a, G, T> ChunkPuller for ChunkPullerSplitVec<'i, 'a, G, T>
+impl<'i, 'a, G, T> ChunkPuller for ChunkPullerSplitVecRef<'i, 'a, G, T>
 where
     T: Send + Sync,
     G: Growth,

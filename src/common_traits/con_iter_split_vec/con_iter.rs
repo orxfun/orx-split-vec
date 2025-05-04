@@ -1,4 +1,4 @@
-use super::chunk_puller::ChunkPullerSplitVec;
+use super::chunk_puller::ChunkPullerSplitVecRef;
 use crate::{
     Growth, SplitVec,
     common_traits::iterator::{FlattenedIterOfSlices, SliceBorrowAsRef},
@@ -10,7 +10,7 @@ use core::{
 use orx_concurrent_iter::ConcurrentIter;
 use orx_iterable::Iterable;
 
-pub struct ConIterSplitVec<'a, T, G>
+pub struct ConIterSplitVecRef<'a, T, G>
 where
     T: Send + Sync,
     G: Growth,
@@ -19,7 +19,7 @@ where
     counter: AtomicUsize,
 }
 
-impl<'a, T, G> ConIterSplitVec<'a, T, G>
+impl<'a, T, G> ConIterSplitVecRef<'a, T, G>
 where
     T: Send + Sync,
     G: Growth,
@@ -53,7 +53,7 @@ where
     }
 }
 
-impl<'a, T, G> ConcurrentIter for ConIterSplitVec<'a, T, G>
+impl<'a, T, G> ConcurrentIter for ConIterSplitVecRef<'a, T, G>
 where
     T: Send + Sync,
     G: Growth,
@@ -63,7 +63,7 @@ where
     type SequentialIter = Skip<super::super::iterator::Iter<'a, T>>;
 
     type ChunkPuller<'i>
-        = ChunkPullerSplitVec<'i, 'a, G, T>
+        = ChunkPullerSplitVecRef<'i, 'a, G, T>
     where
         Self: 'i;
 

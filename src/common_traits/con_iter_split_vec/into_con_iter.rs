@@ -1,4 +1,4 @@
-use super::con_iter::ConIterSplitVec;
+use super::con_iter::ConIterSplitVecRef;
 use crate::{Growth, SplitVec};
 use orx_concurrent_iter::IntoConcurrentIter;
 
@@ -9,7 +9,7 @@ where
 {
     type Item = &'a T;
 
-    type IntoIter = ConIterSplitVec<'a, T, G>;
+    type IntoIter = ConIterSplitVecRef<'a, T, G>;
 
     fn into_con_iter(self) -> Self::IntoIter {
         Self::IntoIter::new(self)
