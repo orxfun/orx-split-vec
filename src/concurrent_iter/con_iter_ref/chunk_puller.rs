@@ -27,7 +27,7 @@ where
     }
 }
 
-impl<'i, 'a, G, T> ChunkPuller for ChunkPullerSplitVecRef<'i, 'a, G, T>
+impl<'a, G, T> ChunkPuller for ChunkPullerSplitVecRef<'_, 'a, G, T>
 where
     T: Send + Sync,
     G: Growth,
@@ -50,8 +50,6 @@ where
     }
 
     fn pull_with_idx(&mut self) -> Option<(usize, Self::Chunk<'_>)> {
-        self.con_iter
-            .progress_and_get_iter(self.chunk_size)
-            .map(|(begin_idx, iter)| (begin_idx, iter))
+        self.con_iter.progress_and_get_iter(self.chunk_size)
     }
 }
