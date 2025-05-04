@@ -1,6 +1,7 @@
+use super::chunk_puller::ChunkPullerSplitVec;
 use crate::{
-    Fragment, Growth, SplitVec,
-    common_traits::iterator::{FlattenedIterOfSlices, IterOfSlices, SliceBorrowAsRef},
+    Growth, SplitVec,
+    common_traits::iterator::{FlattenedIterOfSlices, SliceBorrowAsRef},
 };
 use core::{
     iter::Skip,
@@ -8,9 +9,6 @@ use core::{
 };
 use orx_concurrent_iter::ConcurrentIter;
 use orx_iterable::Iterable;
-use orx_pinned_vec::PinnedVec;
-
-use super::chunk_puller::ChunkPullerSplitVec;
 
 pub struct ConIterSplitVec<'a, T, G>
 where
