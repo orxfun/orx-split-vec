@@ -1,6 +1,6 @@
 use crate::{
-    range_helpers::{range_end, range_start},
     Fragment, Growth, SplitVec,
+    range_helpers::{range_end, range_start},
 };
 use core::{
     borrow::Borrow,
