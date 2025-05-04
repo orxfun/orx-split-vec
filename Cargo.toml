@@ -17,7 +17,7 @@ orx-concurrent-iter = { version = "2.0.0", default-features = false, optional = 
 orx-parallel = { version = "2.0.0", default-features = false, optional = true }
 
 [[bench]]
-name = "serial_access"
+name = "par_collect_map_filter"
 harness = false
 
 [dev-dependencies]
