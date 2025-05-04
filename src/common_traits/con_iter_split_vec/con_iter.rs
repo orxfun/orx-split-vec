@@ -75,7 +75,7 @@ where
     }
 
     fn skip_to_end(&self) {
-        todo!()
+        let _ = self.counter.fetch_max(self.vec.len, Ordering::Acquire);
     }
 
     fn next(&self) -> Option<Self::Item> {
