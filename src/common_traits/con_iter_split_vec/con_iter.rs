@@ -2,8 +2,14 @@ use crate::{
     Fragment, Growth, SplitVec,
     common_traits::iterator::{FlattenedIterOfSlices, IterOfSlices, SliceBorrowAsRef},
 };
-use core::sync::atomic::{AtomicUsize, Ordering};
+use core::{
+    iter::Skip,
+    sync::atomic::{AtomicUsize, Ordering},
+};
+use orx_concurrent_iter::ConcurrentIter;
 use orx_pinned_vec::PinnedVec;
+
+use super::chunk_puller::ChunkPullerSplitVec;
 
 pub struct ConIterSplitVec<'a, T, G>
 where
@@ -45,5 +51,44 @@ where
                 let iter = FlattenedIterOfSlices::<_, SliceBorrowAsRef>::new(self.vec, range);
                 (begin_idx, iter)
             })
+    }
+}
+
+impl<'a, T, G> ConcurrentIter for ConIterSplitVec<'a, T, G>
+where
+    T: Send + Sync,
+    G: Growth,
+{
+    type Item = &'a T;
+
+    type SequentialIter = Skip<super::super::iterator::Iter<'a, T>>;
+
+    type ChunkPuller<'i>
+        = ChunkPullerSplitVec<'i, 'a, G, T>
+    where
+        Self: 'i;
+
+    fn into_seq_iter(self) -> Self::SequentialIter {
+        todo!()
+    }
+
+    fn skip_to_end(&self) {
+        todo!()
+    }
+
+    fn next(&self) -> Option<Self::Item> {
+        todo!()
+    }
+
+    fn next_with_idx(&self) -> Option<(usize, Self::Item)> {
+        todo!()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        todo!()
+    }
+
+    fn chunk_puller(&self, chunk_size: usize) -> Self::ChunkPuller<'_> {
+        todo!()
     }
 }
