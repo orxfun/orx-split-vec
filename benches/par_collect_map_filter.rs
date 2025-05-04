@@ -1,4 +1,7 @@
+#![allow(dead_code, unreachable_code, unused_variables, unused_imports)]
+
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+#[cfg(feature = "parallel")]
 use orx_parallel::*;
 use orx_split_vec::*;
 use rand::prelude::*;
@@ -68,10 +71,12 @@ fn seq(inputs: &[usize]) -> Vec<Output> {
     inputs.iter().map(map).filter(filter).collect()
 }
 
+#[cfg(feature = "parallel")]
 fn par_over_slice(inputs: &[usize]) -> Vec<Output> {
     inputs.into_par().map(map).filter(filter).collect()
 }
 
+#[cfg(feature = "parallel")]
 fn par_over_split_vec<G: Growth>(inputs: &SplitVec<usize, G>) -> Vec<Output> {
     inputs.into_par().map(map).filter(filter).collect()
 }
@@ -79,14 +84,21 @@ fn par_over_split_vec<G: Growth>(inputs: &SplitVec<usize, G>) -> Vec<Output> {
 fn run(c: &mut Criterion) {
     let treatments = [65_536, 65_536 * 4];
 
+    #[allow(unused_mut)]
     let mut group = c.benchmark_group("par_collect_map_filter");
 
+    #[cfg(feature = "parallel")]
     for n in &treatments {
         let input = inputs(*n);
         let expected = seq(&input);
+
         let input_doubling: SplitVec<_, Doubling> = input.iter().copied().collect();
-        let mut input_linear = SplitVec::with_linear_growth(10);
-        input_linear.extend_from_slice(&input);
+
+        let input_linear = {
+            let mut input_linear = SplitVec::with_linear_growth(10);
+            input_linear.extend_from_slice(&input);
+            input_linear
+        };
 
         group.bench_with_input(BenchmarkId::new("seq", n), n, |b, _| {
             assert_eq!(&expected, &seq(&input));
