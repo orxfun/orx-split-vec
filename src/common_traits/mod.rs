@@ -1,5 +1,5 @@
 mod clone;
-mod con_iter_split_vec;
+mod concurrent_iter;
 mod debug;
 mod eq;
 mod index;
