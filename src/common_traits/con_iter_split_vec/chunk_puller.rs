@@ -1,7 +1,9 @@
-use orx_concurrent_iter::ChunkPuller;
-
 use super::con_iter::ConIterSplitVec;
-use crate::Growth;
+use crate::{
+    Growth,
+    common_traits::iterator::{FlattenedIterOfSlices, SliceBorrowAsRef},
+};
+use orx_concurrent_iter::ChunkPuller;
 
 pub struct ChunkPullerSplitVec<'i, 'a, G, T>
 where
@@ -33,16 +35,18 @@ where
     type ChunkItem = &'a T;
 
     type Chunk<'c>
-        = core::iter::Empty<&'a T>
+        = FlattenedIterOfSlices<'a, T, SliceBorrowAsRef>
     where
         Self: 'c;
 
     fn chunk_size(&self) -> usize {
-        todo!()
+        self.chunk_size
     }
 
     fn pull(&mut self) -> Option<Self::Chunk<'_>> {
-        todo!()
+        self.con_iter
+            .progress_and_get_slice(self.chunk_size)
+            .map(|(_, iter)| iter)
     }
 
     fn pull_with_idx(&mut self) -> Option<(usize, Self::Chunk<'_>)> {
