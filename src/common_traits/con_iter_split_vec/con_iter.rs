@@ -88,10 +88,12 @@ where
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        todo!()
+        let num_taken = self.counter.load(Ordering::Acquire);
+        let remaining = self.vec.len.saturating_sub(num_taken);
+        (remaining, Some(remaining))
     }
 
     fn chunk_puller(&self, chunk_size: usize) -> Self::ChunkPuller<'_> {
-        todo!()
+        Self::ChunkPuller::new(self, chunk_size)
     }
 }
