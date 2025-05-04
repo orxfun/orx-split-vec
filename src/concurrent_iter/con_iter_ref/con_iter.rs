@@ -7,7 +7,7 @@ use core::{
     iter::Skip,
     sync::atomic::{AtomicUsize, Ordering},
 };
-use orx_concurrent_iter::ConcurrentIter;
+use orx_concurrent_iter::{ConcurrentIter, ExactSizeConcurrentIter};
 use orx_iterable::Iterable;
 
 pub struct ConIterSplitVecRef<'a, T, G>
@@ -93,5 +93,16 @@ where
 
     fn chunk_puller(&self, chunk_size: usize) -> Self::ChunkPuller<'_> {
         Self::ChunkPuller::new(self, chunk_size)
+    }
+}
+
+impl<T, G> ExactSizeConcurrentIter for ConIterSplitVecRef<'_, T, G>
+where
+    T: Send + Sync,
+    G: Growth,
+{
+    fn len(&self) -> usize {
+        let num_taken = self.counter.load(Ordering::Acquire);
+        self.vec.len.saturating_sub(num_taken)
     }
 }
