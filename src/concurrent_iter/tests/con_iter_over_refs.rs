@@ -387,3 +387,55 @@ fn flattened_chunk_puller_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: u
 
     assert_eq!(expected, collected);
 }
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)],
+    [0, 1, N],
+    [1, 2, 4]
+)]
+fn skip_to_end<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+    vec = new_vec(vec, n, |x| (x + 10).to_string());
+    let iter = ConIterSplitVecRef::new(&vec);
+
+    let until = n / 2;
+
+    let bag = ConcurrentBag::new();
+    let num_spawned = ConcurrentBag::new();
+    let con_num_spawned = &num_spawned;
+    let con_bag = &bag;
+    let con_iter = &iter;
+    std::thread::scope(|s| {
+        for t in 0..nt {
+            s.spawn(move || {
+                con_num_spawned.push(true);
+                while con_num_spawned.len() < nt {} // allow all threads to be spawned
+
+                match t % 2 {
+                    0 => {
+                        while let Some(num) = con_iter.next() {
+                            match num.parse::<usize>().expect("") < until + 10 {
+                                true => _ = con_bag.push(num),
+                                false => con_iter.skip_to_end(),
+                            }
+                        }
+                    }
+                    _ => {
+                        for num in con_iter.chunk_puller(7).flattened() {
+                            match num.parse::<usize>().expect("") < until + 10 {
+                                true => _ = con_bag.push(num),
+                                false => con_iter.skip_to_end(),
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+
+    let mut expected: Vec<_> = (0..until).map(|i| &vec[i]).collect();
+    expected.sort();
+    let mut collected = bag.into_inner().to_vec();
+    collected.sort();
+
+    assert_eq!(expected, collected);
+}
