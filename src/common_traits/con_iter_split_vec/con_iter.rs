@@ -7,6 +7,7 @@ use core::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 use orx_concurrent_iter::ConcurrentIter;
+use orx_iterable::Iterable;
 use orx_pinned_vec::PinnedVec;
 
 use super::chunk_puller::ChunkPullerSplitVec;
@@ -69,7 +70,8 @@ where
         Self: 'i;
 
     fn into_seq_iter(self) -> Self::SequentialIter {
-        todo!()
+        let current = self.counter.load(Ordering::Acquire);
+        self.vec.iter().skip(current)
     }
 
     fn skip_to_end(&self) {
