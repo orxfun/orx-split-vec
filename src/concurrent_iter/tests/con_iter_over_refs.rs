@@ -216,3 +216,36 @@ fn item_puller<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
 
     assert_eq!(expected, collected);
 }
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)],
+    [0, 1, N],
+    [1, 2, 4]
+)]
+fn item_puller_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+    vec = new_vec(vec, n, |x| (x + 10).to_string());
+    let iter = ConIterSplitVecRef::new(&vec);
+
+    let bag = ConcurrentBag::new();
+    let num_spawned = ConcurrentBag::new();
+    std::thread::scope(|s| {
+        for _ in 0..nt {
+            s.spawn(|| {
+                num_spawned.push(true);
+                while num_spawned.len() < nt {} // allow all threads to be spawned
+
+                for x in iter.item_puller_with_idx() {
+                    _ = iter.size_hint();
+                    bag.push(x);
+                }
+            });
+        }
+    });
+
+    let mut expected: Vec<_> = (0..n).map(|i| (i, &vec[i])).collect();
+    expected.sort();
+    let mut collected = bag.into_inner().to_vec();
+    collected.sort();
+
+    assert_eq!(expected, collected);
+}
