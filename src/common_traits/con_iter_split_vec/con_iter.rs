@@ -39,7 +39,7 @@ where
         }
     }
 
-    pub(super) fn progress_and_get_slice(
+    pub(super) fn progress_and_get_iter(
         &self,
         chunk_size: usize,
     ) -> Option<(usize, FlattenedIterOfSlices<'a, T, SliceBorrowAsRef>)> {

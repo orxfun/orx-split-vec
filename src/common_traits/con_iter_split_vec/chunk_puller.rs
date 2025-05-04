@@ -45,13 +45,13 @@ where
 
     fn pull(&mut self) -> Option<Self::Chunk<'_>> {
         self.con_iter
-            .progress_and_get_slice(self.chunk_size)
+            .progress_and_get_iter(self.chunk_size)
             .map(|(_, iter)| iter)
     }
 
     fn pull_with_idx(&mut self) -> Option<(usize, Self::Chunk<'_>)> {
         self.con_iter
-            .progress_and_get_slice(self.chunk_size)
+            .progress_and_get_iter(self.chunk_size)
             .map(|(begin_idx, iter)| (begin_idx, iter))
     }
 }
