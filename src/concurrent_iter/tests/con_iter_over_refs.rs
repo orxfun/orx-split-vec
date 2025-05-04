@@ -1,6 +1,8 @@
 use crate::{concurrent_iter::ConIterSplitVecRef, *};
 use alloc::string::{String, ToString};
-use orx_concurrent_iter::{ChunkPuller, ConcurrentIter};
+use alloc::vec::Vec;
+use orx_concurrent_bag::ConcurrentBag;
+use orx_concurrent_iter::{ChunkPuller, ConcurrentIter, ExactSizeConcurrentIter};
 use test_case::test_matrix;
 
 #[cfg(miri)]
@@ -36,10 +38,7 @@ fn enumeration() {
     assert_eq!(iter.next_with_idx(), None);
 }
 
-#[test_matrix([
-    SplitVec::with_doubling_growth_and_fragments_capacity(16),
-    SplitVec::with_linear_growth_and_fragments_capacity(10, 33)
-])]
+#[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
 fn size_hint<G: Growth>(mut vec: SplitVec<String, G>) {
     let mut n = 25;
     vec = new_vec(vec, n, |x| (x + 10).to_string());
@@ -54,24 +53,100 @@ fn size_hint<G: Growth>(mut vec: SplitVec<String, G>) {
     let mut chunks_iter = iter.chunk_puller(7);
 
     assert_eq!(iter.size_hint(), (n, Some(n)));
-    // assert_eq!(iter.len(), n);
+    assert_eq!(iter.len(), n);
     let _ = chunks_iter.pull();
     n -= 7;
 
     assert_eq!(iter.size_hint(), (n, Some(n)));
-    // assert_eq!(iter.len(), n);
+    assert_eq!(iter.len(), n);
     let _ = chunks_iter.pull();
     assert_eq!(iter.size_hint(), (1, Some(1)));
 
     let _ = chunks_iter.pull();
-    // assert_eq!(iter.len(), 0);
+    assert_eq!(iter.len(), 0);
     assert_eq!(iter.size_hint(), (0, Some(0)));
 
     let _ = chunks_iter.pull();
-    // assert_eq!(iter.len(), 0);
+    assert_eq!(iter.len(), 0);
     assert_eq!(iter.size_hint(), (0, Some(0)));
 
     let _ = iter.next();
-    // assert_eq!(iter.len(), 0);
+    assert_eq!(iter.len(), 0);
     assert_eq!(iter.size_hint(), (0, Some(0)));
+}
+
+#[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
+fn size_hint_skip_to_end<G: Growth>(mut vec: SplitVec<String, G>) {
+    let n = 25;
+    vec = new_vec(vec, n, |x| (x + 10).to_string());
+    let iter = ConIterSplitVecRef::new(&vec);
+
+    for _ in 0..10 {
+        let _ = iter.next();
+    }
+    let mut chunks_iter = iter.chunk_puller(7);
+    let _ = chunks_iter.pull();
+
+    assert_eq!(iter.len(), 8);
+
+    iter.skip_to_end();
+    assert_eq!(iter.len(), 0);
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)],
+    [1, 2, 4]
+)]
+fn empty<G: Growth>(vec: SplitVec<String, G>, nt: usize) {
+    let iter = ConIterSplitVecRef::new(&vec);
+
+    std::thread::scope(|s| {
+        for _ in 0..nt {
+            s.spawn(|| {
+                assert!(iter.next().is_none());
+                assert!(iter.next().is_none());
+
+                let mut puller = iter.chunk_puller(5);
+                assert!(puller.pull().is_none());
+                assert!(puller.pull().is_none());
+
+                let mut iter = iter.chunk_puller(5).flattened();
+                assert!(iter.next().is_none());
+                assert!(iter.next().is_none());
+            });
+        }
+    });
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)],
+    [0, 1, N],
+    [1, 2, 4]
+)]
+fn next<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+    vec = new_vec(vec, n, |x| (x + 10).to_string());
+    let iter = ConIterSplitVecRef::new(&vec);
+
+    let bag = ConcurrentBag::new();
+    let num_spawned = ConcurrentBag::new();
+    std::thread::scope(|s| {
+        for _ in 0..nt {
+            s.spawn(|| {
+                num_spawned.push(true);
+                while num_spawned.len() < nt {} // allow all threads to be spawned
+
+                while let Some(x) = iter.next() {
+                    _ = iter.size_hint();
+                    bag.push(x);
+                }
+            });
+        }
+    });
+
+    let mut expected: Vec<_> = (0..n).map(|i| &vec[i]).collect();
+    expected.sort();
+    let mut collected = bag.into_inner().to_vec();
+    collected.sort();
+
+    assert_eq!(expected, collected);
 }
