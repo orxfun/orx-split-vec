@@ -50,6 +50,8 @@ where
     }
 
     fn pull_with_idx(&mut self) -> Option<(usize, Self::Chunk<'_>)> {
-        todo!()
+        self.con_iter
+            .progress_and_get_slice(self.chunk_size)
+            .map(|(begin_idx, iter)| (begin_idx, iter))
     }
 }
