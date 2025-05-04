@@ -60,7 +60,7 @@ where
 {
     type Item = &'a T;
 
-    type SequentialIter = Skip<super::super::super::iterator::Iter<'a, T>>;
+    type SequentialIter = Skip<super::super::super::common_traits::iterator::Iter<'a, T>>;
 
     type ChunkPuller<'i>
         = ChunkPullerSplitVecRef<'i, 'a, G, T>
