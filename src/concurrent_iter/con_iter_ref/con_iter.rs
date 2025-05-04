@@ -10,6 +10,15 @@ use core::{
 use orx_concurrent_iter::{ConcurrentIter, ExactSizeConcurrentIter};
 use orx_iterable::Iterable;
 
+/// Concurrent iterator of reference of a [`SplitVec`] yielding references to the items
+/// of the split vector.
+///
+/// It can be created by calling [`into_con_iter`] on a reference of a split vector.
+///
+/// Alternatively, it can be created by calling [`con_iter`] on the split vector.
+///
+/// [`into_con_iter`]: orx_concurrent_iter::IntoConcurrentIter::into_con_iter
+/// [`con_iter`]: orx_concurrent_iter::ConcurrentIterable::con_iter
 pub struct ConIterSplitVecRef<'a, T, G>
 where
     T: Send + Sync,
