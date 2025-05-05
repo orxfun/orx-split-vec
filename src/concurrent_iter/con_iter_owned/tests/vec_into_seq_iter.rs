@@ -3,6 +3,7 @@ use crate::fragment::RawFragment;
 use crate::*;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use core::mem::MaybeUninit;
 use orx_concurrent_iter::implementations::VecIntoSeqIter;
 use test_case::test_matrix;
 
@@ -17,20 +18,41 @@ fn new_vec<G: Growth>(
     vec
 }
 
+unsafe fn take<T>(ptr: *mut T) -> T {
+    let mut value = MaybeUninit::<T>::uninit();
+    unsafe { value.as_mut_ptr().swap(ptr) };
+    unsafe { value.assume_init() }
+}
+
 fn fragments_to_iters<T: Send + Sync>(
-    fragments: impl Iterator<Item = RawFragment<T>>,
+    fragments: impl Iterator<Item = RawFragment<T>> + Clone,
+    total_len: usize,
+    num_taken: usize,
 ) -> impl Iterator<Item = VecIntoSeqIter<T>> {
-    fragments.filter_map(|f| match f.len {
-        0 => {
+    let completed = num_taken == total_len;
+    let mut num_taken = num_taken;
+
+    fragments.filter_map(move |f| match (completed, f.len) {
+        (_, 0) | (true, _) => {
             f.manually_drop();
             None
         }
-        _ => {
-            let first = f.ptr;
-            let last = unsafe { f.ptr.add(f.len - 1) };
-            let current = first;
-            let drop_capacity = Some(f.capacity);
-            Some(unsafe { VecIntoSeqIter::new(false, first, last, current, drop_capacity) })
+        (false, len) => {
+            match num_taken >= len {
+                true => {
+                    num_taken -= len;
+                    f.manually_drop();
+                    None
+                }
+                false => {
+                    let first = f.ptr;
+                    let last = unsafe { f.ptr.add(len - 1) };
+                    let current = unsafe { f.ptr.add(num_taken) }; // first + num_taken is in bounds
+                    let drop_capacity = Some(f.capacity);
+                    num_taken = 0;
+                    Some(unsafe { VecIntoSeqIter::new(false, first, last, current, drop_capacity) })
+                }
+            }
         }
     })
 }
@@ -43,8 +65,8 @@ fn vec_into_seq_iter_into_all_use_all<G: Growth>(mut vec: SplitVec<String, G>, n
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let expected = vec.clone().to_vec();
 
-    let (_len, fragments, _growth) = (vec.len, vec.fragments, vec.growth);
-    let iters = fragments_to_iters(fragments.into_iter().map(Into::into));
+    let (len, fragments, _growth) = (vec.len, vec.fragments, vec.growth);
+    let iters = fragments_to_iters(fragments.into_iter().map(Into::into), len, 0);
 
     let iter = SplitVecIntoSeqIter::new(iters);
     let collected: Vec<_> = iter.collect();
@@ -63,8 +85,8 @@ fn vec_into_seq_iter_into_all_use_some_from_first_fragment<G: Growth>(
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let expected: Vec<_> = vec.iter().cloned().take(3).collect();
 
-    let (_len, fragments, _growth) = (vec.len, vec.fragments, vec.growth);
-    let iters = fragments_to_iters(fragments.into_iter().map(Into::into));
+    let (len, fragments, _growth) = (vec.len, vec.fragments, vec.growth);
+    let iters = fragments_to_iters(fragments.into_iter().map(Into::into), len, 0);
 
     let mut iter = SplitVecIntoSeqIter::new(iters);
     let mut collected = Vec::new();
@@ -86,8 +108,8 @@ fn vec_into_seq_iter_into_all_use_some_from_second_fragment<G: Growth>(
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let expected: Vec<_> = vec.iter().cloned().take(7).collect();
 
-    let (_len, fragments, _growth) = (vec.len, vec.fragments, vec.growth);
-    let iters = fragments_to_iters(fragments.into_iter().map(Into::into));
+    let (len, fragments, _growth) = (vec.len, vec.fragments, vec.growth);
+    let iters = fragments_to_iters(fragments.into_iter().map(Into::into), len, 0);
 
     let mut iter = SplitVecIntoSeqIter::new(iters);
     let mut collected = Vec::new();

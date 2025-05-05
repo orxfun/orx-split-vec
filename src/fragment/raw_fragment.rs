@@ -10,11 +10,25 @@ pub(crate) struct RawFragment<T> {
 
 impl<T> RawFragment<T> {
     pub fn new(ptr: *const T, len: usize, capacity: usize) -> Self {
+        debug_assert!(len <= capacity);
         Self { ptr, len, capacity }
     }
 
-    pub fn manually_drop(mut self) {
+    pub fn manually_drop(self) {
         let _vec_to_drop = unsafe { Vec::from_raw_parts(self.ptr as *mut T, 0, self.capacity) };
+    }
+
+    pub fn split_off_taken_part(&mut self, num_taken: usize) -> Self {
+        debug_assert!(num_taken <= self.len);
+        let taken = Self {
+            ptr: self.ptr,
+            len: num_taken,
+            capacity: num_taken,
+        };
+
+        self.ptr = unsafe { self.ptr.add(num_taken) };
+
+        taken
     }
 }
 
