@@ -59,76 +59,15 @@ fn fragments_to_iters<T: Send + Sync>(
 
 #[test_matrix(
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2)],
-    [0, 1, 4, 5, 12, 41]
-)]
-fn vec_into_seq_iter_into_all_use_all<G: Growth>(mut vec: SplitVec<String, G>, n: usize) {
-    vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let expected = vec.clone().to_vec();
-
-    let (len, fragments, _growth) = (vec.len, vec.fragments, vec.growth);
-    let iters = fragments_to_iters(fragments.into_iter().map(Into::into), len, 0);
-
-    let iter = SplitVecIntoSeqIter::new(iters);
-    let collected: Vec<_> = iter.collect();
-
-    assert_eq!(collected, expected);
-}
-
-#[test_matrix(
-    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2)],
-    [3, 4, 5, 15]
-)]
-fn vec_into_seq_iter_into_all_use_some_from_first_fragment<G: Growth>(
-    mut vec: SplitVec<String, G>,
-    n: usize,
-) {
-    vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let expected: Vec<_> = vec.iter().cloned().take(3).collect();
-
-    let (len, fragments, _growth) = (vec.len, vec.fragments, vec.growth);
-    let iters = fragments_to_iters(fragments.into_iter().map(Into::into), len, 0);
-
-    let mut iter = SplitVecIntoSeqIter::new(iters);
-    let mut collected = Vec::new();
-    for _ in 0..3 {
-        collected.push(iter.next().unwrap());
-    }
-
-    assert_eq!(collected, expected);
-}
-
-#[test_matrix(
-    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2)],
-    [7, 8, 9, 15]
-)]
-fn vec_into_seq_iter_into_all_use_some_from_second_fragment<G: Growth>(
-    mut vec: SplitVec<String, G>,
-    n: usize,
-) {
-    vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let expected: Vec<_> = vec.iter().cloned().take(7).collect();
-
-    let (len, fragments, _growth) = (vec.len, vec.fragments, vec.growth);
-    let iters = fragments_to_iters(fragments.into_iter().map(Into::into), len, 0);
-
-    let mut iter = SplitVecIntoSeqIter::new(iters);
-    let mut collected = Vec::new();
-    for _ in 0..7 {
-        collected.push(iter.next().unwrap());
-    }
-
-    assert_eq!(collected, expected);
-}
-
-#[test_matrix(
-    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2)],
     [
         (0, 0, 0),
         (3, 0, 0),
         (4, 0, 2),
         (5, 0, 4),
+        (12, 0, 12),
         (13, 0, 7),
         (14, 0, 9),
+        (14, 0, 14),
         (3, 1, 0),
         (3, 1, 1),
         (3, 1, 2),
