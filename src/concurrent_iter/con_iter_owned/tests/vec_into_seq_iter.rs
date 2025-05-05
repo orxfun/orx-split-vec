@@ -119,3 +119,56 @@ fn vec_into_seq_iter_into_all_use_some_from_second_fragment<G: Growth>(
 
     assert_eq!(collected, expected);
 }
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2)],
+    [
+        (0, 0, 0),
+        (3, 0, 0),
+        (4, 0, 2),
+        (5, 0, 4),
+        (13, 0, 7),
+        (14, 0, 9),
+        (3, 1, 0),
+        (3, 1, 1),
+        (3, 1, 2),
+        (3, 3, 0),
+        (15, 10, 0),
+        (15, 10, 3),
+        (15, 10, 5),
+        (15, 15, 0),
+    ]
+)]
+fn split_vec_into_seq_iter<G>(
+    mut vec: SplitVec<String, G>,
+    (n, n_pre_take, n_post_take): (usize, usize, usize),
+) where
+    G: Growth,
+{
+    vec = new_vec(vec, n, |x| (x + 10).to_string());
+    let expected_pre: Vec<_> = vec.iter().cloned().take(n_pre_take).collect();
+    let expected_post: Vec<_> = vec
+        .iter()
+        .cloned()
+        .skip(n_pre_take)
+        .take(n_post_take)
+        .collect();
+
+    let (len, mut fragments, growth) = (vec.len, vec.fragments, vec.growth);
+
+    let mut pre_take = Vec::new();
+    for p in 0..n_pre_take {
+        let (f, i) = growth
+            .get_fragment_and_inner_indices(len, &fragments, p)
+            .unwrap();
+        let p = unsafe { fragments[f].as_mut_ptr().add(i) };
+        let taken = unsafe { take(p) };
+        pre_take.push(taken);
+    }
+    assert_eq!(pre_take, expected_pre);
+
+    let iters = fragments_to_iters(fragments.into_iter().map(Into::into), len, n_pre_take);
+    let iter = SplitVecIntoSeqIter::new(iters);
+    let post_take: Vec<_> = iter.take(n_post_take).collect();
+    assert_eq!(post_take, expected_post);
+}
