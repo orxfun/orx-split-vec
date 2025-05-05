@@ -21,7 +21,10 @@ fn fragments_to_iters<T: Send + Sync>(
     fragments: impl Iterator<Item = RawFragment<T>>,
 ) -> impl Iterator<Item = VecIntoSeqIter<T>> {
     fragments.filter_map(|f| match f.len {
-        0 => None,
+        0 => {
+            f.manually_drop();
+            None
+        }
         _ => {
             let first = f.ptr;
             let last = unsafe { f.ptr.add(f.len - 1) };
