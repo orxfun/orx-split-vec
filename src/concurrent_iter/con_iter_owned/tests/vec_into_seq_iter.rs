@@ -6,11 +6,6 @@ use core::mem::ManuallyDrop;
 use orx_concurrent_iter::implementations::VecIntoSeqIter;
 use test_case::test_matrix;
 
-#[cfg(miri)]
-const N: usize = 41;
-#[cfg(not(miri))]
-const N: usize = 4735;
-
 fn new_vec<G: Growth>(
     mut vec: SplitVec<String, G>,
     n: usize,
@@ -40,7 +35,7 @@ fn fragments_to_iters<T: Send + Sync>(
 
 #[test_matrix(
     [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2)],
-    [0, 1, 4, 5, 12, N]
+    [0, 1, 4, 5, 12, 41]
 )]
 fn vec_into_seq_iter_into_all_use_all<G: Growth>(mut vec: SplitVec<String, G>, n: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
@@ -72,6 +67,29 @@ fn vec_into_seq_iter_into_all_use_some_from_first_fragment<G: Growth>(
     let mut iter = SplitVecIntoSeqIter::new(iters);
     let mut collected = Vec::new();
     for _ in 0..3 {
+        collected.push(iter.next().unwrap());
+    }
+
+    assert_eq!(collected, expected);
+}
+
+#[test_matrix(
+    [SplitVec::with_doubling_growth(), SplitVec::with_linear_growth(2)],
+    [7, 8, 9, 15]
+)]
+fn vec_into_seq_iter_into_all_use_some_from_second_fragment<G: Growth>(
+    mut vec: SplitVec<String, G>,
+    n: usize,
+) {
+    vec = new_vec(vec, n, |x| (x + 10).to_string());
+    let expected: Vec<_> = vec.iter().cloned().take(7).collect();
+
+    let (_len, fragments, _growth) = (vec.len, vec.fragments, vec.growth);
+    let iters = fragments_to_iters(fragments);
+
+    let mut iter = SplitVecIntoSeqIter::new(iters);
+    let mut collected = Vec::new();
+    for _ in 0..7 {
         collected.push(iter.next().unwrap());
     }
 
