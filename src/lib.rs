@@ -31,6 +31,10 @@ mod resize_multiple;
 mod slice;
 mod split_vec;
 
+/// Concurrent iterator implementations.
+#[cfg(feature = "parallel")]
+pub mod concurrent_iter;
+
 #[cfg(test)]
 pub(crate) mod test;
 

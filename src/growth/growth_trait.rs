@@ -3,7 +3,7 @@ use alloc::{string::String, vec::Vec};
 use orx_pseudo_default::PseudoDefault;
 
 /// Growth strategy of a split vector.
-pub trait Growth: Clone + PseudoDefault {
+pub trait Growth: Clone + PseudoDefault + Send + Sync {
     /// Given that the split vector has no fragments yet,
     /// returns the capacity of the first fragment.
     fn first_fragment_capacity(&self) -> usize {

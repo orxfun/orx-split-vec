@@ -1,5 +1,5 @@
 use super::reductions;
-use crate::{fragment::fragment_struct::Fragment, Growth, SplitVec};
+use crate::{Growth, SplitVec, fragment::fragment_struct::Fragment};
 use core::iter::FusedIterator;
 
 impl<'a, T, G: Growth> IntoIterator for &'a SplitVec<T, G> {
