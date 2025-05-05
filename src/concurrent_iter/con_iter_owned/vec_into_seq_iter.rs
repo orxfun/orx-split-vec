@@ -6,7 +6,7 @@ pub struct SplitVecIntoSeqIter<T>
 where
     T: Send + Sync,
 {
-    current: VecIntoSeqIter<T>,
+    pub current: VecIntoSeqIter<T>,
     iters: Vec<VecIntoSeqIter<T>>,
 }
 
@@ -15,10 +15,14 @@ where
     T: Send + Sync,
 {
     pub(super) fn new(mut iters: impl Iterator<Item = VecIntoSeqIter<T>>) -> Self {
-        let current = iters.next().expect("is not empty");
-        let mut iters: Vec<_> = iters.collect();
-        iters.reverse();
-        Self { current, iters }
+        match iters.next() {
+            Some(current) => {
+                let mut iters: Vec<_> = iters.collect();
+                iters.reverse();
+                Self { current, iters }
+            }
+            None => Self::default(),
+        }
     }
 
     fn is_completed(&self) -> bool {
@@ -38,7 +42,10 @@ where
     T: Send + Sync,
 {
     fn default() -> Self {
-        Self::new(core::iter::empty())
+        Self {
+            current: Default::default(),
+            iters: Default::default(),
+        }
     }
 }
 
