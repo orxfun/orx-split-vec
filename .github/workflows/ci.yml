@@ -56,4 +56,4 @@ jobs:
       run: cargo +nightly miri test --verbose ${{ matrix.features }}
 
     - name: NoStd
-      run: cargo +nightly no-std-check ${{ matrix.features }}
+      run: cargo +nightly no-std-check --no-default-features
