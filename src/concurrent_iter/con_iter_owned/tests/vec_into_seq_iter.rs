@@ -3,7 +3,7 @@ use crate::fragment::RawFragment;
 use crate::*;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::mem::MaybeUninit;
+use core::mem::{ManuallyDrop, MaybeUninit};
 use orx_concurrent_iter::implementations::VecIntoSeqIter;
 use test_case::test_matrix;
 
@@ -34,14 +34,14 @@ fn fragments_to_iters<T: Send + Sync>(
 
     fragments.filter_map(move |f| match (completed, f.len) {
         (_, 0) | (true, _) => {
-            f.manually_drop();
+            // f.manually_drop();
             None
         }
         (false, len) => {
             match num_taken >= len {
                 true => {
                     num_taken -= len;
-                    f.manually_drop();
+                    // f.manually_drop();
                     None
                 }
                 false => {
@@ -50,6 +50,7 @@ fn fragments_to_iters<T: Send + Sync>(
                     let current = unsafe { f.ptr.add(num_taken) }; // first + num_taken is in bounds
                     let drop_capacity = Some(f.capacity);
                     num_taken = 0;
+                    let _ = ManuallyDrop::new(f);
                     Some(unsafe { VecIntoSeqIter::new(false, first, last, current, drop_capacity) })
                 }
             }
