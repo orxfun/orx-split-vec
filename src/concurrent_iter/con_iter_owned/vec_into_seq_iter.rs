@@ -2,7 +2,9 @@ use alloc::vec::Vec;
 use core::iter::FusedIterator;
 use orx_concurrent_iter::implementations::VecIntoSeqIter;
 
-pub struct SplitVecIntoSeqIter<T>
+use crate::SplitVec;
+
+pub struct SplitVecIntoSeqIter2<T>
 where
     T: Send + Sync,
 {
@@ -10,11 +12,11 @@ where
     iters: Vec<VecIntoSeqIter<T>>,
 }
 
-impl<T> SplitVecIntoSeqIter<T>
+impl<T> SplitVecIntoSeqIter2<T>
 where
     T: Send + Sync,
 {
-    pub(super) fn new(mut iters: impl Iterator<Item = VecIntoSeqIter<T>>) -> Self {
+    pub(super) fn new2(mut iters: impl Iterator<Item = VecIntoSeqIter<T>>) -> Self {
         match iters.next() {
             Some(current) => {
                 let mut iters: Vec<_> = iters.collect();
@@ -23,6 +25,12 @@ where
             }
             None => Self::default(),
         }
+    }
+
+    pub(super) fn new(vec: SplitVec<T>, num_taken: usize) -> Self {
+        let completed = num_taken == vec.len;
+        let mut num_taken = num_taken;
+        todo!()
     }
 
     fn is_completed(&self) -> bool {
@@ -37,7 +45,7 @@ where
     }
 }
 
-impl<T> Default for SplitVecIntoSeqIter<T>
+impl<T> Default for SplitVecIntoSeqIter2<T>
 where
     T: Send + Sync,
 {
@@ -49,7 +57,7 @@ where
     }
 }
 
-impl<T> Iterator for SplitVecIntoSeqIter<T>
+impl<T> Iterator for SplitVecIntoSeqIter2<T>
 where
     T: Send + Sync,
 {
@@ -75,7 +83,7 @@ where
     }
 }
 
-impl<T> ExactSizeIterator for SplitVecIntoSeqIter<T>
+impl<T> ExactSizeIterator for SplitVecIntoSeqIter2<T>
 where
     T: Send + Sync,
 {
@@ -84,4 +92,4 @@ where
     }
 }
 
-impl<T> FusedIterator for SplitVecIntoSeqIter<T> where T: Send + Sync {}
+impl<T> FusedIterator for SplitVecIntoSeqIter2<T> where T: Send + Sync {}

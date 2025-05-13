@@ -1,4 +1,4 @@
-use super::vec_into_seq_iter::SplitVecIntoSeqIter;
+use super::vec_into_seq_iter::SplitVecIntoSeqIter2;
 use crate::{Growth, SplitVec};
 use core::marker::PhantomData;
 
@@ -6,7 +6,7 @@ pub struct SeqChunksIterSplitVec<'i, T>
 where
     T: Send + Sync,
 {
-    iter: SplitVecIntoSeqIter<T>,
+    iter: SplitVecIntoSeqIter2<T>,
     phantom: PhantomData<&'i ()>,
 }
 

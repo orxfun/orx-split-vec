@@ -1,4 +1,4 @@
-use crate::concurrent_iter::con_iter_owned::vec_into_seq_iter::SplitVecIntoSeqIter;
+use crate::concurrent_iter::con_iter_owned::vec_into_seq_iter::SplitVecIntoSeqIter2;
 use crate::fragment::RawFragment;
 use crate::*;
 use alloc::string::{String, ToString};
@@ -33,15 +33,11 @@ fn fragments_to_iters<T: Send + Sync>(
     let mut num_taken = num_taken;
 
     fragments.filter_map(move |f| match (completed, f.len) {
-        (_, 0) | (true, _) => {
-            // f.manually_drop();
-            None
-        }
+        (_, 0) | (true, _) => None,
         (false, len) => {
             match num_taken >= len {
                 true => {
                     num_taken -= len;
-                    // f.manually_drop();
                     None
                 }
                 false => {
@@ -108,7 +104,7 @@ fn split_vec_into_seq_iter<G>(
     assert_eq!(pre_take, expected_pre);
 
     let iters = fragments_to_iters(fragments.into_iter().map(Into::into), len, n_pre_take);
-    let iter = SplitVecIntoSeqIter::new(iters);
+    let iter = SplitVecIntoSeqIter2::new2(iters);
     let post_take: Vec<_> = iter.take(n_post_take).collect();
     assert_eq!(post_take, expected_post);
 }
