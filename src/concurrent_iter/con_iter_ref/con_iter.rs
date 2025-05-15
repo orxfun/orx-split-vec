@@ -25,19 +25,3 @@ where
     G: Growth,
 {
 }
-
-trait JaggedIndexer {
-    fn jagged_index(&self, flat_index: usize) -> Option<(usize, usize)>;
-}
-
-impl<G: Growth, T> JaggedIndexer for SplitVec<T, G> {
-    fn jagged_index(&self, flat_index: usize) -> Option<(usize, usize)> {
-        self.get_fragment_and_inner_indices(flat_index)
-    }
-}
-
-impl<G: GrowthWithConstantTimeAccess> JaggedIndexer for G {
-    fn jagged_index(&self, flat_index: usize) -> Option<(usize, usize)> {
-        Some(self.get_fragment_and_inner_indices_unchecked(flat_index))
-    }
-}
