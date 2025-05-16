@@ -1,13 +1,13 @@
-use crate::{Growth, SplitVec};
+use crate::{ParGrowth, SplitVec};
 use alloc::vec::Vec;
 use orx_concurrent_iter::{
     IntoConcurrentIter,
-    implementations::jagged_arrays::{ConIterJaggedOwned, JaggedIndexer, RawJagged, RawVec},
+    implementations::jagged_arrays::{ConIterJaggedOwned, RawJagged, RawVec},
 };
 
 impl<T, G> IntoConcurrentIter for SplitVec<T, G>
 where
-    G: Growth + JaggedIndexer,
+    G: ParGrowth,
     T: Send + Sync,
 {
     type Item = T;
