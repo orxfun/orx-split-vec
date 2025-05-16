@@ -4,7 +4,7 @@ use orx_concurrent_iter::*;
 use test_case::test_matrix;
 
 #[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
-fn abc_enumerate_item<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
+fn enumerate_item<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
     for i in 2..6 {
         vec.push(i);
     }
@@ -29,7 +29,7 @@ fn abc_enumerate_item<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
 }
 
 #[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
-fn abc_enumerate_item_puller<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
+fn enumerate_item_puller<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
     for i in 2..6 {
         vec.push(i);
     }
@@ -49,7 +49,7 @@ fn abc_enumerate_item_puller<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
 }
 
 #[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
-fn abc_enumerate_chunk_puller<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
+fn enumerate_chunk_puller<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
     for i in 2..6 {
         vec.push(i);
     }
@@ -70,7 +70,7 @@ fn abc_enumerate_chunk_puller<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
 #[test_matrix(
     [|| SplitVec::with_doubling_growth_and_fragments_capacity(16), || SplitVec::with_linear_growth_and_fragments_capacity(10, 33)]
 )]
-fn abc_copied<'a, G: ParGrowth>(vec: impl Fn() -> SplitVec<&'a usize, G>) {
+fn copied<'a, G: ParGrowth>(vec: impl Fn() -> SplitVec<&'a usize, G>) {
     let source: Vec<_> = (2..6).collect();
     let mut vec = vec();
     for i in source.iter() {
@@ -84,7 +84,7 @@ fn abc_copied<'a, G: ParGrowth>(vec: impl Fn() -> SplitVec<&'a usize, G>) {
 #[test_matrix(
     [|| SplitVec::with_doubling_growth_and_fragments_capacity(16), || SplitVec::with_linear_growth_and_fragments_capacity(10, 33)]
 )]
-fn abc_cloned<'a, G: ParGrowth>(vec: impl Fn() -> SplitVec<&'a usize, G>) {
+fn cloned<'a, G: ParGrowth>(vec: impl Fn() -> SplitVec<&'a usize, G>) {
     let source: Vec<_> = (2..6).collect();
     let mut vec = vec();
     for i in source.iter() {

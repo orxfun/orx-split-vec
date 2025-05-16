@@ -12,7 +12,7 @@ fn new_vec<G: Growth>(mut vec: SplitVec<usize, G>, n: usize) -> SplitVec<usize, 
 }
 
 #[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
-fn abc_ref_split_vec_into_concurrent_iter<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
+fn ref_split_vec_into_concurrent_iter<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
     let (nt, n) = (2, 177);
     vec = new_vec(vec, n);
     let iter = (&vec).into_con_iter();
@@ -41,7 +41,7 @@ fn abc_ref_split_vec_into_concurrent_iter<G: ParGrowth>(mut vec: SplitVec<usize,
 }
 
 #[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
-fn abc_split_vec_concurrent_iterable<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
+fn split_vec_concurrent_iterable<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
     let (nt, n) = (2, 177);
     vec = new_vec(vec, n);
     let iter = (&&vec).con_iter();
@@ -70,7 +70,7 @@ fn abc_split_vec_concurrent_iterable<G: ParGrowth>(mut vec: SplitVec<usize, G>) 
 }
 
 #[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
-fn abc_split_vec_concurrent_collection<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
+fn split_vec_concurrent_collection<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
     let (nt, n) = (2, 177);
     vec = new_vec(vec, n);
     let iter = vec.con_iter();

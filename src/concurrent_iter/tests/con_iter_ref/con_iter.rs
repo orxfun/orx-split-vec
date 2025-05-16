@@ -24,7 +24,7 @@ fn new_vec<G: ParGrowth>(
 }
 
 #[test]
-fn abc_enumeration() {
+fn enumeration() {
     let vec: SplitVec<_> = (0..6).collect();
     let iter = vec.con_iter();
 
@@ -41,7 +41,7 @@ fn abc_enumeration() {
 }
 
 #[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
-fn abc_size_hint<G: ParGrowth>(mut vec: SplitVec<String, G>) {
+fn size_hint<G: ParGrowth>(mut vec: SplitVec<String, G>) {
     let mut n = 25;
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let iter = vec.con_iter();
@@ -78,7 +78,7 @@ fn abc_size_hint<G: ParGrowth>(mut vec: SplitVec<String, G>) {
 }
 
 #[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
-fn abc_size_hint_skip_to_end<G: ParGrowth>(mut vec: SplitVec<String, G>) {
+fn size_hint_skip_to_end<G: ParGrowth>(mut vec: SplitVec<String, G>) {
     let n = 25;
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let iter = vec.con_iter();
@@ -99,7 +99,7 @@ fn abc_size_hint_skip_to_end<G: ParGrowth>(mut vec: SplitVec<String, G>) {
     [SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)],
     [1, 2, 4]
 )]
-fn abc_empty<G: ParGrowth>(vec: SplitVec<String, G>, nt: usize) {
+fn empty<G: ParGrowth>(vec: SplitVec<String, G>, nt: usize) {
     let iter = vec.con_iter();
 
     std::thread::scope(|s| {
@@ -125,7 +125,7 @@ fn abc_empty<G: ParGrowth>(vec: SplitVec<String, G>, nt: usize) {
     [0, 1, N],
     [1, 2, 4]
 )]
-fn abc_next<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn next<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let iter = vec.con_iter();
 
@@ -158,7 +158,7 @@ fn abc_next<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     [0, 1, N],
     [1, 2, 4]
 )]
-fn abc_next_with_idx<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn next_with_idx<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let iter = vec.con_iter();
 
@@ -191,7 +191,7 @@ fn abc_next_with_idx<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: u
     [0, 1, N],
     [1, 2, 4]
 )]
-fn abc_item_puller<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn item_puller<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let iter = vec.con_iter();
 
@@ -224,7 +224,7 @@ fn abc_item_puller<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usi
     [0, 1, N],
     [1, 2, 4]
 )]
-fn abc_item_puller_with_idx<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn item_puller_with_idx<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let iter = vec.con_iter();
 
@@ -257,7 +257,7 @@ fn abc_item_puller_with_idx<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize
     [0, 1, N],
     [1, 2, 4]
 )]
-fn abc_chunk_puller<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn chunk_puller<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let iter = vec.con_iter();
 
@@ -294,7 +294,7 @@ fn abc_chunk_puller<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: us
     [0, 1, N],
     [1, 2, 4]
 )]
-fn abc_chunk_puller_with_idx<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn chunk_puller_with_idx<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let iter = vec.con_iter();
 
@@ -331,7 +331,7 @@ fn abc_chunk_puller_with_idx<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usiz
     [0, 1, N],
     [1, 2, 4]
 )]
-fn abc_flattened_chunk_puller<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn flattened_chunk_puller<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let iter = vec.con_iter();
 
@@ -363,7 +363,7 @@ fn abc_flattened_chunk_puller<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usi
     [0, 1, N],
     [1, 2, 4]
 )]
-fn abc_flattened_chunk_puller_with_idx<G: ParGrowth>(
+fn flattened_chunk_puller_with_idx<G: ParGrowth>(
     mut vec: SplitVec<String, G>,
     n: usize,
     nt: usize,
@@ -399,7 +399,7 @@ fn abc_flattened_chunk_puller_with_idx<G: ParGrowth>(
     [0, 1, N],
     [1, 2, 4]
 )]
-fn abc_skip_to_end<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn skip_to_end<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let iter = vec.con_iter();
 
@@ -452,12 +452,7 @@ fn abc_skip_to_end<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usi
     [1, 2, 4],
     [0, N / 2, N]
 )]
-fn abc_into_seq_iter<G: ParGrowth>(
-    mut vec: SplitVec<String, G>,
-    n: usize,
-    nt: usize,
-    until: usize,
-) {
+fn into_seq_iter<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize, until: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
     let iter = vec.con_iter();
 
