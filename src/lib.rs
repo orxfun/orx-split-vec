@@ -31,10 +31,6 @@ mod resize_multiple;
 mod slice;
 mod split_vec;
 
-/// Concurrent iterator implementations.
-#[cfg(feature = "parallel")]
-pub mod concurrent_iter;
-
 #[cfg(test)]
 pub(crate) mod test;
 
@@ -58,3 +54,12 @@ pub use orx_pinned_vec::{
 pub use orx_pseudo_default::PseudoDefault;
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;
+
+// feature: parallel
+
+/// Concurrent iterator implementations.
+#[cfg(feature = "parallel")]
+pub mod concurrent_iter;
+
+#[cfg(feature = "parallel")]
+pub use growth::par_growth::ParGrowth;

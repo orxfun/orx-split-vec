@@ -1,9 +1,7 @@
 use crate::*;
 use alloc::vec::Vec;
 use orx_concurrent_bag::ConcurrentBag;
-use orx_concurrent_iter::{
-    ConcurrentIter, IntoConcurrentIter, implementations::jagged_arrays::JaggedIndexer,
-};
+use orx_concurrent_iter::*;
 use test_case::test_matrix;
 
 fn new_vec<G: Growth>(mut vec: SplitVec<usize, G>, n: usize) -> SplitVec<usize, G> {
@@ -14,7 +12,7 @@ fn new_vec<G: Growth>(mut vec: SplitVec<usize, G>, n: usize) -> SplitVec<usize, 
 }
 
 #[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
-fn owned_split_vec_into_concurrent_iter<G: Growth + JaggedIndexer>(mut vec: SplitVec<usize, G>) {
+fn owned_split_vec_into_concurrent_iter<G: ParGrowth>(mut vec: SplitVec<usize, G>) {
     let (nt, n) = (2, 177);
     vec = new_vec(vec, n);
     let iter = vec.clone().into_con_iter();

@@ -2,8 +2,6 @@
 
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 #[cfg(feature = "parallel")]
-use orx_concurrent_iter::implementations::jagged_arrays::JaggedIndexer;
-#[cfg(feature = "parallel")]
 use orx_parallel::*;
 use orx_split_vec::*;
 use rand::prelude::*;
@@ -76,7 +74,7 @@ fn par_over_vec(inputs: Vec<usize>) -> Vec<Output> {
 }
 
 #[cfg(feature = "parallel")]
-fn par_over_split_vec<G: Growth + JaggedIndexer>(inputs: SplitVec<usize, G>) -> Vec<Output> {
+fn par_over_split_vec<G: ParGrowth>(inputs: SplitVec<usize, G>) -> Vec<Output> {
     inputs.into_par().map(map).filter(filter).collect()
 }
 
