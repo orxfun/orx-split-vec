@@ -92,6 +92,8 @@ fn run(c: &mut Criterion) {
 
         let input_doubling = || input(*n).collect::<SplitVec<_, Doubling>>();
 
+        let input_recursive = || input(*n).collect::<SplitVec<_, Recursive>>();
+
         let input_linear = || {
             let mut input_linear = SplitVec::with_linear_growth(10);
             input_linear.extend(input(*n));
@@ -103,7 +105,7 @@ fn run(c: &mut Criterion) {
             b.iter(|| seq(black_box(input(*n).collect())))
         });
 
-        group.bench_with_input(BenchmarkId::new("par_over_slice", n), n, |b, _| {
+        group.bench_with_input(BenchmarkId::new("par_over_vec", n), n, |b, _| {
             assert_eq!(&expected, &par_over_vec(input(*n).collect()));
             b.iter(|| par_over_vec(black_box(input(*n).collect())))
         });
@@ -123,6 +125,15 @@ fn run(c: &mut Criterion) {
             |b, _| {
                 assert_eq!(&expected, &par_over_split_vec(input_linear()));
                 b.iter(|| par_over_split_vec(black_box(input_linear())))
+            },
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("par_over_split_vec_recursive", n),
+            n,
+            |b, _| {
+                assert_eq!(&expected, &par_over_split_vec(input_recursive()));
+                b.iter(|| par_over_split_vec(black_box(input_recursive())))
             },
         );
     }
