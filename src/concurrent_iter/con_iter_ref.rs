@@ -6,7 +6,7 @@ use orx_concurrent_iter::{
 
 pub struct Fragments<'a, T>(&'a [Fragment<T>]);
 
-impl<'a, T> Clone for Fragments<'a, T> {
+impl<T> Clone for Fragments<'_, T> {
     fn clone(&self) -> Self {
         Self(self.0)
     }
