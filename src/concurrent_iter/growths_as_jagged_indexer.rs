@@ -1,44 +1,87 @@
-use crate::{Doubling, GrowthWithConstantTimeAccess, Linear};
-use orx_concurrent_iter::implementations::jagged::{JaggedIndex, JaggedIndexer, RawVec};
+use crate::{Doubling, GrowthWithConstantTimeAccess, Linear, Recursive};
+use orx_concurrent_iter::implementations::jagged_arrays::{AsSlice, JaggedIndex, JaggedIndexer};
 
 impl JaggedIndexer for Doubling {
-    #[inline(always)]
     fn jagged_index<T>(
         &self,
         total_len: usize,
-        _: &[RawVec<T>],
+        _: &[impl AsSlice<T>],
         flat_index: usize,
     ) -> Option<JaggedIndex> {
         (flat_index <= total_len).then(|| {
-            let (f, i) = self.get_fragment_and_inner_indices_unchecked(flat_index);
-            JaggedIndex::new(f, i)
+            self.get_fragment_and_inner_indices_unchecked(flat_index)
+                .into()
         })
     }
 
-    #[inline(always)]
-    unsafe fn jagged_index_unchecked<T>(&self, _: &[RawVec<T>], flat_index: usize) -> JaggedIndex {
-        let (f, i) = self.get_fragment_and_inner_indices_unchecked(flat_index);
-        JaggedIndex::new(f, i)
+    unsafe fn jagged_index_unchecked<T>(
+        &self,
+        _: &[impl AsSlice<T>],
+        flat_index: usize,
+    ) -> JaggedIndex {
+        self.get_fragment_and_inner_indices_unchecked(flat_index)
+            .into()
     }
 }
 
 impl JaggedIndexer for Linear {
-    #[inline(always)]
     fn jagged_index<T>(
         &self,
         total_len: usize,
-        _: &[RawVec<T>],
+        _arrays: &[impl AsSlice<T>],
         flat_index: usize,
     ) -> Option<JaggedIndex> {
         (flat_index <= total_len).then(|| {
-            let (f, i) = self.get_fragment_and_inner_indices_unchecked(flat_index);
-            JaggedIndex::new(f, i)
+            self.get_fragment_and_inner_indices_unchecked(flat_index)
+                .into()
         })
     }
 
-    #[inline(always)]
-    unsafe fn jagged_index_unchecked<T>(&self, _: &[RawVec<T>], flat_index: usize) -> JaggedIndex {
-        let (f, i) = self.get_fragment_and_inner_indices_unchecked(flat_index);
+    unsafe fn jagged_index_unchecked<T>(
+        &self,
+        _: &[impl AsSlice<T>],
+        flat_index: usize,
+    ) -> JaggedIndex {
+        self.get_fragment_and_inner_indices_unchecked(flat_index)
+            .into()
+    }
+}
+
+impl JaggedIndexer for Recursive {
+    fn jagged_index<T>(
+        &self,
+        total_len: usize,
+        arrays: &[impl AsSlice<T>],
+        flat_index: usize,
+    ) -> Option<JaggedIndex> {
+        (flat_index <= total_len).then(|| {
+            // SAFETY: flat_index is in bounds or equal to length
+            unsafe { self.jagged_index_unchecked(arrays, flat_index) }.into()
+        })
+    }
+
+    unsafe fn jagged_index_unchecked<T>(
+        &self,
+        arrays: &[impl AsSlice<T>],
+        flat_index: usize,
+    ) -> JaggedIndex {
+        let mut idx = flat_index;
+        let [mut f, mut i] = [0, 0];
+        let mut current_f = 0;
+        while idx > 0 {
+            let current_len = arrays[current_f].length();
+            match current_len > idx {
+                true => {
+                    i = idx;
+                    idx = 0;
+                }
+                false => {
+                    f += 1;
+                    idx -= current_len;
+                }
+            }
+            current_f += 1;
+        }
         JaggedIndex::new(f, i)
     }
 }
