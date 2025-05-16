@@ -1,5 +1,5 @@
 use crate::{Doubling, Growth, GrowthWithConstantTimeAccess, Linear, Recursive};
-use orx_concurrent_iter::implementations::jagged_arrays::{AsSlice, JaggedIndex, JaggedIndexer};
+use orx_concurrent_iter::implementations::jagged_arrays::{AsRawSlice, JaggedIndex, JaggedIndexer};
 
 /// A [`Growth`] that supports parallelization.
 ///
@@ -18,7 +18,7 @@ impl JaggedIndexer for Doubling {
     fn jagged_index<T>(
         &self,
         total_len: usize,
-        _: &[impl AsSlice<T>],
+        _: &[impl AsRawSlice<T>],
         flat_index: usize,
     ) -> Option<JaggedIndex> {
         (flat_index <= total_len).then(|| {
@@ -29,7 +29,7 @@ impl JaggedIndexer for Doubling {
 
     unsafe fn jagged_index_unchecked<T>(
         &self,
-        _: &[impl AsSlice<T>],
+        _: &[impl AsRawSlice<T>],
         flat_index: usize,
     ) -> JaggedIndex {
         self.get_fragment_and_inner_indices_unchecked(flat_index)
@@ -41,7 +41,7 @@ impl JaggedIndexer for Linear {
     fn jagged_index<T>(
         &self,
         total_len: usize,
-        _arrays: &[impl AsSlice<T>],
+        _arrays: &[impl AsRawSlice<T>],
         flat_index: usize,
     ) -> Option<JaggedIndex> {
         (flat_index <= total_len).then(|| {
@@ -52,7 +52,7 @@ impl JaggedIndexer for Linear {
 
     unsafe fn jagged_index_unchecked<T>(
         &self,
-        _: &[impl AsSlice<T>],
+        _: &[impl AsRawSlice<T>],
         flat_index: usize,
     ) -> JaggedIndex {
         self.get_fragment_and_inner_indices_unchecked(flat_index)
@@ -64,7 +64,7 @@ impl JaggedIndexer for Recursive {
     fn jagged_index<T>(
         &self,
         total_len: usize,
-        arrays: &[impl AsSlice<T>],
+        arrays: &[impl AsRawSlice<T>],
         flat_index: usize,
     ) -> Option<JaggedIndex> {
         (flat_index <= total_len).then(|| {
@@ -75,7 +75,7 @@ impl JaggedIndexer for Recursive {
 
     unsafe fn jagged_index_unchecked<T>(
         &self,
-        arrays: &[impl AsSlice<T>],
+        arrays: &[impl AsRawSlice<T>],
         flat_index: usize,
     ) -> JaggedIndex {
         let mut idx = flat_index;
