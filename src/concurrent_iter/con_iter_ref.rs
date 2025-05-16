@@ -2,7 +2,7 @@ use crate::{ParGrowth, SplitVec};
 use alloc::vec::Vec;
 use orx_concurrent_iter::{
     IntoConcurrentIter,
-    implementations::jagged_arrays::{ConIterJaggedOwned, RawSlice},
+    implementations::jagged_arrays::{ConIterJaggedOwned, RawJaggedRef, RawSlice},
 };
 
 impl<'a, T, G> IntoConcurrentIter for &'a SplitVec<T, G>
@@ -24,6 +24,8 @@ where
             .iter()
             .map(|v| RawSlice::from(v.as_slice()))
             .collect();
+
+        let jagged = RawJaggedRef::new(slices, self.growth.clone(), Some(self.len));
 
         // let jagged = RawJagged::new_as_reference(slices, self.growth.clone(), Some(self.len));
 
