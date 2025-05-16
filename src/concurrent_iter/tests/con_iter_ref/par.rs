@@ -26,7 +26,7 @@ fn new_vec<G: Growth>(
     [0, 1, N],
     [0, 1, 4]
 )]
-fn par_map_filter_collect<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn abc_par_map_filter_collect<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
 
     let expected: Vec<_> = vec
@@ -35,8 +35,8 @@ fn par_map_filter_collect<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt:
         .filter(|x| !x.starts_with('1'))
         .collect();
 
-    let result: Vec<_> = (&vec)
-        .into_par()
+    let result: Vec<_> = vec
+        .par()
         .num_threads(nt)
         .map(|x| format!("{}!", x))
         .filter(|x| !x.starts_with('1'))
