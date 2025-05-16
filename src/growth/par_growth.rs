@@ -1,5 +1,7 @@
 use crate::{Doubling, Growth, GrowthWithConstantTimeAccess, Linear, Recursive};
-use orx_concurrent_iter::implementations::jagged_arrays::{AsRawSlice, JaggedIndex, JaggedIndexer};
+use orx_concurrent_iter::implementations::jagged_arrays::{
+    AsRawSlice, JaggedIndex, JaggedIndexer, Slices,
+};
 
 /// A [`Growth`] that supports parallelization.
 ///
@@ -15,19 +17,16 @@ pub trait ParGrowth: Growth + JaggedIndexer {}
 impl<G: Growth + JaggedIndexer> ParGrowth for G {}
 
 impl JaggedIndexer for Doubling {
-    fn jagged_index<T>(
+    unsafe fn jagged_index_unchecked<'a, T: 'a>(
         &self,
-        total_len: usize,
-        _: &[impl AsRawSlice<T>],
+        _: &impl Slices<'a, T>,
         flat_index: usize,
-    ) -> Option<JaggedIndex> {
-        (flat_index <= total_len).then(|| {
-            self.get_fragment_and_inner_indices_unchecked(flat_index)
-                .into()
-        })
+    ) -> JaggedIndex {
+        self.get_fragment_and_inner_indices_unchecked(flat_index)
+            .into()
     }
 
-    unsafe fn jagged_index_unchecked<T>(
+    unsafe fn jagged_index_unchecked_from_slice<'a, T: 'a>(
         &self,
         _: &[impl AsRawSlice<T>],
         flat_index: usize,
@@ -38,19 +37,16 @@ impl JaggedIndexer for Doubling {
 }
 
 impl JaggedIndexer for Linear {
-    fn jagged_index<T>(
+    unsafe fn jagged_index_unchecked<'a, T: 'a>(
         &self,
-        total_len: usize,
-        _arrays: &[impl AsRawSlice<T>],
+        _: &impl Slices<'a, T>,
         flat_index: usize,
-    ) -> Option<JaggedIndex> {
-        (flat_index <= total_len).then(|| {
-            self.get_fragment_and_inner_indices_unchecked(flat_index)
-                .into()
-        })
+    ) -> JaggedIndex {
+        self.get_fragment_and_inner_indices_unchecked(flat_index)
+            .into()
     }
 
-    unsafe fn jagged_index_unchecked<T>(
+    unsafe fn jagged_index_unchecked_from_slice<'a, T: 'a>(
         &self,
         _: &[impl AsRawSlice<T>],
         flat_index: usize,
@@ -61,19 +57,32 @@ impl JaggedIndexer for Linear {
 }
 
 impl JaggedIndexer for Recursive {
-    fn jagged_index<T>(
+    unsafe fn jagged_index_unchecked<'a, T: 'a>(
         &self,
-        total_len: usize,
-        arrays: &[impl AsRawSlice<T>],
+        arrays: &impl Slices<'a, T>,
         flat_index: usize,
-    ) -> Option<JaggedIndex> {
-        (flat_index <= total_len).then(|| {
-            // SAFETY: flat_index is in bounds or equal to length
-            unsafe { self.jagged_index_unchecked(arrays, flat_index) }.into()
-        })
+    ) -> JaggedIndex {
+        let mut idx = flat_index;
+        let [mut f, mut i] = [0, 0];
+        let mut current_f = 0;
+        while idx > 0 {
+            let current_len = unsafe { arrays.slice_at_unchecked(current_f) }.len();
+            match current_len > idx {
+                true => {
+                    i = idx;
+                    idx = 0;
+                }
+                false => {
+                    f += 1;
+                    idx -= current_len;
+                }
+            }
+            current_f += 1;
+        }
+        JaggedIndex::new(f, i)
     }
 
-    unsafe fn jagged_index_unchecked<T>(
+    unsafe fn jagged_index_unchecked_from_slice<'a, T: 'a>(
         &self,
         arrays: &[impl AsRawSlice<T>],
         flat_index: usize,
