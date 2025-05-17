@@ -1,10 +1,10 @@
 use criterion::{
-    BenchmarkGroup, BenchmarkId, Criterion, black_box, criterion_group, criterion_main,
-    measurement::WallTime,
+    BenchmarkGroup, BenchmarkId, Criterion, criterion_group, criterion_main, measurement::WallTime,
 };
 use orx_split_vec::*;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
+use std::hint::black_box;
 
 fn get_indices(n: usize) -> Vec<usize> {
     let mut rng = ChaCha8Rng::seed_from_u64(7541);

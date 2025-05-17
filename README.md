@@ -63,6 +63,20 @@ Recursive strategy is a specialized variant of the Doubling, which works identic
 
 It is equivalent to Doubling strategy in terms of sequential access performance. However, due to the additional flexibility, it cannot implement `GrowthWithConstantTimeAccess`. Its random access time complexity is **O(f)** where **f** is the number of fragments in the split vector. 
 
+## Parallelization
+
+`SplitVec` implements [`ConcurrentCollection`](https://docs.rs/orx-concurrent-iter/latest/orx_concurrent_iter/trait.ConcurrentCollection.html) for all above-mentioned growth strategies.
+
+Therefore, when [orx_parallel](https://crates.io/crates/orx-parallel) crate is included, `SplitVec` also automatically implements [`ParallelizableCollection`](https://docs.rs/orx-parallel/latest/orx_parallel/trait.ParallelizableCollection.html).
+
+This means that computations over the split vector can be efficiently parallelized:
+
+* `split_vec.par()` returns a parallel iterator over references to its elements, and
+* `split_vec.into_par()` consumes the vector and returns a parallel iterator of the owned elements.
+
+You may find demonstrations in [`demo_parallelization`](https://github.com/orxfun/orx-split-vec/blob/main/examples/demo_parallelization.rs) and [`bench_parallelization`](https://github.com/orxfun/orx-split-vec/blob/main/examples/bench_parallelization.rs) examples.
+
+
 ## Examples
 
 SplitVec api resembles and aims to cover as much as possible the standard vector's api.

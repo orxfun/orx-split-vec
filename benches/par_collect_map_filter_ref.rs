@@ -1,11 +1,9 @@
-#![allow(dead_code, unreachable_code, unused_variables, unused_imports)]
-
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-#[cfg(feature = "parallel")]
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use orx_parallel::*;
 use orx_split_vec::*;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
+use std::hint::black_box;
 
 const TEST_LARGE_OUTPUT: bool = false;
 
@@ -60,39 +58,36 @@ fn fibonacci(n: &u32) -> u32 {
     a
 }
 
-fn inputs(len: usize) -> Vec<usize> {
+fn get_input(len: usize) -> impl Iterator<Item = usize> {
     let mut rng = ChaCha8Rng::seed_from_u64(SEED);
-    (0..len)
-        .map(|_| rng.random_range(0..FIB_UPPER_BOUND) as usize)
-        .collect()
+    (0..len).map(move |_| rng.random_range(0..FIB_UPPER_BOUND) as usize)
 }
 
 fn seq(inputs: &[usize]) -> Vec<Output> {
     inputs.iter().map(map).filter(filter).collect()
 }
 
-#[cfg(feature = "parallel")]
-fn par_over_slice(inputs: &[usize]) -> Vec<Output> {
-    inputs.into_par().map(map).filter(filter).collect()
+fn par_over_vec(inputs: &[usize]) -> Vec<Output> {
+    inputs.par().map(map).filter(filter).collect()
 }
 
-#[cfg(feature = "parallel")]
-fn par_over_split_vec<G: Growth>(inputs: &SplitVec<usize, G>) -> Vec<Output> {
-    inputs.into_par().map(map).filter(filter).collect()
+fn par_over_split_vec<G: ParGrowth>(inputs: &SplitVec<usize, G>) -> Vec<Output> {
+    inputs.par().map(map).filter(filter).collect()
 }
 
 fn run(c: &mut Criterion) {
     let treatments = [65_536, 65_536 * 4];
 
     #[allow(unused_mut)]
-    let mut group = c.benchmark_group("par_collect_map_filter");
+    let mut group = c.benchmark_group("par_collect_map_filter_ref");
 
-    #[cfg(feature = "parallel")]
     for n in &treatments {
-        let input = inputs(*n);
+        let input: Vec<_> = get_input(*n).collect();
         let expected = seq(&input);
 
-        let input_doubling: SplitVec<_, Doubling> = input.iter().copied().collect();
+        let input_doubling = get_input(*n).collect::<SplitVec<_, Doubling>>();
+
+        let input_recursive = get_input(*n).collect::<SplitVec<_, Recursive>>();
 
         let input_linear = {
             let mut input_linear = SplitVec::with_linear_growth(10);
@@ -105,9 +100,9 @@ fn run(c: &mut Criterion) {
             b.iter(|| seq(black_box(&input)))
         });
 
-        group.bench_with_input(BenchmarkId::new("par_over_slice", n), n, |b, _| {
-            assert_eq!(&expected, &par_over_slice(&input));
-            b.iter(|| par_over_slice(black_box(&input)))
+        group.bench_with_input(BenchmarkId::new("par_over_vec", n), n, |b, _| {
+            assert_eq!(&expected, &par_over_vec(&input));
+            b.iter(|| par_over_vec(black_box(&input)))
         });
 
         group.bench_with_input(
@@ -125,6 +120,15 @@ fn run(c: &mut Criterion) {
             |b, _| {
                 assert_eq!(&expected, &par_over_split_vec(&input_linear));
                 b.iter(|| par_over_split_vec(black_box(&input_linear)))
+            },
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("par_over_split_vec_recursive", n),
+            n,
+            |b, _| {
+                assert_eq!(&expected, &par_over_split_vec(&input_recursive));
+                b.iter(|| par_over_split_vec(black_box(&input_recursive)))
             },
         );
     }

@@ -53,7 +53,7 @@ jobs:
       run: cargo clippy ${{ matrix.features }} -- -D warnings --verbose
 
     - name: Miri
-      run: cargo +nightly miri test --verbose ${{ matrix.features }}
+      run: cargo +nightly miri test --lib --bins --tests --verbose ${{ matrix.features }}
 
     - name: NoStd
       run: cargo +nightly no-std-check --no-default-features

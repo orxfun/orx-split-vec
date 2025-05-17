@@ -1,8 +1,10 @@
-use crate::{concurrent_iter::ConIterSplitVecRef, *};
+use crate::*;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use orx_concurrent_bag::ConcurrentBag;
-use orx_concurrent_iter::{ChunkPuller, ConcurrentIter, ExactSizeConcurrentIter};
+use orx_concurrent_iter::{
+    ChunkPuller, ConcurrentIter, ExactSizeConcurrentIter, IntoConcurrentIter,
+};
 use test_case::test_matrix;
 
 #[cfg(miri)]
@@ -10,7 +12,7 @@ const N: usize = 125;
 #[cfg(not(miri))]
 const N: usize = 4735;
 
-fn new_vec<G: Growth>(
+fn new_vec<G: ParGrowth>(
     mut vec: SplitVec<String, G>,
     n: usize,
     elem: impl Fn(usize) -> String,
@@ -24,14 +26,14 @@ fn new_vec<G: Growth>(
 #[test]
 fn enumeration() {
     let vec: SplitVec<_> = (0..6).collect();
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.into_con_iter();
 
-    assert_eq!(iter.next(), Some(&0));
-    assert_eq!(iter.next_with_idx(), Some((1, &1)));
-    assert_eq!(iter.next(), Some(&2));
-    assert_eq!(iter.next_with_idx(), Some((3, &3)));
-    assert_eq!(iter.next(), Some(&4));
-    assert_eq!(iter.next_with_idx(), Some((5, &5)));
+    assert_eq!(iter.next(), Some(0));
+    assert_eq!(iter.next_with_idx(), Some((1, 1)));
+    assert_eq!(iter.next(), Some(2));
+    assert_eq!(iter.next_with_idx(), Some((3, 3)));
+    assert_eq!(iter.next(), Some(4));
+    assert_eq!(iter.next_with_idx(), Some((5, 5)));
     assert_eq!(iter.next(), None);
     assert_eq!(iter.next_with_idx(), None);
     assert_eq!(iter.next(), None);
@@ -39,10 +41,10 @@ fn enumeration() {
 }
 
 #[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
-fn size_hint<G: Growth>(mut vec: SplitVec<String, G>) {
+fn size_hint<G: ParGrowth>(mut vec: SplitVec<String, G>) {
     let mut n = 25;
     vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.into_con_iter();
 
     for _ in 0..10 {
         assert_eq!(iter.size_hint(), (n, Some(n)));
@@ -76,10 +78,10 @@ fn size_hint<G: Growth>(mut vec: SplitVec<String, G>) {
 }
 
 #[test_matrix([SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)])]
-fn size_hint_skip_to_end<G: Growth>(mut vec: SplitVec<String, G>) {
+fn size_hint_skip_to_end<G: ParGrowth>(mut vec: SplitVec<String, G>) {
     let n = 25;
     vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.into_con_iter();
 
     for _ in 0..10 {
         let _ = iter.next();
@@ -97,8 +99,8 @@ fn size_hint_skip_to_end<G: Growth>(mut vec: SplitVec<String, G>) {
     [SplitVec::with_doubling_growth_and_fragments_capacity(16), SplitVec::with_linear_growth_and_fragments_capacity(10, 33)],
     [1, 2, 4]
 )]
-fn empty<G: Growth>(vec: SplitVec<String, G>, nt: usize) {
-    let iter = ConIterSplitVecRef::new(&vec);
+fn empty<G: ParGrowth>(vec: SplitVec<String, G>, nt: usize) {
+    let iter = vec.into_con_iter();
 
     std::thread::scope(|s| {
         for _ in 0..nt {
@@ -123,9 +125,9 @@ fn empty<G: Growth>(vec: SplitVec<String, G>, nt: usize) {
     [0, 1, N],
     [1, 2, 4]
 )]
-fn next<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn next<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.clone().into_con_iter();
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -143,7 +145,7 @@ fn next<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
         }
     });
 
-    let mut expected: Vec<_> = (0..n).map(|i| &vec[i]).collect();
+    let mut expected: Vec<_> = (0..n).map(|i| vec[i].clone()).collect();
     expected.sort();
     let mut collected = bag.into_inner().to_vec();
     collected.sort();
@@ -156,9 +158,9 @@ fn next<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     [0, 1, N],
     [1, 2, 4]
 )]
-fn next_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn next_with_idx<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.clone().into_con_iter();
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -176,7 +178,7 @@ fn next_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
         }
     });
 
-    let mut expected: Vec<_> = (0..n).map(|i| (i, &vec[i])).collect();
+    let mut expected: Vec<_> = (0..n).map(|i| (i, vec[i].clone())).collect();
     expected.sort();
     let mut collected = bag.into_inner().to_vec();
     collected.sort();
@@ -189,9 +191,9 @@ fn next_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     [0, 1, N],
     [1, 2, 4]
 )]
-fn item_puller<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn item_puller<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.clone().into_con_iter();
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -209,7 +211,7 @@ fn item_puller<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
         }
     });
 
-    let mut expected: Vec<_> = (0..n).map(|i| &vec[i]).collect();
+    let mut expected: Vec<_> = (0..n).map(|i| vec[i].clone()).collect();
     expected.sort();
     let mut collected = bag.into_inner().to_vec();
     collected.sort();
@@ -222,9 +224,9 @@ fn item_puller<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     [0, 1, N],
     [1, 2, 4]
 )]
-fn item_puller_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn item_puller_with_idx<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.clone().into_con_iter();
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -242,7 +244,7 @@ fn item_puller_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: u
         }
     });
 
-    let mut expected: Vec<_> = (0..n).map(|i| (i, &vec[i])).collect();
+    let mut expected: Vec<_> = (0..n).map(|i| (i, vec[i].clone())).collect();
     expected.sort();
     let mut collected = bag.into_inner().to_vec();
     collected.sort();
@@ -255,9 +257,9 @@ fn item_puller_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: u
     [0, 1, N],
     [1, 2, 4]
 )]
-fn chunk_puller<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn chunk_puller<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.clone().into_con_iter();
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -279,7 +281,7 @@ fn chunk_puller<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
         }
     });
 
-    let mut expected: Vec<_> = (0..n).map(|i| &vec[i]).collect();
+    let mut expected: Vec<_> = (0..n).map(|i| vec[i].clone()).collect();
     expected.sort();
     let mut collected = bag.into_inner().to_vec();
     collected.sort();
@@ -292,9 +294,9 @@ fn chunk_puller<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     [0, 1, N],
     [1, 2, 4]
 )]
-fn chunk_puller_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn chunk_puller_with_idx<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.clone().into_con_iter();
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -316,7 +318,7 @@ fn chunk_puller_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: 
         }
     });
 
-    let mut expected: Vec<_> = (0..n).map(|i| (i, &vec[i])).collect();
+    let mut expected: Vec<_> = (0..n).map(|i| (i, vec[i].clone())).collect();
     expected.sort();
     let mut collected = bag.into_inner().to_vec();
     collected.sort();
@@ -329,9 +331,9 @@ fn chunk_puller_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: 
     [0, 1, N],
     [1, 2, 4]
 )]
-fn flattened_chunk_puller<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn flattened_chunk_puller<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.clone().into_con_iter();
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -348,7 +350,7 @@ fn flattened_chunk_puller<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt:
         }
     });
 
-    let mut expected: Vec<_> = (0..n).map(|i| &vec[i]).collect();
+    let mut expected: Vec<_> = (0..n).map(|i| vec[i].clone()).collect();
     expected.sort();
     let mut collected = bag.into_inner().to_vec();
     collected.sort();
@@ -361,9 +363,13 @@ fn flattened_chunk_puller<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt:
     [0, 1, N],
     [1, 2, 4]
 )]
-fn flattened_chunk_puller_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn flattened_chunk_puller_with_idx<G: ParGrowth>(
+    mut vec: SplitVec<String, G>,
+    n: usize,
+    nt: usize,
+) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.clone().into_con_iter();
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -380,7 +386,7 @@ fn flattened_chunk_puller_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: u
         }
     });
 
-    let mut expected: Vec<_> = (0..n).map(|i| (i, &vec[i])).collect();
+    let mut expected: Vec<_> = (0..n).map(|i| (i, vec[i].clone())).collect();
     expected.sort();
     let mut collected = bag.into_inner().to_vec();
     collected.sort();
@@ -393,9 +399,9 @@ fn flattened_chunk_puller_with_idx<G: Growth>(mut vec: SplitVec<String, G>, n: u
     [0, 1, N],
     [1, 2, 4]
 )]
-fn skip_to_end<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
+fn skip_to_end<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.clone().into_con_iter();
 
     let until = n / 2;
 
@@ -432,7 +438,7 @@ fn skip_to_end<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
         }
     });
 
-    let mut expected: Vec<_> = (0..until).map(|i| &vec[i]).collect();
+    let mut expected: Vec<_> = (0..until).map(|i| vec[i].clone()).collect();
     expected.sort();
     let mut collected = bag.into_inner().to_vec();
     collected.sort();
@@ -446,9 +452,9 @@ fn skip_to_end<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize) {
     [1, 2, 4],
     [0, N / 2, N]
 )]
-fn into_seq_iter<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize, until: usize) {
+fn into_seq_iter<G: ParGrowth>(mut vec: SplitVec<String, G>, n: usize, nt: usize, until: usize) {
     vec = new_vec(vec, n, |x| (x + 10).to_string());
-    let iter = ConIterSplitVecRef::new(&vec);
+    let iter = vec.clone().into_con_iter();
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -493,7 +499,7 @@ fn into_seq_iter<G: Growth>(mut vec: SplitVec<String, G>, n: usize, nt: usize, u
     }
 
     let iter = iter.into_seq_iter();
-    let remaining: Vec<_> = iter.cloned().collect();
+    let remaining: Vec<_> = iter.collect();
     let collected = bag.into_inner().to_vec();
     let mut all: Vec<_> = collected.into_iter().chain(remaining).collect();
     all.sort();
