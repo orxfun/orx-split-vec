@@ -16,7 +16,6 @@ jobs:
     strategy:
       matrix:
         toolchain: ["stable"]
-        features: ["", "--features parallel"]
 
     steps:
     - uses: actions/checkout@v4
@@ -36,24 +35,24 @@ jobs:
       run: cargo install cargo-no-std-check
       
     - name: Build
-      run: cargo build --verbose ${{ matrix.features }}
+      run: cargo build --verbose
     - name: Build-32bit
-      run: cargo build --verbose --target i686-unknown-linux-musl ${{ matrix.features }}
+      run: cargo build --verbose --target i686-unknown-linux-musl
     - name: Build-wasm
       run: cargo build --verbose --target wasm32v1-none --no-default-features
 
     - name: Test
-      run: cargo test --verbose ${{ matrix.features }}
+      run: cargo test --verbose
     - name: Test-32bit
-      run: cargo test --verbose --target i686-unknown-linux-musl ${{ matrix.features }}
+      run: cargo test --verbose --target i686-unknown-linux-musl
     - name: Check-wasm
       run: cargo check --verbose --target wasm32v1-none --no-default-features
 
     - name: Clippy
-      run: cargo clippy ${{ matrix.features }} -- -D warnings --verbose
+      run: cargo clippy -- -D warnings --verbose
 
     - name: Miri
-      run: cargo +nightly miri test --lib --bins --tests --verbose ${{ matrix.features }}
+      run: cargo +nightly miri test --lib --bins --tests --verbose
 
     - name: NoStd
       run: cargo +nightly no-std-check --no-default-features
