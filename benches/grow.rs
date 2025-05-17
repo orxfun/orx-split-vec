@@ -1,8 +1,8 @@
 use criterion::{
-    black_box, criterion_group, criterion_main, measurement::WallTime, BenchmarkGroup, BenchmarkId,
-    Criterion,
+    BenchmarkGroup, BenchmarkId, Criterion, criterion_group, criterion_main, measurement::WallTime,
 };
 use orx_split_vec::*;
+use std::hint::black_box;
 
 fn get_value<const N: usize>(i: usize) -> [u64; N] {
     let modulo = i % 3;

@@ -19,6 +19,7 @@ extern crate alloc;
 
 mod algorithms;
 mod common_traits;
+mod concurrent_iter;
 mod concurrent_pinned_vec;
 mod fragment;
 mod growth;
@@ -41,6 +42,7 @@ pub use common_traits::iterator::{IntoIter, Iter, IterMut, IterMutRev, IterRev};
 pub use concurrent_pinned_vec::ConcurrentSplitVec;
 pub use fragment::fragment_struct::Fragment;
 pub use fragment::into_fragments::IntoFragments;
+pub use growth::par_growth::ParGrowth;
 pub use growth::{
     doubling::Doubling,
     growth_trait::{Growth, GrowthWithConstantTimeAccess},
