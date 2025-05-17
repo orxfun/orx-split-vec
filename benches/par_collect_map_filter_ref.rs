@@ -1,7 +1,4 @@
-#![allow(dead_code, unreachable_code, unused_variables, unused_imports)]
-
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-#[cfg(feature = "parallel")]
 use orx_parallel::*;
 use orx_split_vec::*;
 use rand::prelude::*;
@@ -69,12 +66,10 @@ fn seq(inputs: &[usize]) -> Vec<Output> {
     inputs.iter().map(map).filter(filter).collect()
 }
 
-#[cfg(feature = "parallel")]
 fn par_over_vec(inputs: &[usize]) -> Vec<Output> {
     inputs.par().map(map).filter(filter).collect()
 }
 
-#[cfg(feature = "parallel")]
 fn par_over_split_vec<G: ParGrowth>(inputs: &SplitVec<usize, G>) -> Vec<Output> {
     inputs.par().map(map).filter(filter).collect()
 }
@@ -85,7 +80,6 @@ fn run(c: &mut Criterion) {
     #[allow(unused_mut)]
     let mut group = c.benchmark_group("par_collect_map_filter_ref");
 
-    #[cfg(feature = "parallel")]
     for n in &treatments {
         let input: Vec<_> = get_input(*n).collect();
         let expected = seq(&input);

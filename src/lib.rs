@@ -19,6 +19,7 @@ extern crate alloc;
 
 mod algorithms;
 mod common_traits;
+mod concurrent_iter;
 mod concurrent_pinned_vec;
 mod fragment;
 mod growth;
@@ -41,6 +42,7 @@ pub use common_traits::iterator::{IntoIter, Iter, IterMut, IterMutRev, IterRev};
 pub use concurrent_pinned_vec::ConcurrentSplitVec;
 pub use fragment::fragment_struct::Fragment;
 pub use fragment::into_fragments::IntoFragments;
+pub use growth::par_growth::ParGrowth;
 pub use growth::{
     doubling::Doubling,
     growth_trait::{Growth, GrowthWithConstantTimeAccess},
@@ -54,12 +56,3 @@ pub use orx_pinned_vec::{
 pub use orx_pseudo_default::PseudoDefault;
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;
-
-// feature: parallel
-
-/// Concurrent iterator implementations.
-#[cfg(feature = "parallel")]
-pub mod concurrent_iter;
-
-#[cfg(feature = "parallel")]
-pub use growth::par_growth::ParGrowth;
