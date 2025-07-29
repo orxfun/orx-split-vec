@@ -40,7 +40,7 @@ impl<'a, T: 'a> Slices<'a, T> for Fragments<'a, T> {
 
 impl<'a, T, G> IntoConcurrentIter for &'a SplitVec<T, G>
 where
-    T: Send + Sync,
+    T: Sync,
     G: ParGrowth,
 {
     type Item = &'a T;
