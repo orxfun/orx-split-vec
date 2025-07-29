@@ -57,7 +57,7 @@ where
     G: Growth,
 {
     pub(crate) fn from_raw_parts(len: usize, fragments: Vec<Fragment<T>>, growth: G) -> Self {
-        debug_assert_eq!(len, fragments.iter().map(|x| x.len()).sum());
+        debug_assert_eq!(len, fragments.iter().map(|x| x.len()).sum::<usize>());
         Self {
             len,
             fragments,

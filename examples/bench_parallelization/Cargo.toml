@@ -1,0 +1,11 @@
+[package]
+name = "bench_parallelization"
+version = "0.1.0"
+edition = "2024"
+publish = ["artifactory"]
+
+[dependencies]
+clap = { version = "4.5.38", features = ["derive"] }
+rayon = { version = "1.10.0", default-features = false }
+orx-split-vec = { path = "../../../orx-split-vec" }
+orx-parallel = { git = "https://github.com/orxfun/orx-parallel", branch = "relaxing-send-trait-bound" }

@@ -74,7 +74,7 @@ This means that computations over the split vector can be efficiently paralleliz
 * `split_vec.par()` returns a parallel iterator over references to its elements, and
 * `split_vec.into_par()` consumes the vector and returns a parallel iterator of the owned elements.
 
-You may find demonstrations in [`demo_parallelization`](https://github.com/orxfun/orx-split-vec/blob/main/examples/demo_parallelization.rs) and [`bench_parallelization`](https://github.com/orxfun/orx-split-vec/blob/main/examples/bench_parallelization.rs) examples.
+You may find demonstrations in [`demo_parallelization`](https://github.com/orxfun/orx-split-vec/blob/main/examples/demo_parallelization) and [`bench_parallelization`](https://github.com/orxfun/orx-split-vec/blob/main/examples/bench_parallelization) examples.
 
 
 ## Examples

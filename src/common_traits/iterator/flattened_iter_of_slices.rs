@@ -1,7 +1,7 @@
-use super::{iter_of_slices::SliceBorrowKind, IterOfSlices};
+use super::{IterOfSlices, iter_of_slices::SliceBorrowKind};
 use crate::{
-    range_helpers::{range_end, range_start},
     Growth,
+    range_helpers::{range_end, range_start},
 };
 use core::cmp::min;
 use core::{borrow::Borrow, iter::FusedIterator, ops::RangeBounds};

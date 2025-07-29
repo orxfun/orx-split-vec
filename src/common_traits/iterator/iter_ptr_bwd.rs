@@ -1,6 +1,6 @@
 use crate::{
-    pointers::{PtrBackward, Ptrs},
     Fragment,
+    pointers::{PtrBackward, Ptrs},
 };
 use core::iter::FusedIterator;
 

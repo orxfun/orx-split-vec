@@ -1,4 +1,4 @@
-use crate::{fragment::fragment_struct::Fragment, Growth, SplitVec};
+use crate::{Growth, SplitVec, fragment::fragment_struct::Fragment};
 use core::iter::FusedIterator;
 
 impl<'a, T, G: Growth> IntoIterator for &'a mut SplitVec<T, G> {
