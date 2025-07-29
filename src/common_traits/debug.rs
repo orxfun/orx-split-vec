@@ -15,7 +15,7 @@ where
             self.capacity()
         )?;
         for frag in &self.fragments {
-            writeln!(f, "    {:?}", frag)?;
+            writeln!(f, "    {frag:?}")?;
         }
         writeln!(f, "] }}")
     }

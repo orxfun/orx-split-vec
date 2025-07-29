@@ -259,9 +259,7 @@ impl<T> SplitVec<T, Doubling> {
     pub fn with_doubling_growth_and_fragments_capacity(fragments_capacity: usize) -> Self {
         assert!(
             fragments_capacity > 0 && fragments_capacity <= CAPACITIES_LEN,
-            "fragments_capacity must be within 1..{}; however, {} is provided.",
-            CAPACITIES_LEN,
-            fragments_capacity
+            "fragments_capacity must be within 1..{CAPACITIES_LEN}; however, {fragments_capacity} is provided."
         );
         assert!(fragments_capacity > 0);
         let fragments =
