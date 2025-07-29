@@ -1,7 +1,7 @@
 use super::iter_of_slices::SliceBorrowKind;
 use crate::{
-    range_helpers::{range_end, range_start},
     GrowthWithConstantTimeAccess,
+    range_helpers::{range_end, range_start},
 };
 use core::{
     cell::UnsafeCell, cmp::min, iter::FusedIterator, marker::PhantomData, ops::RangeBounds,

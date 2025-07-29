@@ -18,7 +18,7 @@ pub(crate) fn range_end<R: RangeBounds<usize>>(range: &R, vec_len: usize) -> usi
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{test_all_growth_types, Growth, SplitVec};
+    use crate::{Growth, SplitVec, test_all_growth_types};
     use orx_pinned_vec::PinnedVec;
 
     #[test]

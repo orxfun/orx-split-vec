@@ -1,6 +1,6 @@
 use crate::{
-    range_helpers::{range_end, range_start},
     Growth, SplitVec,
+    range_helpers::{range_end, range_start},
 };
 use core::{cmp::Ordering, ops::RangeBounds};
 use orx_pinned_vec::PinnedVec;
