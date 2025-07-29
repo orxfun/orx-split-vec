@@ -1,0 +1,9 @@
+[package]
+name = "demo_parallelization"
+version = "0.1.0"
+edition = "2024"
+publish = ["artifactory"]
+
+[dependencies]
+orx-split-vec = { path = "../../../orx-split-vec" }
+orx-parallel = { path = "../../../orx-parallel" }

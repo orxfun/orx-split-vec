@@ -1,5 +1,3 @@
-// cargo run --release --example demo_parallelization
-
 use orx_parallel::*;
 use orx_split_vec::*;
 

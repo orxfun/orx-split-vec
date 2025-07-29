@@ -1,6 +1,6 @@
-// cargo run --release --example bench_parallelization
-// cargo run --release --example bench_parallelization -- --help
-// cargo run --release --example bench_parallelization -- --len 50000 --num-repetitions 20
+// cargo run --release
+// cargo run --release -- --help
+// cargo run --release -- --len 50000 --num-repetitions 20
 
 mod utils;
 
@@ -49,10 +49,9 @@ fn main() {
         (
             "Sequential over Vec",
             Box::new(move || {
-                let split_vec: SplitVec<_> = (0..args.len as usize).collect();
+                let vec: Vec<_> = (0..args.len as usize).collect();
 
-                split_vec
-                    .into_iter()
+                vec.into_iter()
                     .filter(|x| x % 3 != 0)
                     .map(|x| x + fibonacci(x % 40))
                     .filter_map(|x| (x % 2 == 0).then(|| x.to_string()))
