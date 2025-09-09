@@ -57,7 +57,7 @@ impl<T, G: Growth> SplitVec<T, G> {
     /// assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(5..12));
     /// assert_eq!(SplitVecSlice::OutOfBounds, vec.try_get_slice(10..11));
     /// ```
-    pub fn try_get_slice<R: RangeBounds<usize>>(&self, range: R) -> SplitVecSlice<T> {
+    pub fn try_get_slice<R: RangeBounds<usize>>(&self, range: R) -> SplitVecSlice<'_, T> {
         let a = range_start(&range);
         let b = range_end(&range, self.len());
 

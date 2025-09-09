@@ -6,4 +6,4 @@ publish = ["artifactory"]
 
 [dependencies]
 orx-split-vec = { path = "../../../orx-split-vec" }
-orx-parallel = { git = "https://github.com/orxfun/orx-parallel", branch = "relaxing-send-trait-bound" }
+orx-parallel = { version = "3.2.0", default-features = false }
