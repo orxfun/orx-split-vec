@@ -5,7 +5,7 @@ edition = "2024"
 publish = ["artifactory"]
 
 [dependencies]
-clap = { version = "4.5.38", features = ["derive"] }
-rayon = { version = "1.10.0", default-features = false }
+clap = { version = "4.5.47", features = ["derive"] }
+rayon = { version = "1.11.0", default-features = false }
 orx-split-vec = { path = "../../../orx-split-vec" }
-orx-parallel = { git = "https://github.com/orxfun/orx-parallel", branch = "relaxing-send-trait-bound" }
+orx-parallel = { version = "3.2.0", default-features = false }
