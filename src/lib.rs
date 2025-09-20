@@ -23,6 +23,7 @@ mod concurrent_iter;
 mod concurrent_pinned_vec;
 mod fragment;
 mod growth;
+mod idx;
 mod into_concurrent_pinned_vec;
 mod new_split_vec;
 mod pinned_vec;
