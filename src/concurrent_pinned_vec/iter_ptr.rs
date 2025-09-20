@@ -1,6 +1,7 @@
 use crate::{
     GrowthWithConstantTimeAccess, concurrent_pinned_vec::iter_ptr_slices::IterPtrOfConSlices,
 };
+use core::{cell::UnsafeCell, ops::Range};
 
 pub struct IterPtrOfCon<'a, T, G>
 where
@@ -16,6 +17,22 @@ impl<'a, T, G> IterPtrOfCon<'a, T, G>
 where
     G: GrowthWithConstantTimeAccess,
 {
+    pub fn new(
+        capacity: usize,
+        fragments: &'a [UnsafeCell<*mut T>],
+        growth: G,
+        range: Range<usize>,
+    ) -> Self {
+        let len_of_remaining_slices = range.len();
+        let slices = IterPtrOfConSlices::new(capacity, fragments, growth, range);
+        Self {
+            slices,
+            len_of_remaining_slices,
+            current_ptr: core::ptr::null(),
+            current_last: core::ptr::null(),
+        }
+    }
+
     fn remaining(&self) -> usize {
         let remaining_current = match self.current_ptr.is_null() {
             true => 0,
