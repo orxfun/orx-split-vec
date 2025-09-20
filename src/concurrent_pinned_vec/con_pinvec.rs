@@ -1,6 +1,7 @@
 use crate::{
     Doubling, Fragment, GrowthWithConstantTimeAccess, SplitVec,
     common_traits::iterator::{IterOfSlicesOfCon, SliceBorrowAsMut, SliceBorrowAsRef},
+    concurrent_pinned_vec::iter_ptr::IterPtrOfCon,
     fragment::transformations::{fragment_from_raw, fragment_into_raw},
 };
 use alloc::vec::Vec;
@@ -426,6 +427,6 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     }
 
     unsafe fn ptr_iter_unchecked(&self, range: Range<usize>) -> impl Iterator<Item = *mut T> {
-        core::iter::empty()
+        IterPtrOfCon::new(self.capacity(), &self.data, self.growth.clone(), range)
     }
 }
