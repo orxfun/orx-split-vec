@@ -4,9 +4,9 @@ use crate::{
     fragment::transformations::{fragment_from_raw, fragment_into_raw},
 };
 use alloc::vec::Vec;
-use core::cell::UnsafeCell;
 use core::ops::RangeBounds;
 use core::sync::atomic::{AtomicUsize, Ordering};
+use core::{cell::UnsafeCell, ops::Range};
 use orx_pinned_vec::ConcurrentPinnedVec;
 
 struct FragmentData {
@@ -423,5 +423,9 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
 
         self.maximum_capacity = (0..self.data.len()).map(|f| self.capacity_of(f)).sum();
         self.pinned_vec_len = 0;
+    }
+
+    unsafe fn ptr_iter_unchecked(&self, range: Range<usize>) -> impl Iterator<Item = *mut T> {
+        core::iter::empty()
     }
 }
