@@ -426,7 +426,10 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         self.pinned_vec_len = 0;
     }
 
-    unsafe fn ptr_iter_unchecked(&self, range: Range<usize>) -> impl Iterator<Item = *mut T> {
+    unsafe fn ptr_iter_unchecked(
+        &self,
+        range: Range<usize>,
+    ) -> impl ExactSizeIterator<Item = *mut T> {
         IterPtrOfCon::new(self.capacity(), &self.data, self.growth.clone(), range)
     }
 }
