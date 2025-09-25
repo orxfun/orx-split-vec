@@ -63,23 +63,20 @@ where
     type Item = *mut T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.current_ptr.is_null() {
-            false => {
-                let is_last_of_slice = self.current_ptr == self.current_last;
-
-                let ptr = self.current_ptr as *mut T;
-
-                self.current_ptr = match is_last_of_slice {
-                    // SAFETY: current_ptr is not the last element, hance current_ptr+1 is in bounds
-                    false => unsafe { self.current_ptr.add(1) },
-                    true => core::ptr::null_mut(),
-                };
+        match self.current_ptr {
+            ptr if ptr.is_null() => self.next_slice(),
+            ptr if ptr == self.current_last => {
+                self.current_ptr = core::ptr::null_mut();
+                Some(ptr as *mut T)
+            }
+            ptr => {
+                // SAFETY: current_ptr is not the last element, hance current_ptr+1 is in bounds
+                self.current_ptr = unsafe { self.current_ptr.add(1) };
 
                 // SAFETY: ptr is valid and its value can be taken.
                 // Drop will skip this position which is now uninitialized.
-                Some(ptr)
+                Some(ptr as *mut T)
             }
-            true => self.next_slice(),
         }
     }
 
