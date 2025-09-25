@@ -45,17 +45,14 @@ where
     }
 
     fn next_slice(&mut self) -> Option<*mut T> {
-        match self.slices.next() {
-            Some((ptr, len)) => {
-                debug_assert!(len > 0);
-                self.len_of_remaining_slices -= len;
-                // SAFETY: pointers are not null since slice is not empty
-                self.current_ptr = ptr;
-                self.current_last = unsafe { ptr.add(len - 1) };
-                self.next()
-            }
-            None => None,
-        }
+        self.slices.next().and_then(|(ptr, len)| {
+            debug_assert!(len > 0);
+            self.len_of_remaining_slices -= len;
+            // SAFETY: pointers are not null since slice is not empty
+            self.current_ptr = ptr;
+            self.current_last = unsafe { ptr.add(len - 1) };
+            self.next()
+        })
     }
 }
 
