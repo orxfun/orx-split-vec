@@ -53,5 +53,6 @@ pub use orx_iterable::{Collection, CollectionMut, Iterable};
 pub use orx_pinned_vec::{
     ConcurrentPinnedVec, IntoConcurrentPinnedVec, PinnedVec, PinnedVecGrowthError,
 };
+pub use orx_pseudo_default::PseudoDefault;
 pub use slice::SplitVecSlice;
 pub use split_vec::SplitVec;
