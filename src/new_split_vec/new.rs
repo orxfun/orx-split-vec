@@ -32,6 +32,7 @@ where
     ///
     /// ```
     /// use orx_split_vec::*;
+    /// use orx_pseudo_default::PseudoDefault;
     ///
     /// #[derive(Clone)]
     /// pub struct DoubleEverySecondFragment(usize); // any custom growth strategy
