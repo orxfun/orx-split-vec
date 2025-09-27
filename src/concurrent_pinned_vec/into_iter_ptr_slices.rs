@@ -1,5 +1,5 @@
 use crate::{
-    Fragment, GrowthWithConstantTimeAccess,
+    GrowthWithConstantTimeAccess,
     fragment::transformations::fragment_from_raw,
     range_helpers::{range_end, range_start},
 };

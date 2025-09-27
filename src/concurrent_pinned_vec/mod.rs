@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 mod con_pinvec;
 mod into_iter;
 mod into_iter_ptr_slices;
