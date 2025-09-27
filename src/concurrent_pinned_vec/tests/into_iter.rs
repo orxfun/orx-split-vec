@@ -1,16 +1,15 @@
-use crate::{Doubling, SplitVec};
+use crate::{Doubling, SplitVec, concurrent_pinned_vec::into_iter::ConcurrentSplitVecIntoIter};
 use orx_pinned_vec::{IntoConcurrentPinnedVec, PinnedVec};
 use std::string::ToString;
 
 #[test]
-fn into_iter_non_taken() {
+fn into_iter_non_taken_doubling() {
     let iter = || {
         let vec: SplitVec<_, Doubling> = (0..20).map(|x| x.to_string()).collect();
         let range = 0..vec.len();
         let convec = vec.into_concurrent();
         let (growth, data, capacity) = convec.destruct();
-
-        ConcurrentFixedVecIntoIter::new(data, range)
+        ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
     };
 
     let consume_all = iter().count();
