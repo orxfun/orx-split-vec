@@ -195,6 +195,8 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     where
         Self: 'a;
 
+    type IntoIter = core::iter::Empty<T>;
+
     unsafe fn into_inner(mut self, len: usize) -> Self::P {
         let mut fragments = Vec::with_capacity(self.max_num_fragments);
         let mut take_fragment = |fragment| fragments.push(fragment);
@@ -433,5 +435,9 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
 
     unsafe fn ptr_iter_unchecked(&self, range: Range<usize>) -> Self::PtrIter<'_> {
         IterPtrOfCon::new(self.capacity(), &self.data, self.growth.clone(), range)
+    }
+
+    unsafe fn into_iter(self, range: Range<usize>) -> Self::IntoIter {
+        todo!()
     }
 }
