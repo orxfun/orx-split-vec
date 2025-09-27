@@ -446,7 +446,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         IterPtrOfCon::new(self.capacity(), &self.data, self.growth.clone(), range)
     }
 
-    unsafe fn into_iter(mut self, range: Range<usize>) -> Self::IntoIter {
+    unsafe fn into_iter(self, range: Range<usize>) -> Self::IntoIter {
         let (growth, data, capacity) = self.destruct();
         ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
     }
