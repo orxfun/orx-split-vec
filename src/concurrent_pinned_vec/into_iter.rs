@@ -108,7 +108,10 @@ where
 {
     fn drop(&mut self) {
         if core::mem::needs_drop::<T>() {
-            while let Some(_) = self.next() {}
+            while let Some(ptr) = self.next_ptr() {
+                // SAFETY: ptr is in bounds and have not been dropped yet
+                unsafe { ptr.drop_in_place() };
+            }
         }
     }
 }
