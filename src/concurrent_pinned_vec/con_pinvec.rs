@@ -1,7 +1,7 @@
 use crate::{
     Doubling, Fragment, GrowthWithConstantTimeAccess, SplitVec,
     common_traits::iterator::{IterOfSlicesOfCon, SliceBorrowAsMut, SliceBorrowAsRef},
-    concurrent_pinned_vec::iter_ptr::IterPtrOfCon,
+    concurrent_pinned_vec::{into_iter::ConcurrentSplitVecIntoIter, iter_ptr::IterPtrOfCon},
     fragment::transformations::{fragment_from_raw, fragment_into_raw},
 };
 use alloc::vec::Vec;
@@ -195,7 +195,7 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     where
         Self: 'a;
 
-    type IntoIter = core::iter::Empty<T>;
+    type IntoIter = ConcurrentSplitVecIntoIter<T, G>;
 
     unsafe fn into_inner(mut self, len: usize) -> Self::P {
         let mut fragments = Vec::with_capacity(self.max_num_fragments);
@@ -437,7 +437,9 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         IterPtrOfCon::new(self.capacity(), &self.data, self.growth.clone(), range)
     }
 
-    unsafe fn into_iter(self, range: Range<usize>) -> Self::IntoIter {
-        todo!()
+    unsafe fn into_iter(mut self, range: Range<usize>) -> Self::IntoIter {
+        let mut data = Vec::new();
+        core::mem::swap(&mut self.data, &mut data);
+        ConcurrentSplitVecIntoIter::new(self.capacity(), data, self.growth.clone(), range)
     }
 }
