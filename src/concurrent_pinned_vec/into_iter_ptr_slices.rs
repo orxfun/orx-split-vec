@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use core::cmp::min;
 use core::{cell::UnsafeCell, iter::FusedIterator, ops::Range};
 
-pub struct IntoIterPtrOfConSlices<T, G>
+pub(super) struct IntoIterPtrOfConSlices<T, G>
 where
     G: GrowthWithConstantTimeAccess,
 {
