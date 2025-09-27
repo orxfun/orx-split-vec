@@ -35,6 +35,16 @@ impl<T, G: GrowthWithConstantTimeAccess> Drop for ConcurrentSplitVec<T, G> {
 }
 
 impl<T, G: GrowthWithConstantTimeAccess> ConcurrentSplitVec<T, G> {
+    pub(super) fn destruct(mut self) -> (G, Vec<UnsafeCell<*mut T>>, usize) {
+        let mut data = Vec::new();
+        core::mem::swap(&mut self.data, &mut data);
+        (
+            self.growth.clone(),
+            data,
+            self.capacity.load(Ordering::Relaxed),
+        )
+    }
+
     unsafe fn get_raw_mut_unchecked_fi(&self, f: usize, i: usize) -> *mut T {
         let p = unsafe { *self.data[f].get() };
         unsafe { p.add(i) }
@@ -437,9 +447,8 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         IterPtrOfCon::new(self.capacity(), &self.data, self.growth.clone(), range)
     }
 
-    unsafe fn into_iter(mut self, range: Range<usize>) -> Self::IntoIter {
-        let mut data = Vec::new();
-        core::mem::swap(&mut self.data, &mut data);
-        ConcurrentSplitVecIntoIter::new(self.capacity(), data, self.growth.clone(), range)
+    unsafe fn into_iter(self, range: Range<usize>) -> Self::IntoIter {
+        let (growth, data, capacity) = self.destruct();
+        ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
     }
 }
