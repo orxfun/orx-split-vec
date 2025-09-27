@@ -10,10 +10,10 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{cell::UnsafeCell, ops::Range};
 use orx_pinned_vec::ConcurrentPinnedVec;
 
-struct FragmentData {
-    f: usize,
-    len: usize,
-    capacity: usize,
+pub struct FragmentData {
+    pub f: usize,
+    pub len: usize,
+    pub capacity: usize,
 }
 
 /// Concurrent wrapper ([`orx_pinned_vec::ConcurrentPinnedVec`]) for the `SplitVec`.

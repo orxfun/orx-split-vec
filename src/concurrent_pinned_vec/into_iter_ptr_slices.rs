@@ -1,5 +1,6 @@
 use crate::{
-    GrowthWithConstantTimeAccess,
+    Fragment, GrowthWithConstantTimeAccess,
+    fragment::transformations::fragment_from_raw,
     range_helpers::{range_end, range_start},
 };
 use alloc::vec::Vec;
@@ -18,6 +19,24 @@ where
     ef: usize,
     ei: usize,
     f: usize,
+}
+
+impl<T, G> Drop for IntoIterPtrOfConSlices<T, G>
+where
+    G: GrowthWithConstantTimeAccess,
+{
+    fn drop(&mut self) {
+        for f in 0..self.fragments.len() {
+            let ptr = unsafe { *self.fragments[f].get() };
+            match ptr.is_null() {
+                true => break,
+                false => {
+                    let capacity = self.capacity_of(f);
+                    let _fragment_to_drop = unsafe { fragment_from_raw(ptr, 0, capacity) };
+                }
+            }
+        }
+    }
 }
 
 impl<T, G> IntoIterPtrOfConSlices<T, G>
