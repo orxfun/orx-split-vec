@@ -19,6 +19,15 @@ where
     f: usize,
 }
 
+impl<'a, T, G> Default for IterPtrOfConSlices<'a, T, G>
+where
+    G: GrowthWithConstantTimeAccess,
+{
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
 impl<'a, T, G> IterPtrOfConSlices<'a, T, G>
 where
     G: GrowthWithConstantTimeAccess,

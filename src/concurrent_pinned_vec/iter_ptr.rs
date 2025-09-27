@@ -13,6 +13,20 @@ where
     current_last: *const T,
 }
 
+impl<'a, T, G> Default for IterPtrOfCon<'a, T, G>
+where
+    G: GrowthWithConstantTimeAccess,
+{
+    fn default() -> Self {
+        Self {
+            slices: IterPtrOfConSlices::default(),
+            len_of_remaining_slices: 0,
+            current_ptr: core::ptr::null(),
+            current_last: core::ptr::null(),
+        }
+    }
+}
+
 impl<'a, T, G> IterPtrOfCon<'a, T, G>
 where
     G: GrowthWithConstantTimeAccess,
