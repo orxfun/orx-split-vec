@@ -46,7 +46,7 @@ where
         self.len_of_remaining_slices + remaining_current
     }
 
-    fn next_slice(&mut self) -> Option<*mut T> {
+    fn next_slice(&mut self) -> Option<T> {
         self.slices.next().and_then(|(ptr, len)| {
             debug_assert!(len > 0);
             self.len_of_remaining_slices -= len;
@@ -62,14 +62,14 @@ impl<T, G> Iterator for ConcurrentSplitVecIntoIter<T, G>
 where
     G: GrowthWithConstantTimeAccess,
 {
-    type Item = *mut T;
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.current_ptr {
             ptr if ptr.is_null() => self.next_slice(),
             ptr if ptr == self.current_last => {
                 self.current_ptr = core::ptr::null_mut();
-                Some(ptr as *mut T)
+                Some(unsafe { ptr.read() })
             }
             ptr => {
                 // SAFETY: current_ptr is not the last element, hance current_ptr+1 is in bounds
@@ -77,7 +77,7 @@ where
 
                 // SAFETY: ptr is valid and its value can be taken.
                 // Drop will skip this position which is now uninitialized.
-                Some(ptr as *mut T)
+                Some(unsafe { ptr.read() })
             }
         }
     }
