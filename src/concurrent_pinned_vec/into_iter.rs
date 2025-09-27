@@ -46,14 +46,32 @@ where
         self.len_of_remaining_slices + remaining_current
     }
 
-    fn next_slice(&mut self) -> Option<T> {
+    fn next_ptr(&mut self) -> Option<*mut T> {
+        match self.current_ptr {
+            ptr if ptr.is_null() => self.next_slice(),
+            ptr if ptr == self.current_last => {
+                self.current_ptr = core::ptr::null_mut();
+                Some(ptr as *mut T)
+            }
+            ptr => {
+                // SAFETY: current_ptr is not the last element, hance current_ptr+1 is in bounds
+                self.current_ptr = unsafe { self.current_ptr.add(1) };
+
+                // SAFETY: ptr is valid and its value can be taken.
+                // Drop will skip this position which is now uninitialized.
+                Some(ptr as *mut T)
+            }
+        }
+    }
+
+    fn next_slice(&mut self) -> Option<*mut T> {
         self.slices.next().and_then(|(ptr, len)| {
             debug_assert!(len > 0);
             self.len_of_remaining_slices -= len;
             // SAFETY: pointers are not null since slice is not empty
             self.current_ptr = ptr;
             self.current_last = unsafe { ptr.add(len - 1) };
-            self.next()
+            self.next_ptr()
         })
     }
 }
@@ -64,22 +82,9 @@ where
 {
     type Item = T;
 
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
-        match self.current_ptr {
-            ptr if ptr.is_null() => self.next_slice(),
-            ptr if ptr == self.current_last => {
-                self.current_ptr = core::ptr::null_mut();
-                Some(unsafe { ptr.read() })
-            }
-            ptr => {
-                // SAFETY: current_ptr is not the last element, hance current_ptr+1 is in bounds
-                self.current_ptr = unsafe { self.current_ptr.add(1) };
-
-                // SAFETY: ptr is valid and its value can be taken.
-                // Drop will skip this position which is now uninitialized.
-                Some(unsafe { ptr.read() })
-            }
-        }
+        self.next_ptr().map(|ptr| unsafe { ptr.read() })
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -94,5 +99,16 @@ where
 {
     fn len(&self) -> usize {
         self.remaining()
+    }
+}
+
+impl<T, G> Drop for ConcurrentSplitVecIntoIter<T, G>
+where
+    G: GrowthWithConstantTimeAccess,
+{
+    fn drop(&mut self) {
+        if core::mem::needs_drop::<T>() {
+            while let Some(_) = self.next() {}
+        }
     }
 }
