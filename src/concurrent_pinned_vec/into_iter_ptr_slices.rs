@@ -26,16 +26,7 @@ where
     G: GrowthWithConstantTimeAccess,
 {
     fn drop(&mut self) {
-        for f in 0..self.fragments.len() {
-            let ptr = unsafe { *self.fragments[f].get() };
-            match ptr.is_null() {
-                true => break,
-                false => {
-                    let capacity = self.capacity_of(f);
-                    let _fragment_to_drop = unsafe { fragment_from_raw(ptr, 0, capacity) };
-                }
-            }
-        }
+        Self::drop_fragments(&self.growth, &mut self.fragments);
     }
 }
 
@@ -77,7 +68,7 @@ where
 
     pub fn new(
         capacity: usize,
-        fragments: Vec<UnsafeCell<*mut T>>,
+        mut fragments: Vec<UnsafeCell<*mut T>>,
         growth: G,
         range: Range<usize>,
     ) -> Self {
@@ -87,7 +78,10 @@ where
         let b = min(capacity, range_end(&range, capacity));
 
         match b.saturating_sub(a) {
-            0 => Self::empty(),
+            0 => {
+                Self::drop_fragments(&growth, &mut fragments);
+                Self::empty()
+            }
             _ => {
                 let (sf, si) = fragment_and_inner_indices(a);
                 let (ef, ei) = fragment_and_inner_indices(b - 1);
@@ -107,6 +101,19 @@ where
                             f: sf,
                         }
                     }
+                }
+            }
+        }
+    }
+
+    fn drop_fragments(growth: &G, fragments: &mut Vec<UnsafeCell<*mut T>>) {
+        for f in 0..fragments.len() {
+            let ptr = unsafe { *fragments[f].get() };
+            match ptr.is_null() {
+                true => continue,
+                false => {
+                    let capacity = growth.fragment_capacity_of(f);
+                    let _fragment_to_drop = unsafe { fragment_from_raw(ptr, 0, capacity) };
                 }
             }
         }
