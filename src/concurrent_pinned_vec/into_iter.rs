@@ -15,20 +15,6 @@ where
     current_last: *const T,
 }
 
-impl<'a, T, G> Default for ConcurrentSplitVecIntoIter<T, G>
-where
-    G: GrowthWithConstantTimeAccess,
-{
-    fn default() -> Self {
-        Self {
-            slices: Default::default(),
-            len_of_remaining_slices: Default::default(),
-            current_ptr: Default::default(),
-            current_last: Default::default(),
-        }
-    }
-}
-
 impl<'a, T, G> ConcurrentSplitVecIntoIter<T, G>
 where
     G: GrowthWithConstantTimeAccess,
