@@ -24,4 +24,4 @@ criterion = "0.7.0"
 rand = { version = "0.9.2", default-features = false }
 rand_chacha = { version = "0.9", default-features = false }
 test-case = "3.3.1"
-orx-concurrent-bag = "3.1.0"
+# orx-concurrent-bag = "3.1.0"
