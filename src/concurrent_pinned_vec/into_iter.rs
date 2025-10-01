@@ -15,7 +15,7 @@ where
     current_last: *const T,
 }
 
-impl<'a, T, G> ConcurrentSplitVecIntoIter<T, G>
+impl<T, G> ConcurrentSplitVecIntoIter<T, G>
 where
     G: GrowthWithConstantTimeAccess,
 {

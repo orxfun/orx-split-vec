@@ -107,9 +107,9 @@ where
         }
     }
 
-    fn drop_fragments(growth: &G, fragments: &mut Vec<UnsafeCell<*mut T>>) {
-        for f in 0..fragments.len() {
-            let ptr = unsafe { *fragments[f].get() };
+    fn drop_fragments(growth: &G, fragments: &mut [UnsafeCell<*mut T>]) {
+        for (f, cell) in fragments.iter().enumerate() {
+            let ptr = unsafe { *cell.get() };
             match ptr.is_null() {
                 true => continue,
                 false => {
