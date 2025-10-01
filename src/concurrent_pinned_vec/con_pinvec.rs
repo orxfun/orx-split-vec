@@ -1,7 +1,7 @@
 use crate::{
     Doubling, Fragment, GrowthWithConstantTimeAccess, SplitVec,
     common_traits::iterator::{IterOfSlicesOfCon, SliceBorrowAsMut, SliceBorrowAsRef},
-    concurrent_pinned_vec::iter_ptr::IterPtrOfCon,
+    concurrent_pinned_vec::{into_iter::ConcurrentSplitVecIntoIter, iter_ptr::IterPtrOfCon},
     fragment::transformations::{fragment_from_raw, fragment_into_raw},
 };
 use alloc::vec::Vec;
@@ -10,10 +10,10 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{cell::UnsafeCell, ops::Range};
 use orx_pinned_vec::ConcurrentPinnedVec;
 
-struct FragmentData {
-    f: usize,
-    len: usize,
-    capacity: usize,
+pub struct FragmentData {
+    pub f: usize,
+    pub len: usize,
+    pub capacity: usize,
 }
 
 /// Concurrent wrapper ([`orx_pinned_vec::ConcurrentPinnedVec`]) for the `SplitVec`.
@@ -35,6 +35,15 @@ impl<T, G: GrowthWithConstantTimeAccess> Drop for ConcurrentSplitVec<T, G> {
 }
 
 impl<T, G: GrowthWithConstantTimeAccess> ConcurrentSplitVec<T, G> {
+    pub(super) fn destruct(mut self) -> (G, Vec<UnsafeCell<*mut T>>, usize) {
+        let mut data = Vec::new();
+        core::mem::swap(&mut self.data, &mut data);
+        let capacity = self.capacity.load(Ordering::Relaxed);
+        let growth = self.growth.clone();
+        self.zero();
+        (growth, data, capacity)
+    }
+
     unsafe fn get_raw_mut_unchecked_fi(&self, f: usize, i: usize) -> *mut T {
         let p = unsafe { *self.data[f].get() };
         unsafe { p.add(i) }
@@ -194,6 +203,8 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
         = IterPtrOfCon<'a, T, G>
     where
         Self: 'a;
+
+    type IntoIter = ConcurrentSplitVecIntoIter<T, G>;
 
     unsafe fn into_inner(mut self, len: usize) -> Self::P {
         let mut fragments = Vec::with_capacity(self.max_num_fragments);
@@ -433,5 +444,10 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
 
     unsafe fn ptr_iter_unchecked(&self, range: Range<usize>) -> Self::PtrIter<'_> {
         IterPtrOfCon::new(self.capacity(), &self.data, self.growth.clone(), range)
+    }
+
+    unsafe fn into_iter(self, range: Range<usize>) -> Self::IntoIter {
+        let (growth, data, capacity) = self.destruct();
+        ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
     }
 }

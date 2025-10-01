@@ -1,15 +1,18 @@
 use crate::{
     GrowthWithConstantTimeAccess,
+    fragment::transformations::fragment_from_raw,
     range_helpers::{range_end, range_start},
 };
+use alloc::vec::Vec;
 use core::cmp::min;
 use core::{cell::UnsafeCell, iter::FusedIterator, ops::Range};
 
-pub struct IterPtrOfConSlices<'a, T, G>
+#[derive(Default)]
+pub(super) struct IntoIterPtrOfConSlices<T, G>
 where
     G: GrowthWithConstantTimeAccess,
 {
-    fragments: &'a [UnsafeCell<*mut T>],
+    fragments: Vec<UnsafeCell<*mut T>>,
     growth: G,
     sf: usize,
     si: usize,
@@ -19,22 +22,22 @@ where
     f: usize,
 }
 
-impl<'a, T, G> Default for IterPtrOfConSlices<'a, T, G>
+impl<T, G> Drop for IntoIterPtrOfConSlices<T, G>
 where
     G: GrowthWithConstantTimeAccess,
 {
-    fn default() -> Self {
-        Self::empty()
+    fn drop(&mut self) {
+        Self::drop_fragments(&self.growth, &mut self.fragments);
     }
 }
 
-impl<'a, T, G> IterPtrOfConSlices<'a, T, G>
+impl<T, G> IntoIterPtrOfConSlices<T, G>
 where
     G: GrowthWithConstantTimeAccess,
 {
     fn empty() -> Self {
         Self {
-            fragments: &[],
+            fragments: Default::default(),
             growth: G::pseudo_default(),
             sf: 0,
             si: 0,
@@ -46,7 +49,7 @@ where
     }
 
     fn single_slice(
-        fragments: &'a [UnsafeCell<*mut T>],
+        fragments: Vec<UnsafeCell<*mut T>>,
         growth: G,
         f: usize,
         begin: usize,
@@ -66,7 +69,7 @@ where
 
     pub fn new(
         capacity: usize,
-        fragments: &'a [UnsafeCell<*mut T>],
+        mut fragments: Vec<UnsafeCell<*mut T>>,
         growth: G,
         range: Range<usize>,
     ) -> Self {
@@ -76,7 +79,10 @@ where
         let b = min(capacity, range_end(&range, capacity));
 
         match b.saturating_sub(a) {
-            0 => Self::empty(),
+            0 => {
+                Self::drop_fragments(&growth, &mut fragments);
+                Self::empty()
+            }
             _ => {
                 let (sf, si) = fragment_and_inner_indices(a);
                 let (ef, ei) = fragment_and_inner_indices(b - 1);
@@ -101,6 +107,19 @@ where
         }
     }
 
+    fn drop_fragments(growth: &G, fragments: &mut [UnsafeCell<*mut T>]) {
+        for (f, cell) in fragments.iter().enumerate() {
+            let ptr = unsafe { *cell.get() };
+            match ptr.is_null() {
+                true => continue,
+                false => {
+                    let capacity = growth.fragment_capacity_of(f);
+                    let _fragment_to_drop = unsafe { fragment_from_raw(ptr, 0, capacity) };
+                }
+            }
+        }
+    }
+
     #[inline(always)]
     fn remaining_len(&self) -> usize {
         (1 + self.ef).saturating_sub(self.f)
@@ -118,7 +137,7 @@ where
     }
 }
 
-impl<'a, T, G> Iterator for IterPtrOfConSlices<'a, T, G>
+impl<T, G> Iterator for IntoIterPtrOfConSlices<T, G>
 where
     G: GrowthWithConstantTimeAccess,
 {
@@ -154,9 +173,9 @@ where
     }
 }
 
-impl<'a, T, G> FusedIterator for IterPtrOfConSlices<'a, T, G> where G: GrowthWithConstantTimeAccess {}
+impl<T, G> FusedIterator for IntoIterPtrOfConSlices<T, G> where G: GrowthWithConstantTimeAccess {}
 
-impl<'a, T, G> ExactSizeIterator for IterPtrOfConSlices<'a, T, G>
+impl<T, G> ExactSizeIterator for IntoIterPtrOfConSlices<T, G>
 where
     G: GrowthWithConstantTimeAccess,
 {
