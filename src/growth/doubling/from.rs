@@ -1,8 +1,10 @@
+use core::{cmp::min, mem::MaybeUninit, ptr::copy_nonoverlapping};
+
 use super::constants::CUMULATIVE_CAPACITIES;
-use crate::{Doubling, Fragment, SplitVec};
+use crate::{Doubling, Fragment, SplitVec, growth::doubling::constants::CAPACITIES};
 use alloc::vec::Vec;
 
-impl<T: Clone> From<Vec<T>> for SplitVec<T, Doubling> {
+impl<T> From<Vec<T>> for SplitVec<T, Doubling> {
     /// Converts a `Vec` into a `SplitVec`.
     ///
     /// # Examples
@@ -19,8 +21,9 @@ impl<T: Clone> From<Vec<T>> for SplitVec<T, Doubling> {
     /// assert_eq!(1, split_vec.fragments().len());
     /// assert!(vec_capacity <= split_vec.capacity());
     /// ```
-    fn from(value: Vec<T>) -> Self {
+    fn from(mut value: Vec<T>) -> Self {
         let len = value.len();
+        // Number of fragments to create
         let f = CUMULATIVE_CAPACITIES
             .iter()
             .enumerate()
@@ -29,26 +32,33 @@ impl<T: Clone> From<Vec<T>> for SplitVec<T, Doubling> {
             .expect("overflow");
 
         let mut fragments = Vec::with_capacity(f + 1);
-        let mut original_idx = 0;
+        let fragments_init = fragments.spare_capacity_mut();
         let mut remaining_len = len;
-        let mut curr_f = 1;
+        let mut curr_f = f;
         while remaining_len > 0 {
-            let capacity = &CUMULATIVE_CAPACITIES[curr_f];
-            let mut fragment = Fragment::new(*capacity);
-
-            let copy_len = if capacity <= &remaining_len {
-                *capacity
-            } else {
-                remaining_len
-            };
-
-            fragment.extend_from_slice(&value[original_idx..(original_idx + copy_len)]);
-
-            original_idx += copy_len;
+            curr_f -= 1;
+            let capacity = CAPACITIES[curr_f];
+            // for example, if the current fragment has a capacity of 8 but there are only 5 elements to copy,
+            // we want the copy length to only be 1
+            let copy_len = min(remaining_len - CUMULATIVE_CAPACITIES[curr_f], capacity);
             remaining_len -= copy_len;
-            fragments.push(fragment);
-            curr_f += 1;
+
+            // This is adapted from Vec::split_off, with the difference that it
+            // reserves the full capacity first to avoid extra allocations
+            let mut fragment_data = Vec::with_capacity(capacity);
+            unsafe {
+                value.set_len(remaining_len);
+                fragment_data.set_len(copy_len);
+                copy_nonoverlapping(
+                    value.as_ptr().add(remaining_len),
+                    fragment_data.as_mut_ptr(),
+                    copy_len,
+                );
+            }
+            fragments_init[curr_f] = MaybeUninit::new(Fragment::from(fragment_data));
         }
+        debug_assert_eq!(curr_f, 0);
+        unsafe { fragments.set_len(f) };
 
         Self::from_raw_parts(len, fragments, Doubling)
     }

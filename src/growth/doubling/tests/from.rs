@@ -14,3 +14,16 @@ fn from_vec_medium() {
         validate_clone(vec, split_vec);
     }
 }
+
+#[test]
+fn from_same_as_push() {
+    for len in 0..135 {
+        let vec: Vec<_> = (0..len).collect();
+        let split_vec_from: SplitVec<_, Doubling> = vec.clone().into();
+        let mut split_vec_manual = SplitVec::new();
+        for item in vec {
+            split_vec_manual.push(item);
+        }
+        assert_eq!(split_vec_from, split_vec_manual);
+    }
+}

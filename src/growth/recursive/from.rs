@@ -55,7 +55,7 @@ impl<T> From<SplitVec<T, Linear>> for SplitVec<T, Recursive> {
     }
 }
 
-impl<T: Clone> From<Vec<T>> for SplitVec<T, Recursive> {
+impl<T> From<Vec<T>> for SplitVec<T, Recursive> {
     /// Converts a `Vec` into a `SplitVec`.
     ///
     /// # Examples
