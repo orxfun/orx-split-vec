@@ -317,13 +317,49 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
             let last = &mut self.fragments[f];
             let available = last.room();
 
-            if available < slice.len() {
-                last.extend_from_slice(&slice[0..available]);
-                slice = &slice[available..];
+            match available < slice.len() {
+                true => {
+                    last.extend_from_slice(&slice[0..available]);
+                    slice = &slice[available..];
+                    self.add_fragment();
+                }
+                false => {
+                    last.extend_from_slice(slice);
+                    break;
+                }
+            }
+        }
+    }
+
+    unsafe fn extend_from_nonoverlapping(&mut self, mut src: *const T, count: usize) {
+        self.len += count;
+        let mut left = count;
+        while left > 0 {
+            if !self.has_capacity_for_one() {
                 self.add_fragment();
-            } else {
-                last.extend_from_slice(slice);
-                break;
+            }
+            let f = self.fragments.len() - 1;
+
+            let last = &mut self.fragments[f];
+            let last_len = last.len();
+            let last_available = last.room();
+
+            let dst = unsafe { last.as_mut_ptr().add(last.len()) };
+            match last_available < left {
+                true => {
+                    unsafe { dst.copy_from_nonoverlapping(src, last_available) };
+                    unsafe { last.set_len(last_len + last_available) };
+                    debug_assert_eq!(last.len(), last.capacity());
+
+                    src = unsafe { src.add(last_available) };
+                    left -= last_available;
+
+                    self.add_fragment();
+                }
+                false => {
+                    unsafe { dst.copy_from_nonoverlapping(src, left) };
+                    unsafe { last.set_len(last_len + left) };
+                }
             }
         }
     }
