@@ -359,6 +359,7 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
                 false => {
                     unsafe { dst.copy_from_nonoverlapping(src, left) };
                     unsafe { last.set_len(last_len + left) };
+                    break;
                 }
             }
         }
