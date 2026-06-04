@@ -1,4 +1,4 @@
-use core::ops::Range;
+use core::{cmp::Ordering, ops::Range};
 
 use alloc::vec::Vec;
 
@@ -162,6 +162,13 @@ impl<T> Fragment<T> {
 
     pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, T> {
         self.data.iter_mut()
+    }
+
+    pub fn sort_by<F>(&mut self, compare: F)
+    where
+        F: FnMut(&T, &T) -> Ordering,
+    {
+        self.data.sort_by(compare);
     }
 }
 
