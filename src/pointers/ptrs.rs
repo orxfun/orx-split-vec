@@ -220,8 +220,7 @@ mod tests {
                 if f > 0 {
                     let first = {
                         let f = unsafe { &*fragments.as_ptr().add(f - 1) };
-                        let p = unsafe { f.as_ptr().add(0) } as *mut String;
-                        p
+                        (unsafe { f.as_ptr().add(0) } as *mut String)
                     };
                     let second = {
                         let f = unsafe { &*fragments.as_ptr().add(f) };

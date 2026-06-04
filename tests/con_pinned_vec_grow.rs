@@ -173,7 +173,7 @@ fn reserve() {
         unsafe { con_vec.reserve_maximum_concurrent_capacity(0, max_cap + 1) };
         let new_capacity = con_vec.capacity();
         assert_eq!(new_capacity, initial_capacity);
-        assert!(con_vec.max_capacity() >= max_cap + 1);
+        assert!(con_vec.max_capacity() > max_cap);
 
         let vec = unsafe { con_vec.into_inner(1) };
 
@@ -236,7 +236,7 @@ fn reserve_fill_with() {
         };
         let new_capacity = con_vec.capacity();
         assert_eq!(new_capacity, initial_capacity);
-        assert!(con_vec.max_capacity() >= max_cap + 1);
+        assert!(con_vec.max_capacity() > max_cap);
 
         let vec = unsafe { con_vec.into_inner(initial_capacity) };
 
