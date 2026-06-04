@@ -1,5 +1,5 @@
 use super::constants::FIXED_CAPACITIES;
-use crate::{Linear, SplitVec};
+use crate::{Fragment, Linear, SplitVec};
 use alloc::vec::Vec;
 
 // into SplitVec
@@ -31,7 +31,9 @@ impl<T> From<Vec<T>> for SplitVec<T, Linear> {
             .map(|(f, _)| f)
             .expect("overflow");
         let growth = Linear::new(f);
-        let fragments = alloc::vec![value.into()];
+        let capacity = Fragment::capacity_of_vec(&value);
+        let fragment = Fragment::new(value, capacity);
+        let fragments = alloc::vec![fragment];
         Self::from_raw_parts(len, fragments, growth)
     }
 }
