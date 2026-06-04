@@ -122,7 +122,10 @@ fn sort_growth(growth: impl Growth) {
 }
 
 fn assert_is_sorted<T: Ord>(fragments: Vec<Fragment<T>>) {
-    let flattened: Vec<T> = fragments.into_iter().flat_map(|x| Vec::from(x)).collect();
+    let flattened: Vec<T> = fragments
+        .into_iter()
+        .flat_map(Fragment::into_inner)
+        .collect();
 
     if flattened.is_empty() {
         return;
