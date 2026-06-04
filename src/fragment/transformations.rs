@@ -13,6 +13,6 @@ pub fn fragment_into_raw<T>(mut fragment: Fragment<T>) -> (*mut T, usize, usize)
 
 pub unsafe fn fragment_from_raw<T>(ptr: *mut T, len: usize, capacity: usize) -> Fragment<T> {
     assert!(capacity >= len);
-    let vec = unsafe { Vec::from_raw_parts(ptr, len, capacity) };
-    vec.into()
+    let data = unsafe { Vec::from_raw_parts(ptr, len, capacity) };
+    Fragment::new_from_vec(data, capacity)
 }
