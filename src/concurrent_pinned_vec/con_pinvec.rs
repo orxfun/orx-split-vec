@@ -163,7 +163,7 @@ impl<T, G: GrowthWithConstantTimeAccess> From<SplitVec<T, G>> for ConcurrentSpli
             }
 
             total_len += len;
-            maximum_capacity += expected_cap;
+            maximum_capacity += cap;
 
             data.push(UnsafeCell::new(p));
         }
