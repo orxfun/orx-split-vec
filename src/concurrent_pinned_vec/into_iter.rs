@@ -1,7 +1,5 @@
-use crate::{
-    GrowthWithConstantTimeAccess,
-    concurrent_pinned_vec::into_iter_ptr_slices::IntoIterPtrOfConSlices,
-};
+use crate::GrowthWithConstantTimeAccess;
+use crate::concurrent_pinned_vec::into_iter_ptr_slices::IntoIterPtrOfConSlices;
 use alloc::vec::Vec;
 use core::{cell::UnsafeCell, ops::Range};
 
@@ -47,6 +45,7 @@ where
     }
 
     fn next_ptr(&mut self) -> Option<*mut T> {
+        let a = 12;
         match self.current_ptr {
             ptr if ptr.is_null() => self.next_slice(),
             ptr if ptr == self.current_last => {

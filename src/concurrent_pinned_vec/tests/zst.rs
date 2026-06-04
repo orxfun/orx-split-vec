@@ -1,75 +1,75 @@
-// use crate::{
-//     Doubling, GrowthWithConstantTimeAccess, Linear, SplitVec,
-//     concurrent_pinned_vec::into_iter::ConcurrentSplitVecIntoIter,
-// };
-// use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec, PinnedVec};
-// use test_case::test_matrix;
+use crate::{
+    Doubling, GrowthWithConstantTimeAccess, Linear, SplitVec,
+    concurrent_pinned_vec::into_iter::ConcurrentSplitVecIntoIter,
+};
+use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec, PinnedVec};
+use test_case::test_matrix;
 
-// fn vec_doubling(n: usize) -> SplitVec<(), Doubling> {
-//     (0..n).map(|_| ()).collect()
-// }
+fn vec_doubling(n: usize) -> SplitVec<(), Doubling> {
+    (0..n).map(|_| ()).collect()
+}
 
-// fn vec_linear(n: usize) -> SplitVec<(), Linear> {
-//     let mut vec = SplitVec::with_linear_growth(2);
-//     vec.extend((0..n).map(|_| ()));
-//     vec
-// }
+fn vec_linear(n: usize) -> SplitVec<u64, Linear> {
+    let mut vec = SplitVec::with_linear_growth(2);
+    vec.extend((0..n).map(|_| 0));
+    vec
+}
 
-// #[test]
-// fn abc() {
-//     use alloc::vec::Vec;
+#[test]
+fn abc() {
+    use alloc::vec::Vec;
 
-//     let vec = Vec::<u64>::with_capacity(4);
-//     assert_eq!(vec.capacity(), 4);
+    let vec = Vec::<u64>::with_capacity(4);
+    assert_eq!(vec.capacity(), 4);
 
-//     let vec = Vec::<()>::with_capacity(4);
-//     assert_eq!(vec.capacity(), usize::MAX);
-// }
+    let vec = Vec::<()>::with_capacity(4);
+    assert_eq!(vec.capacity(), usize::MAX);
+}
 
-// #[test]
-// fn xyz() {
-//     let vec = vec_linear;
-//     let iter = || {
-//         let vec = vec(0);
-//         let range = 0..vec.len();
-//         let convec = vec.into_concurrent();
-//         let (growth, data, capacity) = convec.destruct();
-//         ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
-//     };
+#[test]
+fn xyz() {
+    let vec = vec_linear;
+    let iter = || {
+        let vec = vec(0);
+        let range = 0..vec.len();
+        let convec = vec.into_concurrent();
+        let (growth, data, capacity) = convec.destruct();
+        ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
+    };
 
-//     let consume_all = iter().count();
-//     assert_eq!(consume_all, 0);
+    let consume_all = iter().count();
+    assert_eq!(consume_all, 0);
 
-//     // let mut consume_half = iter();
-//     // for _ in 0..10 {
-//     //     _ = consume_half.next();
-//     // }
+    // let mut consume_half = iter();
+    // for _ in 0..10 {
+    //     _ = consume_half.next();
+    // }
 
-//     // let _consume_none = iter();
-// }
+    // let _consume_none = iter();
+}
 
-// #[test]
-// fn ooo() {
-//     let vec = vec_linear;
+#[test]
+fn ooo() {
+    let vec = vec_doubling;
 
-//     let iter = || {
-//         let vec = vec(20);
-//         let range = 0..vec.len();
-//         let convec = vec.into_concurrent();
-//         let (growth, data, capacity) = convec.destruct();
-//         ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
-//     };
+    let iter = || {
+        let vec = vec(20);
+        let range = 0..vec.len();
+        let convec = vec.into_concurrent();
+        let (growth, data, capacity) = convec.destruct();
+        ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
+    };
 
-//     let consume_all = iter().count();
-//     assert_eq!(consume_all, 20);
+    let consume_all = iter().count();
+    assert_eq!(consume_all, 20);
 
-//     let mut consume_half = iter();
-//     for _ in 0..10 {
-//         _ = consume_half.next();
-//     }
+    let mut consume_half = iter();
+    for _ in 0..10 {
+        _ = consume_half.next();
+    }
 
-//     let _consume_none = iter();
-// }
+    let _consume_none = iter();
+}
 
 // #[test_matrix([vec_doubling, vec_linear])]
 // fn into_iter_empty_zst<G, F>(vec: F)
