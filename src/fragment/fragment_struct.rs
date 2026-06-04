@@ -48,15 +48,6 @@ impl<T> Fragment<T> {
         }
     }
 
-    /// Creates a new fragment with length and capacity equal to the given `capacity`, where each entry is filled with `f()`.
-    pub fn new_filled<F: Fn() -> T>(capacity: usize, f: F) -> Self {
-        let mut data = Vec::with_capacity(capacity);
-        for _ in 0..capacity {
-            data.push(f());
-        }
-        Self { data, capacity }
-    }
-
     /// Consumes the fragment and returns the inner vector.
     pub fn into_inner(self) -> Vec<T> {
         self.data
