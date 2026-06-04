@@ -22,7 +22,7 @@ impl<T> Fragment<T> {
         }
     }
 
-    pub fn new(mut data: Vec<T>, capacity: usize) -> Self {
+    pub fn new(capacity: usize, mut data: Vec<T>) -> Self {
         match core::mem::size_of::<T>() == 0 {
             true => Self { data, capacity },
             false => {
