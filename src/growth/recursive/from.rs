@@ -1,4 +1,4 @@
-use crate::{Doubling, Linear, Recursive, SplitVec};
+use crate::{Doubling, Fragment, Linear, Recursive, SplitVec};
 use alloc::vec::Vec;
 
 impl<T> From<SplitVec<T, Doubling>> for SplitVec<T, Recursive> {
@@ -73,7 +73,9 @@ impl<T> From<Vec<T>> for SplitVec<T, Recursive> {
     /// assert!(vec_capacity <= split_vec.capacity());
     /// ```
     fn from(value: Vec<T>) -> Self {
-        SplitVec::from_raw_parts(value.len(), alloc::vec![value.into()], Recursive)
+        let capacity = Fragment::capacity_of_vec(&value);
+        let fragment = Fragment::new(value, capacity);
+        SplitVec::from_raw_parts(fragment.len(), alloc::vec![fragment], Recursive)
     }
 }
 
