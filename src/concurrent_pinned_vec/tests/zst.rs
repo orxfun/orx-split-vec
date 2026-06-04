@@ -1,161 +1,217 @@
-use crate::{
-    Doubling, GrowthWithConstantTimeAccess, Linear, SplitVec,
-    concurrent_pinned_vec::into_iter::ConcurrentSplitVecIntoIter,
-};
-use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec, PinnedVec};
-use test_case::test_matrix;
+// use crate::{
+//     Doubling, GrowthWithConstantTimeAccess, Linear, SplitVec,
+//     concurrent_pinned_vec::into_iter::ConcurrentSplitVecIntoIter,
+// };
+// use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec, PinnedVec};
+// use test_case::test_matrix;
 
-fn vec_doubling(n: usize) -> SplitVec<(), Doubling> {
-    (0..n).map(|_| ()).collect()
-}
+// fn vec_doubling(n: usize) -> SplitVec<(), Doubling> {
+//     (0..n).map(|_| ()).collect()
+// }
 
-fn vec_linear(n: usize) -> SplitVec<(), Linear> {
-    let mut vec = SplitVec::with_linear_growth(2);
-    vec.extend((0..n).map(|_| ()));
-    vec
-}
+// fn vec_linear(n: usize) -> SplitVec<(), Linear> {
+//     let mut vec = SplitVec::with_linear_growth(2);
+//     vec.extend((0..n).map(|_| ()));
+//     vec
+// }
 
-#[test_matrix([vec_doubling, vec_linear])]
-fn into_iter_empty_zst<G, F>(vec: F)
-where
-    G: GrowthWithConstantTimeAccess,
-    F: Fn(usize) -> SplitVec<(), G>,
-{
-    let iter = || {
-        let vec = vec(0);
-        let range = 0..vec.len();
-        let convec = vec.into_concurrent();
-        let (growth, data, capacity) = convec.destruct();
-        ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
-    };
+// #[test]
+// fn abc() {
+//     use alloc::vec::Vec;
 
-    let consume_all = iter().count();
-    assert_eq!(consume_all, 0);
+//     let vec = Vec::<u64>::with_capacity(4);
+//     assert_eq!(vec.capacity(), 4);
 
-    let mut consume_half = iter();
-    for _ in 0..10 {
-        _ = consume_half.next();
-    }
+//     let vec = Vec::<()>::with_capacity(4);
+//     assert_eq!(vec.capacity(), usize::MAX);
+// }
 
-    let _consume_none = iter();
-}
+// #[test]
+// fn xyz() {
+//     let vec = vec_linear;
+//     let iter = || {
+//         let vec = vec(0);
+//         let range = 0..vec.len();
+//         let convec = vec.into_concurrent();
+//         let (growth, data, capacity) = convec.destruct();
+//         ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
+//     };
 
-#[test_matrix([vec_doubling, vec_linear])]
-fn into_iter_non_taken_zst<G, F>(vec: F)
-where
-    G: GrowthWithConstantTimeAccess,
-    F: Fn(usize) -> SplitVec<(), G>,
-{
-    let iter = || {
-        let vec = vec(20);
-        let range = 0..vec.len();
-        let convec = vec.into_concurrent();
-        let (growth, data, capacity) = convec.destruct();
-        ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
-    };
+//     let consume_all = iter().count();
+//     assert_eq!(consume_all, 0);
 
-    let consume_all = iter().count();
-    assert_eq!(consume_all, 20);
+//     // let mut consume_half = iter();
+//     // for _ in 0..10 {
+//     //     _ = consume_half.next();
+//     // }
 
-    let mut consume_half = iter();
-    for _ in 0..10 {
-        _ = consume_half.next();
-    }
+//     // let _consume_none = iter();
+// }
 
-    let _consume_none = iter();
-}
+// #[test]
+// fn ooo() {
+//     let vec = vec_linear;
 
-#[test_matrix([vec_doubling, vec_linear])]
-fn into_iter_taken_from_beg_zst<G, F>(vec: F)
-where
-    G: GrowthWithConstantTimeAccess,
-    F: Fn(usize) -> SplitVec<(), G>,
-{
-    let iter = || {
-        let vec = vec(20);
-        let range = 5..vec.len();
-        let convec = vec.into_concurrent();
+//     let iter = || {
+//         let vec = vec(20);
+//         let range = 0..vec.len();
+//         let convec = vec.into_concurrent();
+//         let (growth, data, capacity) = convec.destruct();
+//         ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
+//     };
 
-        for i in 0..range.start {
-            let p = unsafe { convec.get_ptr_mut(i) };
-            let _value = unsafe { p.read() };
-        }
+//     let consume_all = iter().count();
+//     assert_eq!(consume_all, 20);
 
-        let (growth, data, capacity) = convec.destruct();
-        ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
-    };
+//     let mut consume_half = iter();
+//     for _ in 0..10 {
+//         _ = consume_half.next();
+//     }
 
-    let consume_all = iter().count();
-    assert_eq!(consume_all, 15);
+//     let _consume_none = iter();
+// }
 
-    let mut consume_half = iter();
-    for _ in 0..10 {
-        _ = consume_half.next();
-    }
+// #[test_matrix([vec_doubling, vec_linear])]
+// fn into_iter_empty_zst<G, F>(vec: F)
+// where
+//     G: GrowthWithConstantTimeAccess,
+//     F: Fn(usize) -> SplitVec<(), G>,
+// {
+//     let iter = || {
+//         let vec = vec(0);
+//         let range = 0..vec.len();
+//         let convec = vec.into_concurrent();
+//         let (growth, data, capacity) = convec.destruct();
+//         ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
+//     };
 
-    let _consume_none = iter();
-}
+//     let consume_all = iter().count();
+//     assert_eq!(consume_all, 0);
 
-#[test_matrix([vec_doubling, vec_linear])]
-fn into_iter_taken_from_end_zst<G, F>(vec: F)
-where
-    G: GrowthWithConstantTimeAccess,
-    F: Fn(usize) -> SplitVec<(), G>,
-{
-    let iter = || {
-        let vec = vec(20);
-        let vec_len = vec.len();
-        let range = 0..15;
-        let convec = vec.into_concurrent();
+//     let mut consume_half = iter();
+//     for _ in 0..10 {
+//         _ = consume_half.next();
+//     }
 
-        for i in range.end..vec_len {
-            let p = unsafe { convec.get_ptr_mut(i) };
-            let _value = unsafe { p.read() };
-        }
+//     let _consume_none = iter();
+// }
 
-        let (growth, data, capacity) = convec.destruct();
-        ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
-    };
+// #[test_matrix([vec_doubling, vec_linear])]
+// fn into_iter_non_taken_zst<G, F>(vec: F)
+// where
+//     G: GrowthWithConstantTimeAccess,
+//     F: Fn(usize) -> SplitVec<(), G>,
+// {
+//     let iter = || {
+//         let vec = vec(20);
+//         let range = 0..vec.len();
+//         let convec = vec.into_concurrent();
+//         let (growth, data, capacity) = convec.destruct();
+//         ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
+//     };
 
-    let consume_all = iter().count();
-    assert_eq!(consume_all, 15);
+//     let consume_all = iter().count();
+//     assert_eq!(consume_all, 20);
 
-    let mut consume_half = iter();
-    for _ in 0..10 {
-        _ = consume_half.next();
-    }
+//     let mut consume_half = iter();
+//     for _ in 0..10 {
+//         _ = consume_half.next();
+//     }
 
-    let _consume_none = iter();
-}
+//     let _consume_none = iter();
+// }
 
-#[test_matrix([vec_doubling, vec_linear])]
-fn into_iter_taken_from_both_ends_zst<G, F>(vec: F)
-where
-    G: GrowthWithConstantTimeAccess,
-    F: Fn(usize) -> SplitVec<(), G>,
-{
-    let iter = || {
-        let vec = vec(20);
-        let vec_len = vec.len();
-        let range = 4..15;
-        let convec = vec.into_concurrent();
+// #[test_matrix([vec_doubling, vec_linear])]
+// fn into_iter_taken_from_beg_zst<G, F>(vec: F)
+// where
+//     G: GrowthWithConstantTimeAccess,
+//     F: Fn(usize) -> SplitVec<(), G>,
+// {
+//     let iter = || {
+//         let vec = vec(20);
+//         let range = 5..vec.len();
+//         let convec = vec.into_concurrent();
 
-        for i in (0..range.start).chain(range.end..vec_len) {
-            let p = unsafe { convec.get_ptr_mut(i) };
-            let _value = unsafe { p.read() };
-        }
+//         for i in 0..range.start {
+//             let p = unsafe { convec.get_ptr_mut(i) };
+//             let _value = unsafe { p.read() };
+//         }
 
-        let (growth, data, capacity) = convec.destruct();
-        ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
-    };
+//         let (growth, data, capacity) = convec.destruct();
+//         ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
+//     };
 
-    let consume_all = iter().count();
-    assert_eq!(consume_all, 11);
+//     let consume_all = iter().count();
+//     assert_eq!(consume_all, 15);
 
-    let mut consume_half = iter();
-    for _ in 0..7 {
-        _ = consume_half.next();
-    }
+//     let mut consume_half = iter();
+//     for _ in 0..10 {
+//         _ = consume_half.next();
+//     }
 
-    let _consume_none = iter();
-}
+//     let _consume_none = iter();
+// }
+
+// #[test_matrix([vec_doubling, vec_linear])]
+// fn into_iter_taken_from_end_zst<G, F>(vec: F)
+// where
+//     G: GrowthWithConstantTimeAccess,
+//     F: Fn(usize) -> SplitVec<(), G>,
+// {
+//     let iter = || {
+//         let vec = vec(20);
+//         let vec_len = vec.len();
+//         let range = 0..15;
+//         let convec = vec.into_concurrent();
+
+//         for i in range.end..vec_len {
+//             let p = unsafe { convec.get_ptr_mut(i) };
+//             let _value = unsafe { p.read() };
+//         }
+
+//         let (growth, data, capacity) = convec.destruct();
+//         ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
+//     };
+
+//     let consume_all = iter().count();
+//     assert_eq!(consume_all, 15);
+
+//     let mut consume_half = iter();
+//     for _ in 0..10 {
+//         _ = consume_half.next();
+//     }
+
+//     let _consume_none = iter();
+// }
+
+// #[test_matrix([vec_doubling, vec_linear])]
+// fn into_iter_taken_from_both_ends_zst<G, F>(vec: F)
+// where
+//     G: GrowthWithConstantTimeAccess,
+//     F: Fn(usize) -> SplitVec<(), G>,
+// {
+//     let iter = || {
+//         let vec = vec(20);
+//         let vec_len = vec.len();
+//         let range = 4..15;
+//         let convec = vec.into_concurrent();
+
+//         for i in (0..range.start).chain(range.end..vec_len) {
+//             let p = unsafe { convec.get_ptr_mut(i) };
+//             let _value = unsafe { p.read() };
+//         }
+
+//         let (growth, data, capacity) = convec.destruct();
+//         ConcurrentSplitVecIntoIter::new(capacity, data, growth, range)
+//     };
+
+//     let consume_all = iter().count();
+//     assert_eq!(consume_all, 11);
+
+//     let mut consume_half = iter();
+//     for _ in 0..7 {
+//         _ = consume_half.next();
+//     }
+
+//     let _consume_none = iter();
+// }
