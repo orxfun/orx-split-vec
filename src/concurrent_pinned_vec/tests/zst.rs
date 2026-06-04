@@ -76,7 +76,7 @@ where
 
         for i in 0..range.start {
             let p = unsafe { convec.get_ptr_mut(i) };
-            let _value = unsafe { p.read() };
+            unsafe { p.read() };
         }
 
         let (growth, data, capacity) = convec.destruct();
@@ -108,7 +108,7 @@ where
 
         for i in range.end..vec_len {
             let p = unsafe { convec.get_ptr_mut(i) };
-            let _value = unsafe { p.read() };
+            unsafe { p.read() };
         }
 
         let (growth, data, capacity) = convec.destruct();
@@ -140,7 +140,7 @@ where
 
         for i in (0..range.start).chain(range.end..vec_len) {
             let p = unsafe { convec.get_ptr_mut(i) };
-            let _value = unsafe { p.read() };
+            unsafe { p.read() };
         }
 
         let (growth, data, capacity) = convec.destruct();

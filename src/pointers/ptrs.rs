@@ -121,9 +121,9 @@ mod tests {
 
         let ptrs = Ptrs::from(fragments.as_slice());
         let mut prior = 0;
-        for f in 0..fragments.len() {
+        for (f, fragment) in fragments.iter().enumerate() {
             let mut ptr = unsafe { ptrs.get(f) }.unwrap();
-            for i in 0..fragments[f].len() {
+            for i in 0..fragment.len() {
                 assert_eq!(
                     ptr.next().map(|p| unsafe { &*p }),
                     Some(&(prior + i).to_string())
@@ -131,7 +131,7 @@ mod tests {
             }
             assert_eq!(ptr.next(), None);
             assert_eq!(ptr.next(), None);
-            prior += fragments[f].len();
+            prior += fragment.len();
         }
     }
 
@@ -224,8 +224,7 @@ mod tests {
                     };
                     let second = {
                         let f = unsafe { &*fragments.as_ptr().add(f) };
-                        let p = unsafe { f.as_ptr().add(i) } as *mut String;
-                        p
+                        (unsafe { f.as_ptr().add(i) } as *mut String)
                     };
                     unsafe { first.swap(second) };
                 }

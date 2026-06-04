@@ -66,7 +66,7 @@ fn slices_iter_mut_fused() {
     let mut slices = IterOfSlices::<_, SliceBorrowAsMut>::new(&mut vec, 3..87);
     let mut expected = 3;
 
-    while let Some(slice) = slices.next() {
+    for slice in slices.by_ref() {
         for x in slice {
             assert_eq!(*x, expected);
             expected += 1;

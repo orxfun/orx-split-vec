@@ -133,8 +133,8 @@ mod tests {
 
         let mut iter = IterPtrBackward::from(fragments.as_slice());
         let mut value = 4 + 8 + 16 - 1;
-        for f in 0..fragments.len() {
-            for _ in 0..fragments[f].len() {
+        for fragment in &fragments {
+            for _ in 0..fragment.len() {
                 assert_eq!(
                     iter.next().map(|p| unsafe { &*p }),
                     Some(&value.to_string())
@@ -176,8 +176,8 @@ mod tests {
 
         let mut iter = IterPtrBackward::from(fragments.as_slice());
         let mut value = 4 + 8 + 8 - 1;
-        for f in 0..fragments.len() {
-            for _ in 0..fragments[f].len() {
+        for fragment in &fragments {
+            for _ in 0..fragment.len() {
                 assert_eq!(
                     iter.next().map(|p| unsafe { &*p }),
                     Some(&value.to_string())
@@ -226,13 +226,11 @@ mod tests {
                 if f > 0 {
                     let first = {
                         let f = unsafe { &*fragments.as_ptr().add(f - 1) };
-                        let p = unsafe { f.as_ptr().add(0) } as *mut String;
-                        p
+                        (unsafe { f.as_ptr().add(0) } as *mut String)
                     };
                     let second = {
                         let f = unsafe { &*fragments.as_ptr().add(f) };
-                        let p = unsafe { f.as_ptr().add(i) } as *mut String;
-                        p
+                        (unsafe { f.as_ptr().add(i) } as *mut String)
                     };
                     unsafe { first.swap(second) };
                 }

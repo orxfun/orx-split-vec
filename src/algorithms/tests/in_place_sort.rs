@@ -132,9 +132,9 @@ fn assert_is_sorted<T: Ord>(fragments: Vec<Fragment<T>>) {
     }
 
     let mut curr = &flattened[0];
-    for i in 1..flattened.len() {
-        let cmp = curr.cmp(&flattened[i]);
+    for flattened in flattened.iter().skip(1) {
+        let cmp = curr.cmp(flattened);
         assert!(cmp != Greater);
-        curr = &flattened[i];
+        curr = flattened;
     }
 }
