@@ -1,14 +1,15 @@
 use alloc::vec::Vec;
 
-#[derive(Default)]
 /// A contiguous fragment of the split vector.
 ///
 /// Suppose a split vector contains 10 integers from 0 to 9.
 /// Depending on the growth strategy of the split vector,
 /// this data might be stored in 3 contiguous fragments,
 /// say [0, 1, 2, 3], [4, 5, 6, 7] and [8, 9].
+#[derive(Default)]
 pub struct Fragment<T> {
     pub(crate) data: Vec<T>,
+    capacity: usize,
 }
 
 impl<T> Fragment<T> {
@@ -16,13 +17,14 @@ impl<T> Fragment<T> {
     pub fn new_with_first_value(capacity: usize, first_value: T) -> Self {
         let mut data = Vec::with_capacity(capacity);
         data.push(first_value);
-        Self { data }
+        Self { data, capacity }
     }
 
     /// Creates a new fragment with the given `capacity`.
     pub fn new(capacity: usize) -> Self {
         Self {
             data: Vec::with_capacity(capacity),
+            capacity,
         }
     }
 
@@ -32,17 +34,17 @@ impl<T> Fragment<T> {
         for _ in 0..capacity {
             data.push(f());
         }
-        Self { data }
+        Self { data, capacity }
     }
 
     /// Returns whether the fragment has room to push a new item or not.
     pub fn has_capacity_for_one(&self) -> bool {
-        self.data.len() < self.data.capacity()
+        self.data.len() < self.capacity
     }
 
     /// Returns the available capacity in the fragment.
     pub fn room(&self) -> usize {
-        self.data.capacity() - self.data.len()
+        self.capacity - self.data.len()
     }
 
     // helpers
