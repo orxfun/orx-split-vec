@@ -24,7 +24,7 @@ impl<T> IntoIter<T> {
         let mut outer = fragments.into_iter();
         let inner = outer
             .next()
-            .map(|f| f.data.into_iter())
+            .map(|f| f.into_iter())
             .unwrap_or(Vec::new().into_iter());
 
         Self { outer, inner }
@@ -33,7 +33,7 @@ impl<T> IntoIter<T> {
     fn next_fragment(&mut self) -> Option<T> {
         match self.outer.next() {
             Some(f) => {
-                self.inner = f.data.into_iter();
+                self.inner = f.into_iter();
                 self.next()
             }
             None => None,

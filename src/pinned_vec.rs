@@ -17,7 +17,7 @@ impl<T, G: Growth> PseudoDefault for SplitVec<T, G> {
     fn pseudo_default() -> Self {
         let growth = G::pseudo_default();
         let capacity = growth.first_fragment_capacity();
-        let fragments = alloc::vec![Fragment::new(capacity)];
+        let fragments = alloc::vec![Fragment::new_empty(capacity)];
         Self::from_raw_parts(0, fragments, growth)
     }
 }
@@ -95,7 +95,7 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     fn index_of(&self, element: &T) -> Option<usize> {
         let mut count = 0;
         for fragment in &self.fragments {
-            if let Some(index) = slice::index_of(&fragment.data, element) {
+            if let Some(index) = slice::index_of(fragment.as_slice(), element) {
                 return Some(count + index);
             } else {
                 count += fragment.len()
@@ -120,7 +120,7 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
         // TODO! # examples in docs
         let mut count = 0;
         for fragment in &self.fragments {
-            if let Some(index) = slice::index_of_ptr(&fragment.data, element_ptr) {
+            if let Some(index) = slice::index_of_ptr(fragment.as_slice(), element_ptr) {
                 return Some(count + index);
             } else {
                 count += fragment.len()

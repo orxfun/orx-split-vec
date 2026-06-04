@@ -231,7 +231,7 @@ impl<T> SplitVec<T, Linear> {
         );
 
         let constant_fragment_capacity = FIXED_CAPACITIES[constant_fragment_capacity_exponent];
-        let fragments = Fragment::new(constant_fragment_capacity).into_fragments();
+        let fragments = Fragment::new_empty(constant_fragment_capacity).into_fragments();
         let growth = Linear::new(constant_fragment_capacity_exponent);
         Self::from_raw_parts(0, fragments, growth)
     }
@@ -263,7 +263,7 @@ impl<T> SplitVec<T, Linear> {
         assert!(fragments_capacity > 0);
 
         let constant_fragment_capacity = FIXED_CAPACITIES[constant_fragment_capacity_exponent];
-        let fragments = Fragment::new(constant_fragment_capacity)
+        let fragments = Fragment::new_empty(constant_fragment_capacity)
             .into_fragments_with_capacity(fragments_capacity);
         let growth = Linear::new(constant_fragment_capacity_exponent);
         Self::from_raw_parts(0, fragments, growth)

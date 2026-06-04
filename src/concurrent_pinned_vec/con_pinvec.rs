@@ -158,7 +158,9 @@ impl<T, G: GrowthWithConstantTimeAccess> From<SplitVec<T, G>> for ConcurrentSpli
             let (p, len, cap) = fragment_into_raw(fragment);
 
             let expected_cap = growth.fragment_capacity_of(f);
-            assert_eq!(cap, expected_cap);
+            if core::mem::size_of::<T>() > 0 {
+                assert_eq!(cap, expected_cap);
+            }
 
             total_len += len;
             maximum_capacity += cap;
@@ -221,8 +223,8 @@ impl<T, G: GrowthWithConstantTimeAccess> ConcurrentPinnedVec<T> for ConcurrentSp
     {
         let mut fragments = Vec::with_capacity(self.max_num_fragments);
         let mut clone_fragment = |x: FragmentData| {
-            let mut fragment = Fragment::new(x.capacity);
-            let dst: *mut T = fragment.data.as_mut_ptr();
+            let mut fragment = Fragment::new_empty(x.capacity);
+            let dst: *mut T = fragment.as_mut_ptr();
             let src = unsafe { *self.data[x.f].get() };
             for i in 0..x.len {
                 let value = unsafe { src.add(i).as_ref() }.expect("must be some");

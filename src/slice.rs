@@ -100,7 +100,10 @@ mod tests {
 
                 // ok
                 let slice_full_fragment = vec.try_get_slice(begin..end);
-                assert_eq!(slice_full_fragment, SplitVecSlice::Ok(&vec.fragments[f]));
+                assert_eq!(
+                    slice_full_fragment,
+                    SplitVecSlice::Ok(vec.fragments[f].as_slice())
+                );
 
                 let slice_half_fragment = vec.try_get_slice(begin..half);
                 assert_eq!(

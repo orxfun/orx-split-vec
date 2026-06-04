@@ -8,10 +8,11 @@ use test_case::test_case;
 
 #[test]
 fn insertion_position() {
-    let fragment: Fragment<u32> = alloc::vec![4, 7, 9, 13, 16, 17, 23].into();
+    let vec = alloc::vec![4, 7, 9, 13, 16, 17, 23];
+    let fragment = Fragment::new(vec.capacity(), vec);
 
     let mut c = |a: &u32, b: &u32| a.cmp(b);
-    let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
+    let mut pos = |val: &u32| find_position_to_insert(fragment.as_slice(), &mut c, val);
 
     assert_eq!(pos(&0), None);
     assert_eq!(pos(&3), None);
@@ -52,16 +53,16 @@ fn insertion_position() {
 fn insertion_position_with_ties() {
     let mut c = |a: &u32, b: &u32| a.cmp(b);
 
-    let fragment: Fragment<u32> = alloc::vec![4, 7, 13, 13, 13, 17, 23].into();
-    let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
+    let fragment: Fragment<u32> = Fragment::new(12, alloc::vec![4, 7, 13, 13, 13, 17, 23]);
+    let mut pos = |val: &u32| find_position_to_insert(fragment.as_slice(), &mut c, val);
     assert_eq!(pos(&13), Some(2));
 
-    let fragment: Fragment<u32> = alloc::vec![4, 7, 13, 13, 23, 23, 23].into();
-    let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
+    let fragment: Fragment<u32> = Fragment::new(12, alloc::vec![4, 7, 13, 13, 23, 23, 23]);
+    let mut pos = |val: &u32| find_position_to_insert(fragment.as_slice(), &mut c, val);
     assert_eq!(pos(&23), Some(4));
 
-    let fragment: Fragment<u32> = alloc::vec![4, 4, 13, 13, 23, 23, 23].into();
-    let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
+    let fragment: Fragment<u32> = Fragment::new(12, alloc::vec![4, 4, 13, 13, 23, 23, 23]);
+    let mut pos = |val: &u32| find_position_to_insert(fragment.as_slice(), &mut c, val);
     assert_eq!(pos(&4), None);
 }
 
@@ -70,9 +71,9 @@ fn sort_simple() {
     let mut c = |a: &u32, b: &u32| a.cmp(b);
 
     let mut fragments: Vec<Fragment<u32>> = alloc::vec![
-        alloc::vec![2, 4].into(),
-        alloc::vec![0, 5, 6].into(),
-        alloc::vec![1, 3].into()
+        Fragment::new(4, alloc::vec![2, 4]),
+        Fragment::new(4, alloc::vec![0, 5, 6]),
+        Fragment::new(4, alloc::vec![1, 3]),
     ];
 
     in_place_sort_by(&mut fragments, &mut c);
@@ -97,7 +98,7 @@ fn sort_growth(growth: impl Growth) {
     for _ in 0..num_fragments {
         let fragment_capacities: Vec<_> = fragments.iter().map(|x| x.capacity()).collect();
         let mut fragment =
-            Fragment::new(growth.new_fragment_capacity_from(fragment_capacities.into_iter()));
+            Fragment::new_empty(growth.new_fragment_capacity_from(fragment_capacities.into_iter()));
         for i in 0..fragment.capacity() {
             let i = len + i;
             let value = match i % 3 {
@@ -121,7 +122,10 @@ fn sort_growth(growth: impl Growth) {
 }
 
 fn assert_is_sorted<T: Ord>(fragments: Vec<Fragment<T>>) {
-    let flattened: Vec<T> = fragments.into_iter().flat_map(|x| Vec::from(x)).collect();
+    let flattened: Vec<T> = fragments
+        .into_iter()
+        .flat_map(Fragment::into_inner)
+        .collect();
 
     if flattened.is_empty() {
         return;

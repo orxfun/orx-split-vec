@@ -227,9 +227,8 @@ impl<T> SplitVec<T, Recursive> {
 
 #[cfg(test)]
 mod tests {
-    use crate::growth::doubling::constants::{CAPACITIES_LEN, FIRST_FRAGMENT_CAPACITY};
-
     use super::*;
+    use crate::growth::doubling::constants::{CAPACITIES_LEN, FIRST_FRAGMENT_CAPACITY};
     use alloc::vec::Vec;
     use orx_pinned_vec::PinnedVec;
 
@@ -244,7 +243,11 @@ mod tests {
             alloc::vec![9],
             alloc::vec![10, 11, 12, 13, 14],
         ];
-        let mut fragments: Vec<Fragment<_>> = vecs.clone().into_iter().map(|x| x.into()).collect();
+        let mut fragments: Vec<Fragment<_>> = vecs
+            .clone()
+            .into_iter()
+            .map(|x| Fragment::new(x.capacity(), x))
+            .collect();
         let len = fragments.iter().map(|x| x.len()).sum();
 
         let mut index = 0;
@@ -283,7 +286,8 @@ mod tests {
                     vec.push(index);
                     index += 1;
                 }
-                fragments.push(vec.into());
+                let fragment = Fragment::new(len, vec);
+                fragments.push(fragment);
             }
         }
 

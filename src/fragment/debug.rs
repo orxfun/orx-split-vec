@@ -6,6 +6,6 @@ where
     T: Debug,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        self.data.fmt(f)
+        self.as_slice().fmt(f)
     }
 }

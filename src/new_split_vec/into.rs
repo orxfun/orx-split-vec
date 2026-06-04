@@ -40,14 +40,18 @@ where
             value
                 .fragments
                 .into_iter()
-                .map(|x| x.data)
+                .map(|x| x.into_inner())
                 .next()
                 .expect("There exists exactly one fragment")
         } else {
             let mut vec = Vec::with_capacity(value.len());
             vec.reserve(value.len());
             for f in &mut value.fragments {
-                vec.append(&mut f.data);
+                // SAFETY: source will be used to provide elements and it
+                // will be left with zero-length; however, its capacity
+                // will not change.
+                let source = unsafe { f.as_mut_vec() };
+                vec.append(source);
             }
             vec
         }

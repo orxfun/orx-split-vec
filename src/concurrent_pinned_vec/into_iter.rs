@@ -1,7 +1,5 @@
-use crate::{
-    GrowthWithConstantTimeAccess,
-    concurrent_pinned_vec::into_iter_ptr_slices::IntoIterPtrOfConSlices,
-};
+use crate::GrowthWithConstantTimeAccess;
+use crate::concurrent_pinned_vec::into_iter_ptr_slices::IntoIterPtrOfConSlices;
 use alloc::vec::Vec;
 use core::{cell::UnsafeCell, ops::Range};
 
@@ -12,7 +10,7 @@ where
     slices: IntoIterPtrOfConSlices<T, G>,
     len_of_remaining_slices: usize,
     current_ptr: *const T,
-    current_last: *const T,
+    current_len: usize,
 }
 
 impl<T, G> ConcurrentSplitVecIntoIter<T, G>
@@ -31,16 +29,14 @@ where
             slices,
             len_of_remaining_slices,
             current_ptr: core::ptr::null(),
-            current_last: core::ptr::null(),
+            current_len: 0,
         }
     }
 
     fn remaining(&self) -> usize {
         let remaining_current = match self.current_ptr.is_null() {
             true => 0,
-            // SAFETY: whenever current_ptr is not null, we know that current_last is also not
-            // null which is >= current_ptr.
-            false => unsafe { self.current_last.offset_from(self.current_ptr) as usize + 1 },
+            false => self.current_len,
         };
 
         self.len_of_remaining_slices + remaining_current
@@ -49,11 +45,13 @@ where
     fn next_ptr(&mut self) -> Option<*mut T> {
         match self.current_ptr {
             ptr if ptr.is_null() => self.next_slice(),
-            ptr if ptr == self.current_last => {
+            ptr if self.current_len == 1 => {
                 self.current_ptr = core::ptr::null_mut();
+                self.current_len = 0;
                 Some(ptr as *mut T)
             }
             ptr => {
+                self.current_len -= 1;
                 // SAFETY: current_ptr is not the last element, hance current_ptr+1 is in bounds
                 self.current_ptr = unsafe { self.current_ptr.add(1) };
 
@@ -70,7 +68,7 @@ where
             self.len_of_remaining_slices -= len;
             // SAFETY: pointers are not null since slice is not empty
             self.current_ptr = ptr;
-            self.current_last = unsafe { ptr.add(len - 1) };
+            self.current_len = len;
             self.next_ptr()
         })
     }
