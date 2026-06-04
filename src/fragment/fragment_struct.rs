@@ -19,6 +19,7 @@ pub struct Fragment<T> {
 }
 
 impl<T> Fragment<T> {
+    /// Returns the effective capacity of a vector, normalizing zero-sized types.
     pub fn capacity_of_vec(vec: &Vec<T>) -> usize {
         match core::mem::size_of::<T>() == 0 {
             true => ZST_VEC_CAPACITY,
@@ -26,6 +27,7 @@ impl<T> Fragment<T> {
         }
     }
 
+    /// Creates a fragment from `data` with the target logical `capacity`.
     pub fn new(capacity: usize, mut data: Vec<T>) -> Self {
         match core::mem::size_of::<T>() == 0 {
             true => Self { data, capacity },
@@ -62,6 +64,7 @@ impl<T> Fragment<T> {
         Self { data, capacity }
     }
 
+    /// Consumes the fragment and returns the inner vector.
     pub fn into_inner(self) -> Vec<T> {
         self.data
     }
@@ -112,30 +115,36 @@ impl<T> Fragment<T> {
 
     // exposed vec methods
 
+    /// Returns the number of initialized elements in the fragment.
     #[inline(always)]
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
+    /// Returns `true` if the fragment contains no elements.
     #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
 
+    /// Returns the logical capacity of the fragment.
     #[inline(always)]
     pub fn capacity(&self) -> usize {
         self.capacity
     }
 
+    /// Returns a shared slice view of initialized elements.
     pub fn as_slice(&self) -> &[T] {
         &self.data
     }
 
+    /// Returns a raw pointer to the fragment's initialized elements.
     #[inline(always)]
     pub fn as_ptr(&self) -> *const T {
         self.data.as_ptr()
     }
 
+    /// Binary-searches initialized elements with a comparator.
     pub fn binary_search_by<F>(&self, f: F) -> Result<usize, usize>
     where
         F: FnMut(&T) -> Ordering,
@@ -143,25 +152,34 @@ impl<T> Fragment<T> {
         self.data.binary_search_by(f)
     }
 
+    /// Returns an iterator over initialized elements.
     pub fn iter(&self) -> core::slice::Iter<'_, T> {
         self.data.iter()
     }
 
+    /// Returns the last initialized element, if any.
     #[inline(always)]
     pub fn last(&self) -> Option<&T> {
         self.data.last()
     }
 
+    /// Returns the first initialized element, if any.
     #[inline(always)]
     pub fn first(&self) -> Option<&T> {
         self.data.first()
     }
 
+    /// Returns a shared reference to the element at `index`, if present.
     #[inline(always)]
     pub fn get(&self, index: usize) -> Option<&T> {
         self.data.get(index)
     }
 
+    /// Returns a shared reference to the element at `index` without bounds checks.
+    ///
+    /// # Safety
+    ///
+    /// Caller must ensure `index < self.len()`.
     #[inline(always)]
     pub unsafe fn get_unchecked(&self, index: usize) -> &T {
         unsafe { self.data.get_unchecked(index) }
@@ -169,11 +187,17 @@ impl<T> Fragment<T> {
 
     // exposed vec mut methods
 
+    /// Appends an element to the end of initialized region.
     #[inline(always)]
     pub fn push(&mut self, value: T) {
         self.data.push(value);
     }
 
+    /// Sets the initialized length of the fragment.
+    ///
+    /// # Safety
+    ///
+    /// Caller must uphold `Vec::set_len` invariants.
     pub unsafe fn set_len(&mut self, new_len: usize) {
         unsafe { self.data.set_len(new_len) };
     }
@@ -187,11 +211,13 @@ impl<T> Fragment<T> {
         &mut self.data
     }
 
+    /// Returns a mutable raw pointer to initialized elements.
     #[inline(always)]
     pub fn as_mut_ptr(&mut self) -> *mut T {
         self.data.as_mut_ptr()
     }
 
+    /// Clones and appends all elements from `slice`.
     pub fn extend_from_slice(&mut self, slice: &[T])
     where
         T: Clone,
@@ -199,43 +225,56 @@ impl<T> Fragment<T> {
         self.data.extend_from_slice(slice);
     }
 
+    /// Returns a mutable reference to the element at `index` without bounds checks.
+    ///
+    /// # Safety
+    ///
+    /// Caller must ensure `index < self.len()` and aliasing rules are respected.
     #[inline(always)]
     pub unsafe fn get_unchecked_mut(&mut self, index: usize) -> &mut T {
         unsafe { self.data.get_unchecked_mut(index) }
     }
 
+    /// Removes and returns the last element, if any.
     #[inline(always)]
     pub fn pop(&mut self) -> Option<T> {
         self.data.pop()
     }
 
+    /// Inserts `element` at `index`, shifting later elements to the right.
     #[inline(always)]
     pub fn insert(&mut self, index: usize, element: T) {
         self.data.insert(index, element);
     }
 
+    /// Removes and returns the element at `index`, shifting later elements left.
     #[inline(always)]
     pub fn remove(&mut self, index: usize) -> T {
         self.data.remove(index)
     }
 
+    /// Removes all initialized elements from the fragment.
     pub fn clear(&mut self) {
         self.data.clear();
     }
 
+    /// Truncates the initialized length to at most `len`.
     pub fn truncate(&mut self, len: usize) {
         self.data.truncate(len);
     }
 
+    /// Swaps two initialized elements.
     #[inline(always)]
     pub fn swap(&mut self, a: usize, b: usize) {
         self.data.swap(a, b);
     }
 
+    /// Returns a mutable iterator over initialized elements.
     pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, T> {
         self.data.iter_mut()
     }
 
+    /// Sorts initialized elements with the given comparator.
     pub fn sort_by<F>(&mut self, compare: F)
     where
         F: FnMut(&T, &T) -> Ordering,
