@@ -9,19 +9,26 @@ pub trait IntoFragments<T> {
 
 impl<T> IntoFragments<T> for Vec<T> {
     fn into_fragments(self) -> impl Iterator<Item = Fragment<T>> {
-        [Fragment::from(self)].into_iter()
+        let cap = Fragment::capacity_of_vec(&self);
+        [Fragment::new_from_vec(self, cap)].into_iter()
     }
 }
 
 impl<T, const N: usize> IntoFragments<T> for [Vec<T>; N] {
     fn into_fragments(self) -> impl Iterator<Item = Fragment<T>> {
-        self.into_iter().map(Fragment::from)
+        self.into_iter().map(|x| {
+            let cap = Fragment::capacity_of_vec(&x);
+            Fragment::new_from_vec(x, cap)
+        })
     }
 }
 
 impl<T> IntoFragments<T> for Vec<Vec<T>> {
     fn into_fragments(self) -> impl Iterator<Item = Fragment<T>> {
-        self.into_iter().map(Fragment::from)
+        self.into_iter().map(|x| {
+            let cap = Fragment::capacity_of_vec(&x);
+            Fragment::new_from_vec(x, cap)
+        })
     }
 }
 
