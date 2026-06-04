@@ -1,6 +1,6 @@
 use crate::Fragment;
 use alloc::vec::Vec;
-use core::ops::{Deref, DerefMut};
+use core::ops::Deref;
 
 impl<T> Deref for Fragment<T> {
     type Target = Vec<T>;
@@ -8,9 +8,3 @@ impl<T> Deref for Fragment<T> {
         &self.data
     }
 }
-
-// impl<T> DerefMut for Fragment<T> {
-//     fn deref_mut(&mut self) -> &mut Self::Target {
-//         &mut self.data
-//     }
-// }
