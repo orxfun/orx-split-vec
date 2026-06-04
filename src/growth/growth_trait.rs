@@ -158,7 +158,7 @@ pub trait Growth: Clone + PseudoDefault + Send + Sync {
         } else {
             let mut cloned: Vec<Fragment<T>> = Vec::with_capacity(fragments_capacity);
             for fragment in fragments {
-                let fragment = Fragment::new_empty(fragment.capacity);
+                let fragment = Fragment::new_empty(fragment.capacity());
                 cloned.push(fragment);
             }
             for _ in fragments.len()..fragments_capacity {
@@ -188,7 +188,7 @@ pub trait Growth: Clone + PseudoDefault + Send + Sync {
 
         let mut cloned: Vec<Fragment<T>> = Vec::new();
         for fragment in fragments {
-            let fragment = Fragment::new_empty(fragment.capacity);
+            let fragment = Fragment::new_empty(fragment.capacity());
             cloned.push(fragment);
         }
 

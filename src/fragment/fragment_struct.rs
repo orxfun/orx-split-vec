@@ -13,7 +13,7 @@ const ZST_VEC_CAPACITY: usize = 4;
 #[derive(Default)]
 pub struct Fragment<T> {
     pub(crate) data: Vec<T>,
-    pub(crate) capacity: usize,
+    capacity: usize,
 }
 
 impl<T> Fragment<T> {
