@@ -9,7 +9,7 @@ use test_case::test_case;
 #[test]
 fn insertion_position() {
     let vec = alloc::vec![4, 7, 9, 13, 16, 17, 23];
-    let fragment = Fragment::new(vec, vec.capacity());
+    let fragment = Fragment::new(vec.capacity(), vec);
 
     let mut c = |a: &u32, b: &u32| a.cmp(b);
     let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
@@ -53,15 +53,15 @@ fn insertion_position() {
 fn insertion_position_with_ties() {
     let mut c = |a: &u32, b: &u32| a.cmp(b);
 
-    let fragment: Fragment<u32> = alloc::vec![4, 7, 13, 13, 13, 17, 23].into();
+    let fragment: Fragment<u32> = Fragment::new(12, alloc::vec![4, 7, 13, 13, 13, 17, 23]);
     let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
     assert_eq!(pos(&13), Some(2));
 
-    let fragment: Fragment<u32> = alloc::vec![4, 7, 13, 13, 23, 23, 23].into();
+    let fragment: Fragment<u32> = Fragment::new(12, alloc::vec![4, 7, 13, 13, 23, 23, 23]);
     let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
     assert_eq!(pos(&23), Some(4));
 
-    let fragment: Fragment<u32> = alloc::vec![4, 4, 13, 13, 23, 23, 23].into();
+    let fragment: Fragment<u32> = Fragment::new(12, alloc::vec![4, 4, 13, 13, 23, 23, 23]);
     let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
     assert_eq!(pos(&4), None);
 }
@@ -71,9 +71,9 @@ fn sort_simple() {
     let mut c = |a: &u32, b: &u32| a.cmp(b);
 
     let mut fragments: Vec<Fragment<u32>> = alloc::vec![
-        alloc::vec![2, 4].into(),
-        alloc::vec![0, 5, 6].into(),
-        alloc::vec![1, 3].into()
+        Fragment::new(4, alloc::vec![2, 4]),
+        Fragment::new(4, alloc::vec![0, 5, 6]),
+        Fragment::new(4, alloc::vec![1, 3]),
     ];
 
     in_place_sort_by(&mut fragments, &mut c);
