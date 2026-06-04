@@ -17,7 +17,7 @@ impl<T, G: Growth> PseudoDefault for SplitVec<T, G> {
     fn pseudo_default() -> Self {
         let growth = G::pseudo_default();
         let capacity = growth.first_fragment_capacity();
-        let fragments = alloc::vec![Fragment::new(capacity)];
+        let fragments = alloc::vec![Fragment::new_empty(capacity)];
         Self::from_raw_parts(0, fragments, growth)
     }
 }

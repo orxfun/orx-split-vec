@@ -234,7 +234,7 @@ where
     fn add_fragment_get_fragment_capacity(&mut self, zeroed: bool) -> usize {
         let new_fragment_capacity = self.growth.new_fragment_capacity(&self.fragments);
 
-        let mut new_fragment = Fragment::new(new_fragment_capacity);
+        let mut new_fragment = Fragment::new_empty(new_fragment_capacity);
         if zeroed {
             // SAFETY: new_fragment empty with len=0, zeroed elements will not be read with safe api
             unsafe { new_fragment.zero() };

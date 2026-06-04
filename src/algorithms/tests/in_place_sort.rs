@@ -97,7 +97,7 @@ fn sort_growth(growth: impl Growth) {
     for _ in 0..num_fragments {
         let fragment_capacities: Vec<_> = fragments.iter().map(|x| x.capacity()).collect();
         let mut fragment =
-            Fragment::new(growth.new_fragment_capacity_from(fragment_capacities.into_iter()));
+            Fragment::new_empty(growth.new_fragment_capacity_from(fragment_capacities.into_iter()));
         for i in 0..fragment.capacity() {
             let i = len + i;
             let value = match i % 3 {

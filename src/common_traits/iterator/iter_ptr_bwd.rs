@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn ptr_bwd_one_empty_fragment() {
-        let fragment = Fragment::new(2);
+        let fragment = Fragment::new_empty(2);
         let mut fragments: Vec<Fragment<String>> = Vec::with_capacity(4);
         fragments.push(fragment);
 
@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn ptr_bwd_one_non_empty_fragment() {
-        let mut fragment = Fragment::new(3);
+        let mut fragment = Fragment::new_empty(3);
         fragment.push(0.to_string());
         fragment.push(1.to_string());
 
@@ -109,7 +109,7 @@ mod tests {
 
         let prior = 0;
         let n = 4;
-        let mut fragment = Fragment::new(n);
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -117,7 +117,7 @@ mod tests {
 
         let prior = prior + n;
         let n = 8;
-        let mut fragment = Fragment::new(n);
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -125,7 +125,7 @@ mod tests {
 
         let prior = prior + n;
         let n = 16;
-        let mut fragment = Fragment::new(n);
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -152,7 +152,7 @@ mod tests {
 
         let prior = 0;
         let n = 4;
-        let mut fragment = Fragment::new(n);
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -160,7 +160,7 @@ mod tests {
 
         let prior = prior + n;
         let n = 8;
-        let mut fragment = Fragment::new(n);
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -168,7 +168,7 @@ mod tests {
 
         let prior = prior + n;
         let n = 16;
-        let mut fragment = Fragment::new(n);
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..(n / 2) {
             fragment.push((prior + i).to_string());
         }
@@ -195,7 +195,7 @@ mod tests {
 
         let prior = 0;
         let n = 4;
-        let mut fragment = Fragment::new(n);
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -203,7 +203,7 @@ mod tests {
 
         let prior = prior + n;
         let n = 8;
-        let mut fragment = Fragment::new(n);
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -211,7 +211,7 @@ mod tests {
 
         let prior = prior + n;
         let n = 16;
-        let mut fragment = Fragment::new(n);
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..(n / 2) {
             fragment.push((prior + i).to_string());
         }

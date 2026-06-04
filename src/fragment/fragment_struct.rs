@@ -1,5 +1,7 @@
 use alloc::vec::Vec;
 
+const ZST_VEC_CAPACITY: usize = 4;
+
 /// A contiguous fragment of the split vector.
 ///
 /// Suppose a split vector contains 10 integers from 0 to 9.
@@ -9,10 +11,29 @@ use alloc::vec::Vec;
 #[derive(Default)]
 pub struct Fragment<T> {
     pub(crate) data: Vec<T>,
-    capacity: usize,
+    pub(crate) capacity: usize,
 }
 
 impl<T> Fragment<T> {
+    pub fn capacity_of_vec(vec: &Vec<T>) -> usize {
+        match core::mem::size_of::<T>() == 0 {
+            true => ZST_VEC_CAPACITY,
+            false => vec.capacity(),
+        }
+    }
+
+    pub fn new(mut data: Vec<T>, capacity: usize) -> Self {
+        match core::mem::size_of::<T>() == 0 {
+            true => Self { data, capacity },
+            false => {
+                if data.capacity() < capacity {
+                    data.reserve(capacity - data.capacity());
+                }
+                Self { data, capacity }
+            }
+        }
+    }
+
     /// Creates a new fragment with the given `capacity` and pushes already the `first_value`.
     pub fn new_with_first_value(capacity: usize, first_value: T) -> Self {
         let mut data = Vec::with_capacity(capacity);
@@ -21,7 +42,7 @@ impl<T> Fragment<T> {
     }
 
     /// Creates a new fragment with the given `capacity`.
-    pub fn new(capacity: usize) -> Self {
+    pub fn new_empty(capacity: usize) -> Self {
         Self {
             data: Vec::with_capacity(capacity),
             capacity,
@@ -107,7 +128,7 @@ mod tests {
 
     #[test]
     fn zeroed() {
-        let mut fragment: Fragment<i32> = Fragment::new(4);
+        let mut fragment: Fragment<i32> = Fragment::new_empty(4);
         unsafe { fragment.zero() };
         unsafe { fragment.set_len(4) };
         let zero: i32 = unsafe { core::mem::zeroed() };
