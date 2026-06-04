@@ -1,6 +1,5 @@
-use core::{cmp::Ordering, ops::Range};
-
 use alloc::vec::Vec;
+use core::cmp::Ordering;
 
 const ZST_VEC_CAPACITY: usize = 4;
 
@@ -12,7 +11,7 @@ const ZST_VEC_CAPACITY: usize = 4;
 /// say [0, 1, 2, 3], [4, 5, 6, 7] and [8, 9].
 #[derive(Default)]
 pub struct Fragment<T> {
-    pub(crate) data: Vec<T>,
+    pub(super) data: Vec<T>,
     capacity: usize,
 }
 
@@ -58,6 +57,10 @@ impl<T> Fragment<T> {
             data.push(f());
         }
         Self { data, capacity }
+    }
+
+    pub fn into_inner(self) -> Vec<T> {
+        self.data
     }
 
     /// Returns whether the fragment has room to push a new item or not.
@@ -170,6 +173,15 @@ impl<T> Fragment<T> {
 
     pub unsafe fn set_len(&mut self, new_len: usize) {
         unsafe { self.data.set_len(new_len) };
+    }
+
+    /// # SAFETY
+    ///
+    /// Obtained reference to the vector can be used to change the length of the vector
+    /// by adding or removing elements; however, it must not change the capacity and
+    /// underlying allocation of the vector.
+    pub unsafe fn as_mut_vec(&mut self) -> &mut Vec<T> {
+        &mut self.data
     }
 
     #[inline(always)]

@@ -70,7 +70,7 @@ pub(crate) fn are_fragments_eq_to_slice<T: PartialEq>(
     for fragment in fragments {
         let slice_end = slice_beg + fragment.len();
         let slice_of_slice = &slice[slice_beg..slice_end];
-        if fragment.data != slice_of_slice {
+        if fragment.as_slice() != slice_of_slice {
             return false;
         }
         slice_beg = slice_end;

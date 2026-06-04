@@ -6,4 +6,5 @@ pub(crate) mod fragment_struct;
 mod from;
 mod index;
 pub(crate) mod into_fragments;
+mod into_iter;
 pub(crate) mod transformations;
