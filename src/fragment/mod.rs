@@ -5,5 +5,6 @@ mod deref;
 mod eq;
 pub(crate) mod fragment_struct;
 mod from;
+mod index;
 pub(crate) mod into_fragments;
 pub(crate) mod transformations;

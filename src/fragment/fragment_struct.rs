@@ -1,3 +1,5 @@
+use core::ops::Range;
+
 use alloc::vec::Vec;
 
 const ZST_VEC_CAPACITY: usize = 4;
@@ -100,6 +102,66 @@ impl<T> Fragment<T> {
         slice
             .iter_mut()
             .for_each(|m| *m = unsafe { core::mem::zeroed() });
+    }
+
+    // exposed vec methods
+
+    #[inline(always)]
+    pub fn push(&mut self, value: T) {
+        self.data.push(value);
+    }
+
+    pub unsafe fn set_len(&mut self, new_len: usize) {
+        unsafe { self.data.set_len(new_len) };
+    }
+
+    #[inline(always)]
+    pub fn as_mut_ptr(&mut self) -> *mut T {
+        self.data.as_mut_ptr()
+    }
+
+    pub fn extend_from_slice(&mut self, slice: &[T])
+    where
+        T: Clone,
+    {
+        self.data.extend_from_slice(slice);
+    }
+
+    #[inline(always)]
+    pub unsafe fn get_unchecked_mut(&mut self, index: usize) -> &mut T {
+        unsafe { self.data.get_unchecked_mut(index) }
+    }
+
+    #[inline(always)]
+    pub fn pop(&mut self) -> Option<T> {
+        self.data.pop()
+    }
+
+    #[inline(always)]
+    pub fn insert(&mut self, index: usize, element: T) {
+        self.data.insert(index, element);
+    }
+
+    #[inline(always)]
+    pub fn remove(&mut self, index: usize) -> T {
+        self.data.remove(index)
+    }
+
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
+
+    pub fn truncate(&mut self, len: usize) {
+        self.data.truncate(len);
+    }
+
+    #[inline(always)]
+    pub fn swap(&mut self, a: usize, b: usize) {
+        self.data.swap(a, b);
+    }
+
+    pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, T> {
+        self.data.iter_mut()
     }
 }
 

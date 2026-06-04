@@ -9,8 +9,8 @@ impl<T> Deref for Fragment<T> {
     }
 }
 
-impl<T> DerefMut for Fragment<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
-    }
-}
+// impl<T> DerefMut for Fragment<T> {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         &mut self.data
+//     }
+// }
