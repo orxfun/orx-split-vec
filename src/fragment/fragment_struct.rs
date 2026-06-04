@@ -107,6 +107,63 @@ impl<T> Fragment<T> {
     // exposed vec methods
 
     #[inline(always)]
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+
+    #[inline(always)]
+    pub fn capacity(&self) -> usize {
+        self.capacity
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.data
+    }
+
+    #[inline(always)]
+    pub fn as_ptr(&self) -> *const T {
+        self.data.as_ptr()
+    }
+
+    pub fn binary_search_by<F>(&self, f: F) -> Result<usize, usize>
+    where
+        F: FnMut(&T) -> Ordering,
+    {
+        self.data.binary_search_by(f)
+    }
+
+    pub fn iter(&self) -> core::slice::Iter<'_, T> {
+        self.data.iter()
+    }
+
+    #[inline(always)]
+    pub fn last(&self) -> Option<&T> {
+        self.data.last()
+    }
+
+    #[inline(always)]
+    pub fn first(&self) -> Option<&T> {
+        self.data.first()
+    }
+
+    #[inline(always)]
+    pub fn get(&self, index: usize) -> Option<&T> {
+        self.data.get(index)
+    }
+
+    #[inline(always)]
+    pub unsafe fn get_unchecked(&self, index: usize) -> &T {
+        unsafe { self.data.get_unchecked(index) }
+    }
+
+    // exposed vec mut methods
+
+    #[inline(always)]
     pub fn push(&mut self, value: T) {
         self.data.push(value);
     }

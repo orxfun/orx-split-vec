@@ -12,7 +12,7 @@ fn insertion_position() {
     let fragment = Fragment::new(vec.capacity(), vec);
 
     let mut c = |a: &u32, b: &u32| a.cmp(b);
-    let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
+    let mut pos = |val: &u32| find_position_to_insert(fragment.as_slice(), &mut c, val);
 
     assert_eq!(pos(&0), None);
     assert_eq!(pos(&3), None);
@@ -54,15 +54,15 @@ fn insertion_position_with_ties() {
     let mut c = |a: &u32, b: &u32| a.cmp(b);
 
     let fragment: Fragment<u32> = Fragment::new(12, alloc::vec![4, 7, 13, 13, 13, 17, 23]);
-    let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
+    let mut pos = |val: &u32| find_position_to_insert(fragment.as_slice(), &mut c, val);
     assert_eq!(pos(&13), Some(2));
 
     let fragment: Fragment<u32> = Fragment::new(12, alloc::vec![4, 7, 13, 13, 23, 23, 23]);
-    let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
+    let mut pos = |val: &u32| find_position_to_insert(fragment.as_slice(), &mut c, val);
     assert_eq!(pos(&23), Some(4));
 
     let fragment: Fragment<u32> = Fragment::new(12, alloc::vec![4, 4, 13, 13, 23, 23, 23]);
-    let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);
+    let mut pos = |val: &u32| find_position_to_insert(fragment.as_slice(), &mut c, val);
     assert_eq!(pos(&4), None);
 }
 

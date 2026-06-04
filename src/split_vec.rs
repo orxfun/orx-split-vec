@@ -309,10 +309,10 @@ mod tests {
             let mut combined = vec![];
             let mut combined_mut = vec![];
             for fra in vec.fragments() {
-                combined.extend_from_slice(fra);
+                combined.extend_from_slice(fra.as_slice());
             }
             for fra in unsafe { vec.fragments_mut() } {
-                combined_mut.extend_from_slice(fra);
+                combined_mut.extend_from_slice(fra.as_slice());
             }
 
             for i in 0..42 {
