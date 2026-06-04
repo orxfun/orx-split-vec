@@ -20,7 +20,7 @@ pub struct Fragment<T> {
 
 impl<T> Fragment<T> {
     /// Returns the effective capacity of a vector, normalizing zero-sized types.
-    pub fn capacity_of_vec(vec: &Vec<T>) -> usize {
+    pub(crate) fn capacity_of_vec(vec: &Vec<T>) -> usize {
         match core::mem::size_of::<T>() == 0 {
             true => ZST_VEC_CAPACITY,
             false => vec.capacity(),
@@ -38,13 +38,6 @@ impl<T> Fragment<T> {
                 Self { data, capacity }
             }
         }
-    }
-
-    /// Creates a new fragment with the given `capacity` and pushes already the `first_value`.
-    pub fn new_with_first_value(capacity: usize, first_value: T) -> Self {
-        let mut data = Vec::with_capacity(capacity);
-        data.push(first_value);
-        Self { data, capacity }
     }
 
     /// Creates a new fragment with the given `capacity`.

@@ -247,7 +247,8 @@ where
 
     pub(crate) fn add_fragment_with_first_value(&mut self, first_value: T) {
         let capacity = self.growth.new_fragment_capacity(&self.fragments);
-        let new_fragment = Fragment::new_with_first_value(capacity, first_value);
+        let mut new_fragment = Fragment::new_empty(capacity);
+        new_fragment.push(first_value);
         self.fragments.push(new_fragment);
     }
 
