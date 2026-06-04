@@ -246,10 +246,7 @@ mod tests {
         let mut fragments: Vec<Fragment<_>> = vecs
             .clone()
             .into_iter()
-            .map(|x| {
-                let cap = x.capacity();
-                Fragment::new(x, cap)
-            })
+            .map(|x| Fragment::new(x.capacity(), x))
             .collect();
         let len = fragments.iter().map(|x| x.len()).sum();
 
@@ -289,7 +286,7 @@ mod tests {
                     vec.push(index);
                     index += 1;
                 }
-                let fragment = Fragment::new(vec, len);
+                let fragment = Fragment::new(len, vec);
                 fragments.push(fragment);
             }
         }

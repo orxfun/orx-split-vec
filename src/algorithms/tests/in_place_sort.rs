@@ -8,7 +8,8 @@ use test_case::test_case;
 
 #[test]
 fn insertion_position() {
-    let fragment: Fragment<u32> = alloc::vec![4, 7, 9, 13, 16, 17, 23].into();
+    let vec = alloc::vec![4, 7, 9, 13, 16, 17, 23];
+    let fragment = Fragment::new(vec, vec.capacity());
 
     let mut c = |a: &u32, b: &u32| a.cmp(b);
     let mut pos = |val: &u32| find_position_to_insert(&fragment, &mut c, val);

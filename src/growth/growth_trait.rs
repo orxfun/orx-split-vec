@@ -158,11 +158,12 @@ pub trait Growth: Clone + PseudoDefault + Send + Sync {
         } else {
             let mut cloned: Vec<Fragment<T>> = Vec::with_capacity(fragments_capacity);
             for fragment in fragments {
-                cloned.push(Vec::with_capacity(fragment.capacity()).into());
+                let fragment = Fragment::new_empty(fragment.capacity);
+                cloned.push(fragment);
             }
             for _ in fragments.len()..fragments_capacity {
                 let new_capacity = self.new_fragment_capacity(&cloned);
-                let fragment = Vec::with_capacity(new_capacity).into();
+                let fragment = Fragment::new_empty(new_capacity);
                 cloned.push(fragment);
             }
             cloned.iter().map(|x| x.capacity()).sum()
@@ -187,7 +188,8 @@ pub trait Growth: Clone + PseudoDefault + Send + Sync {
 
         let mut cloned: Vec<Fragment<T>> = Vec::new();
         for fragment in fragments {
-            cloned.push(Vec::with_capacity(fragment.capacity()).into());
+            let fragment = Fragment::new_empty(fragment.capacity);
+            cloned.push(fragment);
         }
 
         let mut num_fragments = cloned.len();
@@ -200,7 +202,7 @@ pub trait Growth: Clone + PseudoDefault + Send + Sync {
                 return Err(overflown_err());
             }
 
-            let fragment = Vec::with_capacity(new_capacity).into();
+            let fragment = Fragment::new_empty(new_capacity);
             cloned.push(fragment);
 
             current_capacity = new_current_capacity;

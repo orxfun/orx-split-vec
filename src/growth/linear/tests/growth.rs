@@ -29,14 +29,14 @@ fn indices() {
     fn new_full() -> Fragment<usize> {
         let mut vec = Vec::with_capacity(4);
         vec.extend(0..4);
-        Fragment::new(vec, 4)
+        Fragment::new(4, vec)
     }
     fn new_half() -> Fragment<usize> {
         let mut vec = Vec::with_capacity(8);
         for i in 0..4 {
             vec.push(10 + i);
         }
-        Fragment::new(vec, 8)
+        Fragment::new(8, vec)
     }
 
     let growth = Doubling;

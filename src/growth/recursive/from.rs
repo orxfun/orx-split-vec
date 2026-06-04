@@ -73,8 +73,7 @@ impl<T> From<Vec<T>> for SplitVec<T, Recursive> {
     /// assert!(vec_capacity <= split_vec.capacity());
     /// ```
     fn from(value: Vec<T>) -> Self {
-        let capacity = Fragment::capacity_of_vec(&value);
-        let fragment = Fragment::new(value, capacity);
+        let fragment = Fragment::new(Fragment::capacity_of_vec(&value), value);
         SplitVec::from_raw_parts(fragment.len(), alloc::vec![fragment], Recursive)
     }
 }

@@ -31,8 +31,7 @@ impl<T> From<Vec<T>> for SplitVec<T, Linear> {
             .map(|(f, _)| f)
             .expect("overflow");
         let growth = Linear::new(f);
-        let capacity = Fragment::capacity_of_vec(&value);
-        let fragment = Fragment::new(value, capacity);
+        let fragment = Fragment::new(Fragment::capacity_of_vec(&value), value);
         let fragments = alloc::vec![fragment];
         Self::from_raw_parts(len, fragments, growth)
     }
