@@ -11,7 +11,7 @@ const ZST_VEC_CAPACITY: usize = 4;
 /// say [0, 1, 2, 3], [4, 5, 6, 7] and [8, 9].
 #[derive(Default)]
 pub struct Fragment<T> {
-    pub(super) data: Vec<T>,
+    data: Vec<T>,
     capacity: usize,
 }
 
