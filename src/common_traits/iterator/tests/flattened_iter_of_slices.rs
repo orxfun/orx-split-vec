@@ -81,11 +81,9 @@ fn flattened_slices_iter_empty() {
 fn flattened_slices_iter_fused() {
     let vec = init_vec(SplitVec::new(), 100);
     let mut iter = FlattenedIterOfSlices::<_, SliceBorrowAsRef>::new(&vec, 3..87);
-    let mut expected = 3;
 
-    while let Some(x) = iter.next() {
+    for (expected, x) in (3..).zip(iter.by_ref()) {
         assert_eq!(*x, expected);
-        expected += 1;
     }
 
     assert!(iter.next().is_none());

@@ -1,7 +1,5 @@
-use crate::{
-    Fragment,
-    pointers::{PtrBackward, Ptrs},
-};
+use crate::Fragment;
+use crate::pointers::{PtrBackward, Ptrs};
 use core::iter::FusedIterator;
 
 #[derive(Copy)]
@@ -79,7 +77,7 @@ mod tests {
 
     #[test]
     fn ptr_bwd_one_empty_fragment() {
-        let fragment: Fragment<String> = Vec::with_capacity(2).into();
+        let fragment = Fragment::new_empty(2);
         let mut fragments: Vec<Fragment<String>> = Vec::with_capacity(4);
         fragments.push(fragment);
 
@@ -91,7 +89,7 @@ mod tests {
 
     #[test]
     fn ptr_bwd_one_non_empty_fragment() {
-        let mut fragment: Fragment<String> = Vec::with_capacity(3).into();
+        let mut fragment = Fragment::new_empty(3);
         fragment.push(0.to_string());
         fragment.push(1.to_string());
 
@@ -111,7 +109,7 @@ mod tests {
 
         let prior = 0;
         let n = 4;
-        let mut fragment: Fragment<String> = Vec::with_capacity(n).into();
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -119,7 +117,7 @@ mod tests {
 
         let prior = prior + n;
         let n = 8;
-        let mut fragment: Fragment<String> = Vec::with_capacity(n).into();
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -127,7 +125,7 @@ mod tests {
 
         let prior = prior + n;
         let n = 16;
-        let mut fragment: Fragment<String> = Vec::with_capacity(n).into();
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -135,8 +133,8 @@ mod tests {
 
         let mut iter = IterPtrBackward::from(fragments.as_slice());
         let mut value = 4 + 8 + 16 - 1;
-        for f in 0..fragments.len() {
-            for _ in 0..fragments[f].len() {
+        for fragment in &fragments {
+            for _ in 0..fragment.len() {
                 assert_eq!(
                     iter.next().map(|p| unsafe { &*p }),
                     Some(&value.to_string())
@@ -154,7 +152,7 @@ mod tests {
 
         let prior = 0;
         let n = 4;
-        let mut fragment: Fragment<String> = Vec::with_capacity(n).into();
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -162,7 +160,7 @@ mod tests {
 
         let prior = prior + n;
         let n = 8;
-        let mut fragment: Fragment<String> = Vec::with_capacity(n).into();
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -170,7 +168,7 @@ mod tests {
 
         let prior = prior + n;
         let n = 16;
-        let mut fragment: Fragment<String> = Vec::with_capacity(n).into();
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..(n / 2) {
             fragment.push((prior + i).to_string());
         }
@@ -178,8 +176,8 @@ mod tests {
 
         let mut iter = IterPtrBackward::from(fragments.as_slice());
         let mut value = 4 + 8 + 8 - 1;
-        for f in 0..fragments.len() {
-            for _ in 0..fragments[f].len() {
+        for fragment in &fragments {
+            for _ in 0..fragment.len() {
                 assert_eq!(
                     iter.next().map(|p| unsafe { &*p }),
                     Some(&value.to_string())
@@ -197,7 +195,7 @@ mod tests {
 
         let prior = 0;
         let n = 4;
-        let mut fragment: Fragment<String> = Vec::with_capacity(n).into();
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -205,7 +203,7 @@ mod tests {
 
         let prior = prior + n;
         let n = 8;
-        let mut fragment: Fragment<String> = Vec::with_capacity(n).into();
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..n {
             fragment.push((prior + i).to_string());
         }
@@ -213,7 +211,7 @@ mod tests {
 
         let prior = prior + n;
         let n = 16;
-        let mut fragment: Fragment<String> = Vec::with_capacity(n).into();
+        let mut fragment = Fragment::new_empty(n);
         for i in 0..(n / 2) {
             fragment.push((prior + i).to_string());
         }
@@ -228,13 +226,11 @@ mod tests {
                 if f > 0 {
                     let first = {
                         let f = unsafe { &*fragments.as_ptr().add(f - 1) };
-                        let p = unsafe { f.as_ptr().add(0) } as *mut String;
-                        p
+                        (unsafe { f.as_ptr().add(0) } as *mut String)
                     };
                     let second = {
                         let f = unsafe { &*fragments.as_ptr().add(f) };
-                        let p = unsafe { f.as_ptr().add(i) } as *mut String;
-                        p
+                        (unsafe { f.as_ptr().add(i) } as *mut String)
                     };
                     unsafe { first.swap(second) };
                 }

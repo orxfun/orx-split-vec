@@ -55,7 +55,8 @@ impl<T> From<Vec<T>> for SplitVec<T, Doubling> {
                     copy_len,
                 );
             }
-            fragments_init[curr_f] = MaybeUninit::new(Fragment::from(fragment_data));
+            let fragment = Fragment::new(capacity, fragment_data);
+            fragments_init[curr_f] = MaybeUninit::new(fragment);
         }
         debug_assert_eq!(curr_f, 0);
         unsafe { fragments.set_len(f) };

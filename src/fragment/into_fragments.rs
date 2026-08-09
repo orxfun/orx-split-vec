@@ -9,19 +9,21 @@ pub trait IntoFragments<T> {
 
 impl<T> IntoFragments<T> for Vec<T> {
     fn into_fragments(self) -> impl Iterator<Item = Fragment<T>> {
-        [Fragment::from(self)].into_iter()
+        [Fragment::new(Fragment::capacity_of_vec(&self), self)].into_iter()
     }
 }
 
 impl<T, const N: usize> IntoFragments<T> for [Vec<T>; N] {
     fn into_fragments(self) -> impl Iterator<Item = Fragment<T>> {
-        self.into_iter().map(Fragment::from)
+        self.into_iter()
+            .map(|x| Fragment::new(Fragment::capacity_of_vec(&x), x))
     }
 }
 
 impl<T> IntoFragments<T> for Vec<Vec<T>> {
     fn into_fragments(self) -> impl Iterator<Item = Fragment<T>> {
-        self.into_iter().map(Fragment::from)
+        self.into_iter()
+            .map(|x| Fragment::new(Fragment::capacity_of_vec(&x), x))
     }
 }
 

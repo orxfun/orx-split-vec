@@ -1,5 +1,5 @@
 use crate::algorithms::binary_search::binary_search_by;
-use crate::{Growth, SplitVec, test_all_growth_types};
+use crate::{Fragment, Growth, SplitVec, test_all_growth_types};
 use core::cmp::Ordering;
 use orx_pinned_vec::PinnedVec;
 
@@ -20,14 +20,17 @@ fn bin_search_empty() {
 fn bin_search_empty_first_fragment() {
     let cmp = get_compare(42);
 
-    let fragments = alloc::vec![alloc::vec![].into()];
+    let fragments = alloc::vec![Fragment::new_empty(4)];
     let result = binary_search_by(&fragments, cmp);
     assert_eq!(result, Err(0));
 }
 
 #[test]
 fn bin_search_empty_second_fragment() {
-    let fragments = alloc::vec![alloc::vec![1, 4, 5].into(), alloc::vec![].into()];
+    let fragments = alloc::vec![
+        Fragment::new(4, alloc::vec![1, 4, 5]),
+        Fragment::new_empty(4)
+    ];
 
     let result = binary_search_by(&fragments, get_compare(0));
     assert_eq!(result, Err(0));
@@ -51,9 +54,9 @@ fn bin_search_empty_second_fragment() {
 #[test]
 fn bin_search_three_fragments() {
     let fragments = alloc::vec![
-        alloc::vec![1, 4, 5].into(),
-        alloc::vec![7].into(),
-        alloc::vec![9, 10].into()
+        Fragment::new(3, alloc::vec![1, 4, 5]),
+        Fragment::new(1, alloc::vec![7]),
+        Fragment::new(2, alloc::vec![9, 10]),
     ];
 
     let search = |x| binary_search_by(&fragments, get_compare(x));

@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 #[test]
 fn new_cap() {
     fn new_fra(cap: usize) -> Fragment<usize> {
-        Vec::<usize>::with_capacity(cap).into()
+        Fragment::new_empty(cap)
     }
 
     let growth = Doubling;
@@ -30,14 +30,16 @@ fn indices_panics_when_fragments_is_empty() {
 #[test]
 fn indices() {
     fn new_full() -> Fragment<usize> {
-        (0..4).collect::<Vec<_>>().into()
+        let mut vec = Vec::with_capacity(4);
+        vec.extend(0..4);
+        Fragment::new(4, vec)
     }
     fn new_half() -> Fragment<usize> {
         let mut vec = Vec::with_capacity(8);
         for i in 0..4 {
             vec.push(10 + i);
         }
-        vec.into()
+        Fragment::new(8, vec)
     }
 
     let growth = Doubling;

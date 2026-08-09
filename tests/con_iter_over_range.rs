@@ -2,7 +2,7 @@ use orx_split_vec::*;
 
 #[test]
 fn iter_over_range() {
-    let vec = SplitVec::<_, Doubling>::from_iter([0, 1, 2, 3, 4, 5, 6].into_iter());
+    let vec = SplitVec::<_, Doubling>::from_iter([0, 1, 2, 3, 4, 5, 6]);
     let con_vec = vec.into_concurrent();
 
     unsafe {
@@ -21,6 +21,7 @@ fn iter_over_range() {
         let vec: Vec<_> = con_vec.iter_over_range(4..4).copied().collect();
         assert_eq!(vec, &[]);
 
+        #[allow(clippy::reversed_empty_ranges)]
         let vec: Vec<_> = con_vec.iter_over_range(4..3).copied().collect();
         assert_eq!(vec, &[]);
 

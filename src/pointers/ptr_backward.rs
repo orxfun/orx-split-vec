@@ -54,14 +54,11 @@ impl<T> FusedIterator for PtrBackward<T> {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloc::{
-        string::{String, ToString},
-        vec::Vec,
-    };
+    use alloc::string::{String, ToString};
 
     #[test]
     fn ptr_bwd_empty_fragment() {
-        let fragment: Fragment<String> = Vec::with_capacity(0).into();
+        let fragment = Fragment::<String>::new_empty(0);
 
         let mut iter = PtrBackward::from(&fragment);
         assert_eq!(iter.next(), None);
@@ -70,7 +67,7 @@ mod tests {
 
     #[test]
     fn ptr_bwd_half_full_fragment() {
-        let mut fragment: Fragment<String> = Vec::with_capacity(14).into();
+        let mut fragment = Fragment::new_empty(14);
         for i in 0..9 {
             fragment.push(i.to_string());
         }
@@ -87,7 +84,7 @@ mod tests {
 
     #[test]
     fn ptr_bwd_full_fragment() {
-        let mut fragment: Fragment<String> = Vec::with_capacity(14).into();
+        let mut fragment = Fragment::new_empty(14);
         for i in 0..14 {
             fragment.push(i.to_string());
         }

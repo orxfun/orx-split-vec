@@ -234,7 +234,7 @@ impl<T> SplitVec<T, Doubling> {
     /// assert_eq!(vec.fragments().last().map(|f| f.len()), Some(1));
     /// ```
     pub fn with_doubling_growth() -> Self {
-        let fragments = Fragment::new(FIRST_FRAGMENT_CAPACITY).into_fragments();
+        let fragments = Fragment::new_empty(FIRST_FRAGMENT_CAPACITY).into_fragments();
         Self::from_raw_parts(0, fragments, Doubling)
     }
 
@@ -262,8 +262,8 @@ impl<T> SplitVec<T, Doubling> {
             "fragments_capacity must be within 1..{CAPACITIES_LEN}; however, {fragments_capacity} is provided."
         );
         assert!(fragments_capacity > 0);
-        let fragments =
-            Fragment::new(FIRST_FRAGMENT_CAPACITY).into_fragments_with_capacity(fragments_capacity);
+        let fragments = Fragment::new_empty(FIRST_FRAGMENT_CAPACITY)
+            .into_fragments_with_capacity(fragments_capacity);
         Self::from_raw_parts(0, fragments, Doubling)
     }
 
@@ -273,8 +273,8 @@ impl<T> SplitVec<T, Doubling> {
     /// This method differs from [`SplitVec::with_doubling_growth`] only by the pre-allocation of fragments collection,
     /// which never contains more elements than 33.
     pub fn with_doubling_growth_and_max_concurrent_capacity() -> Self {
-        let fragments =
-            Fragment::new(FIRST_FRAGMENT_CAPACITY).into_fragments_with_capacity(CAPACITIES_LEN);
+        let fragments = Fragment::new_empty(FIRST_FRAGMENT_CAPACITY)
+            .into_fragments_with_capacity(CAPACITIES_LEN);
         Self::from_raw_parts(0, fragments, Doubling)
     }
 }

@@ -9,13 +9,9 @@ where
 {
     fn clone(&self) -> Self {
         let mut fragments = Vec::with_capacity(self.fragments.capacity());
-
         for fragment in &self.fragments {
-            let mut vec = Vec::with_capacity(fragment.capacity());
-            vec.extend_from_slice(fragment);
-            fragments.push(vec.into());
+            fragments.push(fragment.clone());
         }
-
         Self::from_raw_parts(self.len(), fragments, self.growth().clone())
     }
 }

@@ -40,8 +40,8 @@ fn grow<G: Growth>(
 /// It must pass regardless of whether or not the elements
 /// are moved in memory during the growth.
 fn check_current_values(vec: &SplitVec<String, impl Growth>) {
-    for i in 0..vec.len() {
-        assert_eq!(&vec[i], &i.to_string());
+    for (i, elem) in vec.iter().enumerate() {
+        assert_eq!(elem, &i.to_string());
     }
 }
 
@@ -57,7 +57,7 @@ fn check_current_values(vec: &SplitVec<String, impl Growth>) {
 /// It is possible that this test passes even if the elements are
 /// moved in memory in a normal execution. However, it must fail
 /// when executed with miri.
-fn validate_immediate_pointers(immediate_ptrs: &Vec<*const String>) {
+fn validate_immediate_pointers(immediate_ptrs: &[*const String]) {
     for (i, ptr) in immediate_ptrs.iter().copied().enumerate() {
         let elem = unsafe { &*ptr };
         assert_eq!(elem, &i.to_string());
@@ -76,10 +76,9 @@ fn validate_immediate_pointers(immediate_ptrs: &Vec<*const String>) {
 /// iff the memory locations of elements remained intact.
 fn compare_current_and_immediate_pointers(
     vec: &SplitVec<String, impl Growth>,
-    immediate_ptrs: &Vec<*const String>,
+    immediate_ptrs: &[*const String],
 ) {
-    for i in 0..vec.len() {
-        let initial_ptr = immediate_ptrs[i];
+    for (i, initial_ptr) in immediate_ptrs.iter().copied().enumerate() {
         let current_ptr = vec.get_ptr(i).unwrap();
         assert_eq!(initial_ptr, current_ptr);
     }
