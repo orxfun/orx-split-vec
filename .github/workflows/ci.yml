@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  CC_FORCE_DISABLE: 1
 
 jobs:
   build:
