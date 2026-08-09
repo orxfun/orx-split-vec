@@ -36,7 +36,7 @@ jobs:
     - name: Install no-std-check
       run: cargo install cargo-no-std-check
     - name: Install MUSL development tools
-      run: sudo apt-get update && sudo apt-get install -y musl-tool
+      run: sudo apt-get update && sudo apt-get install -y musl-tools
       
     - name: Build
       run: cargo build --verbose
