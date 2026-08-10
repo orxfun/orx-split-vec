@@ -23,9 +23,7 @@ fn linear_from_std_vec<T>(std_vec: Vec<T>) -> SplitVec<T, Linear> {
     SplitVec::from(std_vec)
 }
 
-fn recursive_from_std_vec<T>(
-    std_vec: Vec<T>
-) -> SplitVec<T, Recursive> {
+fn recursive_from_std_vec<T>(std_vec: Vec<T>) -> SplitVec<T, Recursive> {
     SplitVec::from(std_vec)
 }
 
@@ -52,8 +50,8 @@ fn test_for_type<T>(
         group.bench_with_input(
             BenchmarkId::new("recursive_from_std_vec", &treatment),
             n,
-            |b, _| b.iter(|| recursive_from_std_vec(value(black_box(*n))),
-        ));
+            |b, _| b.iter(|| recursive_from_std_vec(value(black_box(*n)))),
+        );
     }
 }
 
