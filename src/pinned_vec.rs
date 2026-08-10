@@ -306,7 +306,6 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     where
         T: Clone,
     {
-        self.len += other.len();
         let mut slice = other;
         while !slice.is_empty() {
             if !self.has_capacity_for_one() {
@@ -329,10 +328,11 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
                 }
             }
         }
+
+        self.len += other.len();
     }
 
     unsafe fn extend_from_nonoverlapping(&mut self, mut src: *const T, count: usize) {
-        self.len += count;
         let mut left = count;
         while left > 0 {
             if !self.has_capacity_for_one() {
@@ -363,6 +363,8 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
                 }
             }
         }
+
+        self.len += count;
     }
 
     /// Returns a reference to the element with the given `index`;
@@ -1366,13 +1368,18 @@ mod tests {
 
         impl Clone for PanicOnClone {
             fn clone(&self) -> Self {
-                assert_eq!(self.0, 33.to_string()); // panics
+                assert_eq!(self.0, 42.to_string()); // panics
                 Self(self.0.clone())
             }
         }
 
         let mut vec = SplitVec::new();
-        let src = alloc::vec![PanicOnClone(42.to_string())];
+        let src = alloc::vec![
+            PanicOnClone(42.to_string()),
+            PanicOnClone(42.to_string()),
+            PanicOnClone(7.to_string()), // will cause the panic
+            PanicOnClone(42.to_string())
+        ];
 
         // Catch the panic but keep `vec` alive afterwards.
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
