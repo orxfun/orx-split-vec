@@ -1357,4 +1357,33 @@ mod tests {
         let vec = SplitVec::<String, Linear>::pseudo_default();
         assert_eq!(vec.len(), 0);
     }
+
+    #[test]
+    fn extend_from_slice_panic_safety() {
+        use alloc::string::ToString;
+
+        struct PanicOnClone(String);
+
+        impl Clone for PanicOnClone {
+            fn clone(&self) -> Self {
+                assert_eq!(self.0, 33.to_string()); // panics
+                Self(self.0.clone())
+            }
+        }
+
+        let mut vec = SplitVec::new();
+        let src = alloc::vec![PanicOnClone(42.to_string())];
+
+        // Catch the panic but keep `vec` alive afterwards.
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            vec.extend_from_slice(&src);
+        }));
+        assert!(result.is_err());
+
+        // `len` was incremented before the clone panicked, so it now counts a slot
+        // that was never initialized. This safe `get` reads that slot.
+        if let Some(v) = vec.get(0) {
+            let _ = v.0.len(); // touch the uninitialized String to force the read
+        }
+    }
 }
