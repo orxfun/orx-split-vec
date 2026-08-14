@@ -599,14 +599,12 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     /// assert_eq!(vec, [1, 2, 3]);
     /// ```
     fn push(&mut self, value: T) {
-        self.len += 1;
-        match self.has_capacity_for_one() {
-            true => {
-                let last_f = self.fragments.len() - 1;
-                self.fragments[last_f].push(value);
-            }
-            false => self.add_fragment_with_first_value(value),
+        if !self.has_capacity_for_one() {
+            self.add_fragment(); // may panic; self.len is unchanged on unwind
         }
+        let last_f = self.fragments.len() - 1;
+        self.fragments[last_f].push(value);
+        self.len += 1;
     }
 
     fn remove(&mut self, index: usize) -> T {
