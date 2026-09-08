@@ -154,6 +154,14 @@ impl Growth for Linear {
         _: &[Fragment<T>],
         maximum_capacity: usize,
     ) -> Result<usize, String> {
+        let bound = self.maximum_concurrent_capacity_bound::<T>(&[], 0);
+        if maximum_capacity > bound {
+            return Err(alloc::format!(
+                "Maximum cumulative capacity that can be reached by the Linear strategy is {}.",
+                bound,
+            ));
+        }
+
         let num_full_fragments = maximum_capacity / self.constant_fragment_capacity;
         let remainder = maximum_capacity % self.constant_fragment_capacity;
         let additional_fragment = if remainder > 0 { 1 } else { 0 };
