@@ -4,11 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_run:
-    workflows:
-      - Rust
-    types:
-      - completed
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,38 +15,36 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release-pr:
-    name: Create or update release PR
-    if: github.event_name == 'push'
+  release:
+    name: Release
     runs-on: ubuntu-latest
+    environment: crates-io
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: release-plz/action@v0.5
+      - name: Run release-plz release
+        uses: release-plz/action@v0.5
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  release-pr:
+    name: Create or update release PR
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Run release-plz release-pr
+        uses: release-plz/action@v0.5
         with:
           command: release-pr
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish:
-    name: Publish release
-    if: >-
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      startsWith(github.event.workflow_run.head_commit.message, 'chore: release v')
-    runs-on: ubuntu-latest
-    environment: crates-io
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-          ref: main
-      - name: Check out verified release commit
-        run: git reset --hard ${{ github.event.workflow_run.head_sha }}
-      - uses: release-plz/action@v0.5
-        with:
-          command: release
-          token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
