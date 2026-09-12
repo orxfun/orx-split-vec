@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0](https://github.com/orxfun/orx-split-vec/compare/v4.0.3...v4.1.0) - 2026-09-12
+
+### Added
+
+- enable imp vec ([#110](https://github.com/orxfun/orx-split-vec/pull/110))
+
+### Other
+
+- Change release_always to false in release-plz.toml ([#109](https://github.com/orxfun/orx-split-vec/pull/109))
+
 ## [4.0.3](https://github.com/orxfun/orx-split-vec/compare/v4.0.2...v4.0.3) - 2026-09-08
 
 ### Fixed
