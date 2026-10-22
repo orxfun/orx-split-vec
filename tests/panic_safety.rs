@@ -11,6 +11,7 @@ struct Elem(Box<u8>);
 impl Drop for Elem {
     fn drop(&mut self) {
         if PANIC_ON_DROP.with(|f| f.replace(false)) {
+            assert_eq!(3, 4);
             panic!("Elem::drop panics"); // once
         }
     }
@@ -20,10 +21,16 @@ enum ShrinkOp {
     Clear,
     Truncate,
     Remove,
+    Pop,
 }
 
-#[test_matrix([ShrinkOp::Clear, ShrinkOp::Truncate])]
-fn panic_in_clear_safety_issue_112(shrink_op: ShrinkOp) {
+#[test_matrix([
+    (ShrinkOp::Clear, 0),
+    (ShrinkOp::Truncate, 1),
+    (ShrinkOp::Remove, 9),
+    (ShrinkOp::Pop, 9),
+])]
+fn panic_in_clear_safety_issue_112((shrink_op, expected_len): (ShrinkOp, usize)) {
     let mut v: SplitVec<Elem, Linear> = SplitVec::with_linear_growth(2); // fragments of 4
     for i in 0..10 {
         v.push(Elem(Box::new(i)));
@@ -33,11 +40,14 @@ fn panic_in_clear_safety_issue_112(shrink_op: ShrinkOp) {
     let _ = catch_unwind(AssertUnwindSafe(|| match shrink_op {
         ShrinkOp::Clear => v.clear(),
         ShrinkOp::Truncate => v.truncate(1),
-        ShrinkOp::Remove => _ = v.remove(9),
+        ShrinkOp::Remove => _ = v.remove(4),
+        ShrinkOp::Pop => _ = v.pop(),
     }));
     println!("len() = {}, fragments = {}", v.len(), v.fragments().len()); // len() is still 10
 
     if let Some(e) = v.get_mut(9) {
         *e = Elem(Box::new(7)) // index 8 maps to a fragment that was dropped
     }
+
+    assert_eq!(v.len(), expected_len);
 }
