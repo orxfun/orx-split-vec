@@ -276,11 +276,11 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
     /// assert!(vec.is_empty());
     /// ```
     fn clear(&mut self) {
+        self.len = 0;
         if !self.fragments.is_empty() {
             self.fragments.truncate(1);
             self.fragments[0].clear();
         }
-        self.len = 0;
     }
 
     /// Clones and appends all elements in a slice to the vec.
