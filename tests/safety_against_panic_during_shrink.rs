@@ -30,7 +30,10 @@ enum ShrinkOp {
     (ShrinkOp::Remove, 9),
     (ShrinkOp::Pop, 9),
 ])]
-fn panic_in_clear_safety_issue_112((shrink_op, expected_len): (ShrinkOp, usize)) {
+/// This test is created against potential safety issues when shrinking methods panics
+/// while dropping the removed elements. See the detailed explanation on the corresponding
+/// [issue](https://github.com/orxfun/orx-split-vec/issues/112).
+fn safety_against_panic_during_shrink((shrink_op, expected_len): (ShrinkOp, usize)) {
     let mut v: SplitVec<Elem, Linear> = SplitVec::with_linear_growth(2); // fragments of 4
     for i in 0..10 {
         v.push(Elem(Box::new(i)));
