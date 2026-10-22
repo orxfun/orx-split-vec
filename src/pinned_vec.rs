@@ -650,9 +650,10 @@ impl<T, G: Growth> PinnedVec<T> for SplitVec<T, G> {
 
     fn truncate(&mut self, len: usize) {
         if let Some((f, i)) = self.get_fragment_and_inner_indices(len) {
+            self.len = len;
+
             self.fragments.truncate(f + 1);
             self.fragments[f].truncate(i);
-            self.len = len;
 
             self.drop_last_empty_fragment();
         }

@@ -22,7 +22,7 @@ enum ShrinkOp {
     Remove,
 }
 
-#[test_matrix([ShrinkOp::Clear])]
+#[test_matrix([ShrinkOp::Clear, ShrinkOp::Truncate])]
 fn panic_in_clear_safety_issue_112(shrink_op: ShrinkOp) {
     let mut v: SplitVec<Elem, Linear> = SplitVec::with_linear_growth(2); // fragments of 4
     for i in 0..10 {
