@@ -45,8 +45,11 @@ fn panic_in_clear_safety_issue_112((shrink_op, expected_len): (ShrinkOp, usize))
     }));
     println!("len() = {}, fragments = {}", v.len(), v.fragments().len()); // len() is still 10
 
-    if let Some(e) = v.get_mut(9) {
-        *e = Elem(Box::new(7)) // index 8 maps to a fragment that was dropped
+    for i in expected_len..10 {
+        assert!(
+            v.get_mut(i).is_none(),
+            "The last element is dropped, we should not have access to this element"
+        );
     }
 
     assert_eq!(v.len(), expected_len);
